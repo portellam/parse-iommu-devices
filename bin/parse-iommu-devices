@@ -1,7 +1,7 @@
-#!/bin/bash/env bash
+#!/bin/bash
 
 #
-# Filename:       parse-iommu-devices.sh
+# Filename:       parse-iommu-devices
 # Description:    Parse, sort, and display hardware devices by IOMMU group.
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
@@ -14,6 +14,7 @@ declare -r SCRIPT_VERSION="1.0.0"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
 
 declare -A ARGUMENTS=(
+  ["GET_MINIMUM_OUTPUT"]=false
   ["GROUPS_TO_READ"]=""
   ["READ_GROUPS"]=false
   ["READ_TYPES"]=false
@@ -37,6 +38,8 @@ declare -A OUTPUTS=(
 function parse_arguments
 {
   while [[ ! -z "${1}" ]]; do
+    # parse_nested_arguments "${1}"   # TODO: FIX ME!
+
     case "${1,,}" in
       "-d" | "--driver" )
           ARGUMENTS["SHOW_ALL"]=false
@@ -51,6 +54,7 @@ function parse_arguments
       "-g" | "--group" )
           ARGUMENTS["READ_GROUPS"]=true
           shift
+          parse_invalid_option "${1}"
           ARGUMENTS["GROUPS_TO_READ"]="${1}"
         ;;
 
@@ -59,9 +63,29 @@ function parse_arguments
           ARGUMENTS["SHOW_HW_IDS"]=true
         ;;
 
+      "-output" | "--get-output" )
+          ARGUMENTS["GET_MINIMUM_OUTPUT"]=true
+        ;;
+
       "-v" | "--vga-index" )
           ARGUMENTS["SHOW_VGA_GROUP_INDEX"]=true
           shift
+          parse_invalid_option "${1}"
+
+          if ! $( \
+            echo "${1}" \
+              | grep --extended-regexp --quiet '^[0-9]+(,[0-9]+)*$'
+            ) || [[ "${1}" -lt 1 ]]; then
+
+            if "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+              exit 1
+            fi
+
+            echo -e "Error: Invalid input or index specified."
+            echo "Please enter a value of '1' or greater."
+            exit 1
+          fi
+
           ARGUMENTS["VGA_GROUP_INDEX_TO_SHOW"]="${1}"
         ;;
 
@@ -73,6 +97,7 @@ function parse_arguments
       "-t" | "--type" )
           ARGUMENTS["READ_TYPES"]=true
           shift
+          parse_invalid_option "${1}"
           ARGUMENTS["TYPES_TO_READ"]="${1}"
         ;;
 
@@ -86,8 +111,7 @@ function parse_arguments
         ;;
 
       * )
-        print_usage
-        exit 1
+        print_invalid_argument
         ;;
 
     esac
@@ -96,27 +120,89 @@ function parse_arguments
   done
 }
 
+function parse_invalid_option
+{
+  if [[ "${1}" != "-"* ]]; then
+    return 0
+  fi
+
+  if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+    echo -e "Error: Invalid option specified."
+  fi
+
+  exit 1
+}
+
+function parse_nested_arguments   # TODO: FIX ME!
+{
+  if [[ -z "${1}" ]]; then
+    return 0
+  fi
+
+  if ! $( \
+    echo "${1}" \
+      | grep --extended-regexp --quiet '^(-[Aa-Zz])*$'
+  ) && [[ "${1}" != "--"* ]]; then
+    print_invalid_argument
+  fi
+
+  for argument in ${1::1}; do
+    argument="-${argument}"
+    echo "Hello World"
+    parse_arguments "${argument}"
+  done
+}
+
+function print_invalid_argument
+{
+  if "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+    exit 1
+  fi
+
+  echo -e "Error: Invalid argument(s) specified."
+
+  print_usage
+  exit 1
+}
+
 function print_usage
 {
-  echo -e "Usage:\tbash ${SCRIPT_NAME} [ARGUMENTS]..."
+  if "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+    return 0
+  fi
+
+  echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]..."
   echo -e "Parse, sort, and display hardware devices by IOMMU group."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
   echo -e "  -h, --help  Print this help and exit."
   echo
 
-  echo -e "  -e, --external [OPTION]     Show only IOMMU groups with external" \
-    "devices." \
+  echo -e "  -o, --get-output           Quiet all output except for" \
+    "device drivers and hardware IDs. Comma delimited."
 
-  echo -e "  -h, --hardware-id [OPTION]  Show hardware IDs."
-  echo -e "  -n, --name [OPTION]         Sort by device name keyword."
-  echo -e "  -d, --driver [OPTION]       Sort by driver keyword."
-  echo -e "  -g, --group [OPTION]        Sort by IOMMU group ID."
-  echo -e "  -t, --type  [OPTION]        Sort by device type keyword."
-  echo -e "  -v, --vga-index  [OPTION]   Sort by the VGA group indices (not IDs)."
+  echo -e "  -d, --driver [OPTION]      Match by device driver keyword." \
+    "Comma delimited."
+
+  echo -e "  -e, --external             Sort only IOMMU groups with external" \
+    "devices."
+
+  echo -e "  -g, --group [OPTION]       Match by IOMMU group ID(s)." \
+    "Comma delimited."
+
+  echo -e "  -h, --hardware-ids         Show device hardware IDs."
+  echo -e "  -n, --names                Show device names."
+
+  echo -e "  -t, --type  [OPTION]       Sort IOMMU groups with device type." \
+    "Comma delimited."
+
+  echo -e "  -v, --vga-index  [OPTION]  Match by the VGA group indices" \
+    "(not IOMMU group IDs). Includes non-VGA groups and matched VGA group." \
+    "Comma delimited."
+
   echo
   echo -e "Examples:"
-  echo -e "  bash ${SCRIPT_NAME} -e -v 1  Show only IOMMU groups with external" \
+  echo -e "  ${SCRIPT_NAME} -e -v 1  Show only IOMMU groups with external" \
   "devices, and exclude IOMMU groups with VGA device(s) after the first (1) match."
 }
 
@@ -129,7 +215,10 @@ function show_groups
     | sort --version-sort
   ); do
     group_id="${group##*/}"
-    echo "IOMMU Group ${group_id}:"
+
+    if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+      echo "IOMMU Group ${group_id}:"
+    fi
 
     if "${ARGUMENTS["READ_GROUPS"]}" \
       && ! $( \
@@ -203,24 +292,26 @@ function show_groups
         continue
       fi
 
-      echo -e "\tBus ID:\t${bus_id}"
+      if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+        echo -e "\tBus ID:\t${bus_id}"
 
-      if "${ARGUMENTS["SHOW_ALL"]}" \
-        || "${ARGUMENTS["SHOW_NAMES"]}"; then
-        echo -e "\t\tName:\t\t${name}"
+        if "${ARGUMENTS["SHOW_ALL"]}" \
+          || "${ARGUMENTS["SHOW_NAMES"]}"; then
+          echo -e "\t\tName:\t\t${name}"
+        fi
+
+        if "${ARGUMENTS["SHOW_ALL"]}" \
+          || "${ARGUMENTS["SHOW_HW_IDS"]}"; then
+          echo -e "\t\tHardware ID:\t${hardware_id}"
+        fi
+
+        if "${ARGUMENTS["SHOW_ALL"]}" \
+          || "${ARGUMENTS["SHOW_DRIVERS"]}"; then
+          echo -e "\t\tDriver:\t\t${driver}"
+        fi
+
+        echo
       fi
-
-      if "${ARGUMENTS["SHOW_ALL"]}" \
-        || "${ARGUMENTS["SHOW_HW_IDS"]}"; then
-        echo -e "\t\tHardware ID:\t${hardware_id}"
-      fi
-
-      if "${ARGUMENTS["SHOW_ALL"]}" \
-        || "${ARGUMENTS["SHOW_DRIVERS"]}"; then
-        echo -e "\t\tDriver:\t\t${driver}"
-      fi
-
-      echo
 
       if [[ ",${group_id_list,,}," != *",${group_id},"* ]]; then
         group_id_list+="${group_id},"
@@ -251,7 +342,10 @@ function show_groups
     OUTPUTS["SHOWN_GROUPS"]+="${group_id_list}"
     OUTPUTS["SHOWN_DRIVERS"]+="${driver_list}"
     OUTPUTS["SHOWN_HW_IDS"]+="${hardware_id_list}"
-    echo
+
+    if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+      echo
+    fi
   done
 
   if [[ ! -z "${OUTPUTS["SHOWN_GROUPS"]}" ]]; then
@@ -289,16 +383,26 @@ function show_groups
         | tr ' ' ','
     )"
   fi
+}
 
-  echo -e "Groups:\t\t${OUTPUTS["SHOWN_GROUPS"]}"
-  echo -e "Drivers:\t${OUTPUTS["SHOWN_DRIVERS"]}"
-  echo -e "Hardware IDs:\t${OUTPUTS["SHOWN_HW_IDS"]}"
+function output_info
+{
+  if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+    echo -e "Groups:\t\t${OUTPUTS["SHOWN_GROUPS"]}"
+    echo -e "Drivers:\t${OUTPUTS["SHOWN_DRIVERS"]}"
+    echo -e "Hardware IDs:\t${OUTPUTS["SHOWN_HW_IDS"]}"
+    return 0
+  fi
+
+  echo "${OUTPUTS["SHOWN_DRIVERS"]}"
+  echo "${OUTPUTS["SHOWN_HW_IDS"]}"
 }
 
 function main
 {
   parse_arguments "${@}" || return 1
   show_groups
+  output_info
 }
 
 main "$@"
