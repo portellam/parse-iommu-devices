@@ -13,8 +13,7 @@ and return the device drivers and hardware IDs as output.
 - [5. Download](#5-download)
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
-    - [6.2. Terminal User Interface](#62-terminal-user-interface)
-    - [6.3. Graphics User Interface](#63-graphics-user-interface)
+    - [6.2. Executable](#62-executable)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
 
