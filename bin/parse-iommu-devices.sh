@@ -98,23 +98,26 @@ function parse_arguments
 
 function print_usage
 {
-  echo -e \
-    "Usage:\tbash ${SCRIPT_NAME} [ARGUMENTS]...\n" \
-    "  Parse, sort, and display hardware devices by IOMMU group.\n" \
-    "  Version ${SCRIPT_VERSION}." \
-    "\n" \
-    "  -h, --help  Print this help and exit.\n" \
-    "\n" \
-    "  -e, --external [OPTION]     Show only IOMMU groups with external devices.\n" \
-    "  -h, --hardware-id [OPTION]  Show hardware IDs.\n" \
-    "  -n, --name [OPTION]         Sort by device name keyword.\n" \
-    "  -d, --driver [OPTION]       Sort by driver keyword.\n" \
-    "  -g, --group [OPTION]        Sort by IOMMU group ID.\n" \
-    "  -t, --type  [OPTION]        Sort by device type keyword.\n" \
-    "  -v, --vga-index  [OPTION]   Sort by the VGA group indices (not IDs).\n  " \
-    "\n" \
-    "Examples:\n"
-    "bash ${SCRIPT_NAME} -e -v 1  Show only IOMMU groups with external devices, and exclude IOMMU groups with VGA device(s) after the first match."
+  echo -e "Usage:\tbash ${SCRIPT_NAME} [ARGUMENTS]..."
+  echo -e "Parse, sort, and display hardware devices by IOMMU group."
+  echo -e "Version ${SCRIPT_VERSION}."
+  echo
+  echo -e "  -h, --help  Print this help and exit."
+  echo
+
+  echo -e "  -e, --external [OPTION]     Show only IOMMU groups with external" \
+    "devices." \
+
+  echo -e "  -h, --hardware-id [OPTION]  Show hardware IDs."
+  echo -e "  -n, --name [OPTION]         Sort by device name keyword."
+  echo -e "  -d, --driver [OPTION]       Sort by driver keyword."
+  echo -e "  -g, --group [OPTION]        Sort by IOMMU group ID."
+  echo -e "  -t, --type  [OPTION]        Sort by device type keyword."
+  echo -e "  -v, --vga-index  [OPTION]   Sort by the VGA group indices (not IDs)."
+  echo
+  echo -e "Examples:"
+  echo -e "  bash ${SCRIPT_NAME} -e -v 1  Show only IOMMU groups with external" \
+  "devices, and exclude IOMMU groups with VGA device(s) after the first (1) match."
 }
 
 function show_groups
@@ -238,7 +241,8 @@ function show_groups
 
     if "${ARGUMENTS["SHOW_VGA_GROUP_INDEX"]}" \
       && "${has_vga}" \
-      && [[ ",${ARGUMENTS["VGA_GROUP_INDEX_TO_SHOW"],,}," != *",${vga_group_index},"* ]]; then
+      && [[ ",${ARGUMENTS["VGA_GROUP_INDEX_TO_SHOW"],,}," \
+        != *",${vga_group_index},"* ]]; then
       group_id_list=""
       driver_list=""
       hardware_id_list=""
