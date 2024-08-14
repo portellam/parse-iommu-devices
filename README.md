@@ -1,9 +1,9 @@
 # Parse IOMMU Devices
-### v1.0.0
+### v1.0.1
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
-**[Latest release](https://github.com/portellam/parse-iommu-devices/releases/latest)**
+### [Download](#5-download)
 
 ## Table of Contents
 - [1. Why?](#1-why)
@@ -19,7 +19,20 @@ and return the device drivers and hardware IDs as output.
 
 ## Contents
 ### 1. Why?
-If you wish to determine if your current machine's hardware specifications are able to support VFIO, this script is for you. The script allows one to query exactly what hardware you wish to allocate for a VFIO setup, and returns the relevant output to deploy a VFIO setup.
+If you wish to determine if your current machine's hardware specifications are
+able to support VFIO, then this script is for you. The script allows one to
+query exactly what hardware you wish to allocate for a VFIO setup, and returns
+the relevant output to deploy a VFIO setup.
+
+#### Disclaimer
+This script must be run on a system without VFIO setup already. If not, the
+script output will not show a complete list of **valid** device drivers.
+This is due to the fact that a VFIO setup involves replacing the device drivers
+(example: NVIDIA GPUs use `nouveau` or `nvidia`) with the VFIO driver
+(`vfio-pci`).
+
+Other outputs such as lists for IOMMU group IDs and hardware IDs are **not**
+affected by this.
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -113,10 +126,10 @@ sudo bash installer.sh
                                 (not an IOMMU group ID). Comma delimited.
 
 Examples:
-  parse-iommu-devices -eq -v 2  Quiet output except for drivers and hardware IDs,
-                                of IOMMU groups with external devices, and exclude
-                                IOMMU groups with VGA device(s) before and after
-                                the second found group.
+  parse-iommu-devices -eq -v 2  Quiet output except for drivers and hardware IDs
+                                (of IOMMU groups with external devices) and
+                                exclude IOMMU groups with VGA device(s) before and
+                                after the second matched group.
 ```
 
 ### 7. Contact
@@ -143,3 +156,12 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
+
+### TO DO
+- [ ] reference and query database for original device drivers.
+  - Query manifest of hardware IDs and drivers. If any devices or groups are
+    ever binded to the VFIO driver, the feature should be able to grab the
+    original drivers (should the system's hardware configuration not change).
+- [ ] use XML file? **This will work**
+- [ ] use Internet database? Not sure if this is possible, but `lspci` mentions
+      something to this effect.
