@@ -143,26 +143,3 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
-
-# TODO
-- [x] finish v1 of script.
-  - [x] flesh out README.
-  - [x] allow combined single-char arguments
-  - [x] add installer.
-    - [x] `chmod u+x name_of_script`
-
-  - [x] add delimited output
-    - hardware ids
-    - drivers
-
-  - [x] sort by iommu groups which exclusively include
-    - [x] external devices
-    - [x] internal devices
-
-  - [x] sort by iommu groups which have
-    - [x] name
-    - [x] vga
-
-- [ ] add to `deploy-vfio`?
-- [ ] pin to profile?
-- [ ] advertise to `r/vfio`?
