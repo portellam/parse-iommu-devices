@@ -1,9 +1,9 @@
 # Parse IOMMU Devices
-### v1.0.0
+### v1.0.1
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
-**[Latest release](https://github.com/portellam/parse-iommu-devices/releases/latest)**
+### [Download](#5-download)
 
 ## Table of Contents
 - [1. Why?](#1-why)
@@ -113,10 +113,10 @@ sudo bash installer.sh
                                 (not an IOMMU group ID). Comma delimited.
 
 Examples:
-  parse-iommu-devices -eq -v 2  Quiet output except for drivers and hardware IDs,
-                                of IOMMU groups with external devices, and exclude
-                                IOMMU groups with VGA device(s) before and after
-                                the second found group.
+  parse-iommu-devices -eq -v 2  Quiet output except for drivers and hardware IDs
+                                (of IOMMU groups with external devices) and
+                                exclude IOMMU groups with VGA device(s) before and
+                                after the second matched group.
 ```
 
 ### 7. Contact
