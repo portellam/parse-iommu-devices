@@ -7,12 +7,12 @@
 #                 output.
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
-# Version:        1.0.0
+# Version:        1.0.1
 #
 
 shopt -s nullglob
 
-declare -r SCRIPT_VERSION="1.0.0"
+declare -r SCRIPT_VERSION="1.0.1"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
 declare -i MIN_VGA_INDEX_VALUE=1
 
@@ -145,7 +145,7 @@ function convert_group_id_list_to_delimited_string
       | tr '\n' ',' \
       | sed 's/.$//' \
       | tr ',' '\n' \
-      | sort --unique \
+      | sort --human-numeric-sort --unique \
       | xargs \
       | tr ' ' ','
   )"
@@ -339,6 +339,78 @@ function print_invalid_argument
   exit 1
 }
 
+function print_groups
+{
+  vga_group_index=0
+  declare -a group_output=()
+
+  for group in $( \
+    find /sys/kernel/iommu_groups/* -maxdepth 0 -type d \
+    | sort --version-sort
+  ); do
+    group_id="${group##*/}"
+
+    if "${ARGUMENTS["MATCH_GROUPS"]}" \
+      && ! $( \
+        echo ",${ARGUMENTS["GROUPS_TO_MATCH"]}," \
+          | grep --quiet ",${group_id},"
+      ); then
+      continue
+    fi
+
+    index=0
+    group_id_list=""
+    driver_list=""
+    hardware_id_list=""
+    has_external=false
+    has_internal=false
+    has_name=false
+    has_reverse_name=false
+    has_vga=false
+    vga_group_id_list=""
+
+    for device in ${group##}/devices/*; do
+      set_device_properties
+      set_group_properties
+      set_name_match_property
+      set_reverse_name_match_property
+      set_vga_type_match_property
+
+      if "${ARGUMENTS["MATCH_EXTERNALS"]}" \
+        && ! "${has_external}" \
+        && ! "${ARGUMENTS["MATCH_INTERNALS"]}"; then
+        continue
+      fi
+
+      if "${ARGUMENTS["MATCH_INTERNALS"]}" \
+        && ! "${has_internal}" \
+        && ! "${ARGUMENTS["MATCH_EXTERNALS"]}"; then
+        continue
+      fi
+
+      if "${ARGUMENTS["MATCH_NAMES"]}" \
+        && ! "${has_name}"; then
+        continue
+      fi
+
+      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+        && ! "${has_reverse_name}"; then
+        continue
+      fi
+
+      append_output_to_temp_lists
+    done
+
+    append_output_to_lists
+  done
+
+  verify_vga_group_index "${vga_group_index}"
+  convert_driver_list_to_delimited_string
+  convert_group_id_list_to_delimited_string
+  convert_hardware_id_list_to_delimited_string
+  convert_vga_group_id_list_to_delimited_string
+}
+
 function print_usage
 {
   if is_quiet_enabled; then
@@ -378,8 +450,8 @@ function print_usage
   echo -e "Examples:"
 
   echo -e "  ${SCRIPT_NAME} -eq -v 2  Quiet output except for drivers and" \
-  "hardware IDs, of IOMMU groups with external devices, and exclude IOMMU" \
-  "groups with VGA device(s) before and after the second found group."
+  "hardware IDs (of IOMMU groups with external devices) and exclude IOMMU" \
+  "groups with VGA device(s) before and after the second matched group."
 }
 
 function set_device_properties
@@ -469,78 +541,6 @@ function set_vga_type_match_property
   ); then
     has_vga=true
   fi
-}
-
-function print_groups
-{
-  vga_group_index=0
-  declare -a group_output=()
-
-  for group in $( \
-    find /sys/kernel/iommu_groups/* -maxdepth 0 -type d \
-    | sort --version-sort
-  ); do
-    group_id="${group##*/}"
-
-    if "${ARGUMENTS["MATCH_GROUPS"]}" \
-      && ! $( \
-        echo ",${ARGUMENTS["GROUPS_TO_MATCH"]}," \
-          | grep --quiet ",${group_id},"
-      ); then
-      continue
-    fi
-
-    index=0
-    group_id_list=""
-    driver_list=""
-    hardware_id_list=""
-    has_external=false
-    has_internal=false
-    has_name=false
-    has_reverse_name=false
-    has_vga=false
-    vga_group_id_list=""
-
-    for device in ${group##}/devices/*; do
-      set_device_properties
-      set_group_properties
-      set_name_match_property
-      set_reverse_name_match_property
-      set_vga_type_match_property
-
-      if "${ARGUMENTS["MATCH_EXTERNALS"]}" \
-        && ! "${has_external}" \
-        && ! "${ARGUMENTS["MATCH_INTERNALS"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_INTERNALS"]}" \
-        && ! "${has_internal}" \
-        && ! "${ARGUMENTS["MATCH_EXTERNALS"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_NAMES"]}" \
-        && ! "${has_name}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-        && ! "${has_reverse_name}"; then
-        continue
-      fi
-
-      append_output_to_temp_lists
-    done
-
-    append_output_to_lists
-  done
-
-  verify_vga_group_index "${vga_group_index}"
-  convert_driver_list_to_delimited_string
-  convert_group_id_list_to_delimited_string
-  convert_hardware_id_list_to_delimited_string
-  convert_vga_group_id_list_to_delimited_string
 }
 
 function verify_vga_group_index
