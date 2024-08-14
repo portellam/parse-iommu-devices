@@ -145,32 +145,22 @@ The linux kernel. Accessed June 14, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 # TODO
-- [ ] finish v1 of script.
+- [x] finish v1 of script.
   - [x] flesh out README.
   - [x] allow combined single-char arguments
-  - [ ] add installer.
-    - [ ] `chmod u+x name_of_script`
+  - [x] add installer.
+    - [x] `chmod u+x name_of_script`
 
   - [x] add delimited output
     - hardware ids
     - drivers
 
-  - [ ] sort by iommu groups which exclusively include
-    - [ ] driver?
-    - [ ] external devices
-    - [ ] hardware id?
-    - [ ] internal devices
-    - [x] name
-    - [x] type
-    - [ ] vga
-
-  - [ ] sort by iommu groups which have
-    - [ ] driver?
+  - [x] sort by iommu groups which exclusively include
     - [x] external devices
-    - [ ] hardware id?
-    - [ ] internal devices
-    - [ ] name
-    - [ ] type
+    - [x] internal devices
+
+  - [x] sort by iommu groups which have
+    - [x] name
     - [x] vga
 
 - [ ] add to `deploy-vfio`?
