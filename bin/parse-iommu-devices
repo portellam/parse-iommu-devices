@@ -40,19 +40,6 @@ declare -A OUTPUTS=(
 function append_output_to_lists
 {
   #
-  # Delete output given conditions (1/2)
-  #
-    if "${ARGUMENTS["MATCH_EXTERNALS"]}" \
-      && ! "${has_external}"; then
-      group_output=( )
-    fi
-
-    if "${ARGUMENTS["MATCH_INTERNALS"]}" \
-      && ! "${has_internal}"; then
-      group_output=( )
-    fi
-
-  #
   # Append output given conditions
   #
     if ! is_quiet_enabled \
@@ -65,7 +52,7 @@ function append_output_to_lists
     fi
 
   #
-  # Delete output given conditions (2/2)
+  # Delete output given conditions
   #
     if "${has_vga}"; then
       vga_group_id_list+="${group_id},"
@@ -521,13 +508,25 @@ function print_groups
       set_reverse_name_match_property
       set_vga_type_match_property
 
-      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-        && ! "${has_reverse_name}"; then
+      if "${ARGUMENTS["MATCH_EXTERNALS"]}" \
+        && ! "${has_external}" \
+        && ! "${ARGUMENTS["MATCH_INTERNALS"]}"; then
+        continue
+      fi
+
+      if "${ARGUMENTS["MATCH_INTERNALS"]}" \
+        && ! "${has_internal}" \
+        && ! "${ARGUMENTS["MATCH_EXTERNALS"]}"; then
         continue
       fi
 
       if "${ARGUMENTS["MATCH_NAMES"]}" \
         && ! "${has_name}"; then
+        continue
+      fi
+
+      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+        && ! "${has_reverse_name}"; then
         continue
       fi
 
