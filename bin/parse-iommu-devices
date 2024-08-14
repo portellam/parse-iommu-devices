@@ -114,7 +114,6 @@ function parse_argument
 
       "--reverse-name" )
           ARGUMENTS["REVERSE_MATCH_NAMES"]=true
-
           shift
           parse_invalid_option "${1}"
           ARGUMENTS["NAMES_TO_REVERSE_MATCH"]="${1}"
@@ -126,7 +125,7 @@ function parse_argument
 
       "-h" | "--help" )
         print_usage
-        exit 0
+        exit 2
         ;;
 
       * )
@@ -141,7 +140,8 @@ function parse_argument
 
 function parse_invalid_option
 {
-  if [[ "${1}" != "-"* ]]; then
+  if [[ "${1}" != "-"* ]] \
+    && [[ ! -z "${1}" ]]; then
     return 0
   fi
 
