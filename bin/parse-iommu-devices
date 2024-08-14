@@ -37,9 +37,31 @@ declare -A OUTPUTS=(
 
 function parse_arguments
 {
-  while [[ ! -z "${1}" ]]; do
-    # parse_nested_arguments "${1}"   # TODO: FIX ME!
+  if [[ "${1}" == "-"* ]] \
+    && [[ "${1}" != "--"* ]]; then
+    for char in $( \
+      echo "${1:1}" \
+        | sed -e 's/\(.\)/\1\n/g'
+    ); do
+      argument="-${char}"
 
+      if [[ -z "${argument}" ]]; then
+        break
+      fi
+
+      parse_argument "${argument}"
+      (( index++ ))
+    done
+
+    shift
+  fi
+
+  parse_argument "${@}"
+}
+
+function parse_argument
+{
+  while [[ ! -z "${1}" ]]; do
     case "${1,,}" in
       "-i" | "--internal" )
           ARGUMENTS["MATCH_INTERNALS"]=true
@@ -130,25 +152,6 @@ function parse_invalid_option
   exit 1
 }
 
-function parse_nested_arguments   # TODO: FIX ME!
-{
-  if [[ -z "${1}" ]]; then
-    return 0
-  fi
-
-  if ! $( \
-    echo "${1}" \
-      | grep --extended-regexp --quiet '^(-[Aa-Zz])*$'
-  ) && [[ "${1}" != "--"* ]]; then
-    print_invalid_argument
-  fi
-
-  for argument in ${1::1}; do
-    argument="-${argument}"
-    parse_arguments "${argument}"
-  done
-}
-
 function print_invalid_argument
 {
   if "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
@@ -168,6 +171,7 @@ function print_usage
   fi
 
   echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]..."
+  echo
   echo -e "Parse, sort, and display hardware devices by IOMMU group."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
@@ -483,7 +487,7 @@ function output_info
 
 function main
 {
-  parse_arguments "${@}" || return 1
+  parse_arguments "${@}"
   show_groups
   output_info
 }
