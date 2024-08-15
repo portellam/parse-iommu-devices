@@ -161,6 +161,8 @@ The linux kernel. Accessed June 14, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### TO DO
+- [ ] add back output of each group, devices and their information.
+  - make it conditional. If some are ignored or un-matched, show that they are.
 - [ ] reference and query database for original device drivers.
   - Query manifest of hardware IDs and drivers. If any devices or groups are
     ever binded to the VFIO driver, the feature should be able to grab the
