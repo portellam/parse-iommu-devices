@@ -1,5 +1,5 @@
 # Parse IOMMU Devices
-### v1.0.1
+### v1.0.2
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
@@ -16,6 +16,7 @@ and return the device drivers and hardware IDs as output.
     - [6.2. Executable](#62-executable)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
+- [9. Special Thanks](#9-special-thanks)
 
 ## Contents
 ### 1. Why?
@@ -111,27 +112,27 @@ sudo bash installer.sh
 - From anywhere, execute: `parse-iommu-devices`
 
 ```
-  -h, --help                    Print this help and exit.
-  -q, --quiet                   Quiet all output except for comma delimited lists
-                                of device drivers and hardware IDs.
-  -e, --external                Match IOMMU groups with at least one (1) or more
-                                external (AGP, PCI, PCIe, etc.) devices.
-  -g, --group [OPTION]          Match IOMMU group ID(s). Comma delimited.
-  -i, --internal                Match IOMMU groups with at least one (1) or more
-                                internal (onboard) devices.
-  -n, --name [OPTION]           Match IOMMU group(s) with device name.
-                                Comma delimited.
-  --reverse-name [OPTION]       Match IOMMU group(s) without device name.
-                                Comma delimited.
-  -v, --vga-index [OPTION]      Match all IOMMU groups without VGA, and any with
-                                VGA which match the index value(s)
-                                (not an IOMMU group ID). Comma delimited.
+  -h, --help                Print this help and exit.
+  -q, --quiet               Quiet all output except for comma delimited lists of
+                            device drivers and hardware IDs.
+  -g, --group [OPTION]      Match IOMMU group ID(s). Comma delimited.
+--host                      Match IOMMU groups with at least one (1) or more Host
+                            devices.
+  --ignore-name [OPTION]    Match IOMMU group(s) without device name.
+                            Comma delimited.
+  -n, --name [OPTION]       Match IOMMU group(s) with device name.
+                            Comma delimited.
+--pcie                      Match IOMMU groups with at least one (1) or more PCI
+                            and/or PCIe bus devices.
+  -v, --vga-index [OPTION]  Match all IOMMU groups without VGA, and any with VGA
+                            which match the index value(s) (not an IOMMU group
+                            ID). Comma delimited.
 
 Examples:
-  parse-iommu-devices -eq -v 2  Quiet output except for drivers and hardware IDs
-                                (of IOMMU groups with external devices) and
-                                exclude IOMMU groups with VGA device(s) before and
-                                after the second matched group.
+  parse-iommu-devices --ignore-name ether --pcie --quiet --vga-index 2
+    Quiet output except for drivers and hardware IDs (of IOMMU groups with PCI/e
+    devices), exclude IOMMU groups with VGA device(s) before and after the second
+    matched group, and exclude any wired ethernet devices (onboard or PCI/e).
 ```
 
 ### 7. Contact
@@ -167,3 +168,9 @@ The linux kernel. Accessed June 14, 2024.
 - [ ] use XML file? **This will work**
 - [ ] use Internet database? Not sure if this is possible, but `lspci` mentions
       something to this effect.
+- [x] acknowledged distinction and amended "internal" and "external" as "host"
+      "pci bus" devices. Revised usage example to aid newcomers.
+
+### 9. Special Thanks
+- Peer Reviewers:
+  - `u/psyblade42`

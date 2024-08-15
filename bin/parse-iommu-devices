@@ -422,36 +422,39 @@ function print_usage
   echo -e "Parse, sort, and display hardware devices by IOMMU group(s)."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
-  echo -e "  -h, --help                    Print this help and exit."
+  echo -e "  -h, --help                Print this help and exit."
 
-  echo -e "  -q, --quiet                   Quiet all output except for comma" \
+  echo -e "  -q, --quiet               Quiet all output except for comma" \
     "delimited lists of device drivers and hardware IDs."
 
-  echo -e "  -e, --external                Match IOMMU groups with at least one" \
-    "(1) or more external (AGP, PCI, PCIe, etc.) devices."
-
-  echo -e "  -g, --group [OPTION]          Match IOMMU group ID(s)." \
+  echo -e "  -g, --group [OPTION]      Match IOMMU group ID(s)." \
     "Comma delimited."
 
-  echo -e "  -i, --internal                Match IOMMU groups with at least one" \
-    "(1) or more internal (onboard) devices."
+  echo -e "--host                      Match IOMMU groups with at least one" \
+    "(1) or more Host devices."
 
-  echo -e "  -n, --name [OPTION]           Match IOMMU group(s) with device" \
+  echo -e "  --ignore-name [OPTION]    Match IOMMU group(s) without device" \
     "name. Comma delimited."
 
-  echo -e "  --reverse-name [OPTION]       Match IOMMU group(s) without device" \
+  echo -e "  -n, --name [OPTION]       Match IOMMU group(s) with device" \
     "name. Comma delimited."
 
-  echo -e "  -v, --vga-index [OPTION]      Match all IOMMU groups without VGA," \
+  echo -e "--pcie                      Match IOMMU groups with at least one" \
+    "(1) or more PCI and/or PCIe bus devices."
+
+  echo -e "  -v, --vga-index [OPTION]  Match all IOMMU groups without VGA," \
     "and any with VGA which match the index value(s) (not an IOMMU group ID)." \
     "Comma delimited."
 
   echo
   echo -e "Examples:"
 
-  echo -e "  ${SCRIPT_NAME} -eq -v 2  Quiet output except for drivers and" \
-  "hardware IDs (of IOMMU groups with external devices) and exclude IOMMU" \
-  "groups with VGA device(s) before and after the second matched group."
+  echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
+
+  echo -e "    Quiet output except for drivers and" \
+  "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
+  "groups with VGA device(s) before and after the second matched group, and" \
+  "exclude any wired ethernet devices (onboard or PCI/e)."
 }
 
 function set_device_properties
