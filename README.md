@@ -114,9 +114,11 @@ sudo bash installer.sh
   -h, --help                    Print this help and exit.
   -q, --quiet                   Quiet all output except for comma delimited lists
                                 of device drivers and hardware IDs.
-  -e, --external                Match IOMMU groups without only internal devices.
+  -e, --external                Match IOMMU groups with at least one (1) or more
+                                external (AGP, PCI, PCIe, etc.) devices.
   -g, --group [OPTION]          Match IOMMU group ID(s). Comma delimited.
-  -i, --internal                Match IOMMU groups without only external devices.
+  -i, --internal                Match IOMMU groups with at least one (1) or more
+                                internal (onboard) devices.
   -n, --name [OPTION]           Match IOMMU group(s) with device name.
                                 Comma delimited.
   --reverse-name [OPTION]       Match IOMMU group(s) without device name.

@@ -427,14 +427,14 @@ function print_usage
   echo -e "  -q, --quiet                   Quiet all output except for comma" \
     "delimited lists of device drivers and hardware IDs."
 
-  echo -e "  -e, --external                Match IOMMU groups without only" \
-    "internal devices."
+  echo -e "  -e, --external                Match IOMMU groups with at least one" \
+    "(1) or more external (AGP, PCI, PCIe, etc.) devices."
 
   echo -e "  -g, --group [OPTION]          Match IOMMU group ID(s)." \
     "Comma delimited."
 
-  echo -e "  -i, --internal                Match IOMMU groups without only" \
-    "external devices."
+  echo -e "  -i, --internal                Match IOMMU groups with at least one" \
+    "(1) or more internal (onboard) devices."
 
   echo -e "  -n, --name [OPTION]           Match IOMMU group(s) with device" \
     "name. Comma delimited."
