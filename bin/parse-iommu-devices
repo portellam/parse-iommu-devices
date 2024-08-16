@@ -701,7 +701,7 @@ function verify_groups
     ) \
     || [[ "$( \
       echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-      | sort --reverse --version-sort
+      | sort --reverse --version-sort \
       | --lines 1
     )" -gt "${greatest_iommu}" ]]; then
     echo -e "Error: Invalid IOMMU group ID(s) specified."
