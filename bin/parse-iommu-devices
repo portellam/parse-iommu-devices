@@ -3,8 +3,8 @@
 #
 # Filename:       parse-iommu-devices
 # Description:    Bash script to parse, sort, and display hardware devices by
-#                 IOMMU group, and return the device drivers and hardware IDs as
-#                 output.
+#                 selected IOMMU group, and return the device drivers and
+#                 hardware IDs as output.
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
 # Version:        1.0.2
@@ -18,61 +18,61 @@ declare -i MIN_VGA_INDEX_VALUE=1
 
 declare -A ARGUMENTS=(
   ["GET_MINIMUM_OUTPUT"]=false
-  ["MATCH_EXTERNALS"]=false
-  ["MATCH_GROUPS"]=false
-  ["MATCH_INTERNALS"]=false
-  ["MATCH_NAMES"]=false
-  ["MATCH_VGA_GROUP_INDEX"]=false
-  ["REVERSE_MATCH_NAMES"]=false
   ["GROUPS_TO_MATCH"]=""
+  ["MATCH_GROUPS"]=false
+  ["MATCH_HOST"]=false
+  ["MATCH_NAMES"]=false
+  ["MATCH_PCI"]=false
+  ["MATCH_VGA_GROUP_INDEX"]=false
   ["NAMES_TO_MATCH"]=""
   ["NAMES_TO_REVERSE_MATCH"]=""
+  ["REVERSE_MATCH_NAMES"]=false
   ["VGA_GROUP_INDEX_TO_MATCH"]=""
 )
 
 declare -A OUTPUTS=(
-  ["FOUND_GROUP_IDS"]=""
-  ["FOUND_DRIVERS"]=""
-  ["FOUND_HW_IDS"]=""
-  ["FOUND_VGA_GROUP_IDS"]=""
+  ["FOUND_GROUP_ID_LIST"]=""
+  ["FOUND_HOST_GROUP_ID_LIST"]=""
+  ["FOUND_PCI_GROUP_ID_LIST"]=""
+  ["FOUND_VGA_GROUP_ID_LIST"]=""
+  ["SELECTED_DRIVERS"]=""
+  ["SELECTED_GROUP_ID_LIST"]=""
+  ["SELECTED_HARDWARE_ID_LIST"]=""
+  ["UNSELECTED_GROUP_ID_LIST"]=""
 )
 
 function append_output_to_lists
 {
-  #
-  # Append output given conditions
-  #
-    if ! is_quiet_enabled \
-      && [[ "${#group_output[@]}" -gt 0 ]]; then
-      group_output=(
-        "IOMMU Group ${group_id}:"
-        "${group_output[@]}"
-        ""
-      )
-    fi
+  if ! is_quiet_enabled \
+    && ! is_output_empty; then
+    group_output=(
+      "IOMMU Group ${group_id}:"
+      "${group_output[@]}"
+      ""
+    )
+  fi
 
-  #
-  # Delete output given conditions
-  #
-    if "${has_vga}"; then
-      vga_group_id_list+="${group_id},"
-      (( vga_group_index++ ))
-    fi
+  if "${has_host}"; then
+    OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${group_id},"
+  fi
 
-    if "${ARGUMENTS["MATCH_VGA_GROUP_INDEX"]}" \
-      && "${has_vga}" \
-      && [[ ",${ARGUMENTS["VGA_GROUP_INDEX_TO_MATCH"],,}," \
-        != *",${vga_group_index},"* ]]; then
-      group_id_list=""
-      vga_group_id_list=""
-      driver_list=""
-      hardware_id_list=""
-    fi
+  if "${has_pci}"; then
+    OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${group_id},"
+  fi
 
-  OUTPUTS["FOUND_GROUP_IDS"]+="${group_id_list}"
-  OUTPUTS["FOUND_VGA_GROUP_IDS"]+="${vga_group_id_list}"
-  OUTPUTS["FOUND_DRIVERS"]+="${driver_list}"
-  OUTPUTS["FOUND_HW_IDS"]+="${hardware_id_list}"
+  if "${has_vga}"; then
+    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${group_id},"
+    (( vga_group_index++ ))
+  fi
+
+  if ! "${is_selected}"; then
+    OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${group_id},"
+    return 0
+  fi
+
+  OUTPUTS["SELECTED_DRIVERS"]+="${driver_list}"
+  OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${group_id},"
+  OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id_list}"
 }
 
 function append_output_to_temp_lists
@@ -107,39 +107,17 @@ function append_output_to_temp_lists
   fi
 }
 
-function convert_driver_list_to_delimited_string
+function convert_found_group_id_list_to_delimited_string
 {
-  if [[ -z "${OUTPUTS["FOUND_DRIVERS"]}" ]]; then
-    OUTPUTS["FOUND_DRIVERS"]="N/A"
+  if [[ -z "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["FOUND_GROUP_ID_LIST"]="N/A"
     return 0
   fi
 
-  OUTPUTS["FOUND_DRIVERS"]="${OUTPUTS["FOUND_DRIVERS"]::-1}"
+  OUTPUTS["FOUND_GROUP_ID_LIST"]="${OUTPUTS["FOUND_GROUP_ID_LIST"]::-1}"
 
-  OUTPUTS["FOUND_DRIVERS"]="$( \
-    echo "${OUTPUTS["FOUND_DRIVERS"]}" \
-      | sed --expression $'s/,/\\\n/g' \
-      | sort --numeric-sort \
-      | tr '\n' ',' \
-      | sed 's/.$//' \
-      | tr ',' '\n' \
-      | sort --unique \
-      | xargs \
-      | tr ' ' ','
-  )"
-}
-
-function convert_group_id_list_to_delimited_string
-{
-  if [[ -z "${OUTPUTS["FOUND_GROUP_IDS"]}" ]]; then
-    OUTPUTS["FOUND_GROUP_IDS"]="N/A"
-    return 0
-  fi
-
-  OUTPUTS["FOUND_GROUP_IDS"]="${OUTPUTS["FOUND_GROUP_IDS"]::-1}"
-
-  OUTPUTS["FOUND_GROUP_IDS"]="$( \
-    echo "${OUTPUTS["FOUND_GROUP_IDS"]}" \
+  OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" \
       | sed --expression $'s/,/\\\n/g' \
       | sort --numeric-sort \
       | tr '\n' ',' \
@@ -151,17 +129,61 @@ function convert_group_id_list_to_delimited_string
   )"
 }
 
-function convert_hardware_id_list_to_delimited_string
+function convert_found_host_group_id_list_to_delimited_string
 {
-  if [[ -z "${OUTPUTS["FOUND_HW_IDS"]}" ]]; then
-    OUTPUTS["FOUND_HW_IDS"]="N/A"
+  if [[ -z "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="N/A"
     return 0
   fi
 
-  OUTPUTS["FOUND_HW_IDS"]="${OUTPUTS["FOUND_HW_IDS"]::-1}"
+  OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]::-1}"
 
-  OUTPUTS["FOUND_HW_IDS"]="$( \
-    echo "${OUTPUTS["FOUND_HW_IDS"]}" \
+  OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --human-numeric-sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+}
+
+function convert_found_pci_group_id_list_to_delimited_string
+{
+  if [[ -z "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="N/A"
+    return 0
+  fi
+
+  OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]::-1}"
+
+  OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --human-numeric-sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+}
+
+function convert_found_vga_group_id_list_to_delimited_string
+{
+  if [[ -z "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="N/A"
+    return 0
+  fi
+
+  OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]::-1}"
+
+  OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" \
       | sed --expression $'s/,/\\\n/g' \
       | sort --numeric-sort \
       | tr '\n' ',' \
@@ -173,17 +195,61 @@ function convert_hardware_id_list_to_delimited_string
   )"
 }
 
-function convert_vga_group_id_list_to_delimited_string
+function convert_selected_driver_list_to_delimited_string
 {
-  if [[ -z "${OUTPUTS["FOUND_VGA_GROUP_IDS"]}" ]]; then
-    OUTPUTS["FOUND_VGA_GROUP_IDS"]="N/A"
+  if [[ -z "${OUTPUTS["SELECTED_DRIVERS"]}" ]]; then
+    OUTPUTS["SELECTED_DRIVERS"]="N/A"
     return 0
   fi
 
-  OUTPUTS["FOUND_VGA_GROUP_IDS"]="${OUTPUTS["FOUND_VGA_GROUP_IDS"]::-1}"
+  OUTPUTS["SELECTED_DRIVERS"]="${OUTPUTS["SELECTED_DRIVERS"]::-1}"
 
-  OUTPUTS["FOUND_VGA_GROUP_IDS"]="$( \
-    echo "${OUTPUTS["FOUND_VGA_GROUP_IDS"]}" \
+  OUTPUTS["SELECTED_DRIVERS"]="$( \
+    echo "${OUTPUTS["SELECTED_DRIVERS"]}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+}
+
+function convert_selected_group_id_list_to_delimited_string
+{
+  if [[ -z "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["SELECTED_GROUP_ID_LIST"]="N/A"
+    return 0
+  fi
+
+  OUTPUTS["SELECTED_GROUP_ID_LIST"]="${OUTPUTS["SELECTED_GROUP_ID_LIST"]::-1}"
+
+  OUTPUTS["SELECTED_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --human-numeric-sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+}
+
+function convert_selected_hardware_id_list_to_delimited_string
+{
+  if [[ -z "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" ]]; then
+    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="N/A"
+    return 0
+  fi
+
+  OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]::-1}"
+
+  OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
+    echo "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
       | sed --expression $'s/,/\\\n/g' \
       | sort --numeric-sort \
       | tr '\n' ',' \
@@ -204,21 +270,43 @@ function is_quiet_enabled
   return 0
 }
 
-function output_info
+function is_output_empty
 {
-  if ! is_quiet_enabled; then
-    echo -e "Groups:\n${OUTPUTS["FOUND_GROUP_IDS"]}"
-    echo
-    echo -e "Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_IDS"]}"
-    echo
-    echo -e "Drivers:\n${OUTPUTS["FOUND_DRIVERS"]}"
-    echo
-    echo -e "Hardware IDs:\n${OUTPUTS["FOUND_HW_IDS"]}"
-    return 0
+  if [[ "${#group_output[@]}" -lt 1 ]]; then
+    return 1
+  fi
+}
+
+function print_output
+{
+  if is_quiet_enabled; then
+    if is_output_empty; then
+      return 1
+    else
+      echo "${OUTPUTS["SELECTED_DRIVERS"]}"
+      echo "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+      return 0
+    fi
   fi
 
-  echo "${OUTPUTS["FOUND_DRIVERS"]}"
-  echo "${OUTPUTS["FOUND_HW_IDS"]}"
+  if is_output_empty; then
+    echo -e "Error: No IOMMU groups found."
+    return 1
+  fi
+
+  echo -e "Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
+  echo
+  echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
 }
 
 function parse_arguments
@@ -257,7 +345,7 @@ function parse_argument
         ;;
 
       "--host" )
-        ARGUMENTS["MATCH_INTERNALS"]=true
+        ARGUMENTS["MATCH_HOST"]=true
         ;;
 
       "--ignore-name" )
@@ -268,7 +356,7 @@ function parse_argument
         ;;
 
       "--pcie" )
-        ARGUMENTS["MATCH_EXTERNALS"]=true
+        ARGUMENTS["MATCH_PCI"]=true
         ;;
 
       "-q" | "--quiet" )
@@ -349,6 +437,7 @@ function print_groups
     | sort --version-sort
   ); do
     group_id="${group##*/}"
+    OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
 
     if "${ARGUMENTS["MATCH_GROUPS"]}" \
       && ! $( \
@@ -362,12 +451,12 @@ function print_groups
     group_id_list=""
     driver_list=""
     hardware_id_list=""
-    has_external=false
-    has_internal=false
+    has_host=false
+    has_pci=false
     has_name=false
     has_reverse_name=false
     has_vga=false
-    vga_group_id_list=""
+    is_selected=false
 
     for device in ${group##}/devices/*; do
       set_device_properties
@@ -376,28 +465,20 @@ function print_groups
       set_reverse_name_match_property
       set_vga_type_match_property
 
-      if "${ARGUMENTS["MATCH_EXTERNALS"]}" \
-        && ! "${has_external}" \
-        && ! "${ARGUMENTS["MATCH_INTERNALS"]}"; then
+      if "${ARGUMENTS["MATCH_PCI"]}" \
+          && ! "${has_pci}" \
+          && ! "${ARGUMENTS["MATCH_HOST"]}" \
+        || "${ARGUMENTS["MATCH_HOST"]}" \
+          && ! "${has_host}" \
+          && ! "${ARGUMENTS["MATCH_PCI"]}" \
+        "${ARGUMENTS["MATCH_NAMES"]}" \
+          && ! "${has_name}" \
+        "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+          && ! "${has_reverse_name}"; then
         continue
       fi
 
-      if "${ARGUMENTS["MATCH_INTERNALS"]}" \
-        && ! "${has_internal}" \
-        && ! "${ARGUMENTS["MATCH_EXTERNALS"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_NAMES"]}" \
-        && ! "${has_name}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-        && ! "${has_reverse_name}"; then
-        continue
-      fi
-
+      is_selected=true
       append_output_to_temp_lists
     done
 
@@ -405,10 +486,13 @@ function print_groups
   done
 
   verify_vga_group_index "${vga_group_index}"
-  convert_driver_list_to_delimited_string
-  convert_group_id_list_to_delimited_string
-  convert_hardware_id_list_to_delimited_string
-  convert_vga_group_id_list_to_delimited_string
+  convert_found_group_id_list_to_delimited_string
+  convert_found_host_group_id_list_to_delimited_string
+  convert_found_pci_group_id_list_to_delimited_string
+  convert_found_vga_group_id_list_to_delimited_string
+  convert_selected_driver_list_to_delimited_string
+  convert_selected_group_id_list_to_delimited_string
+  convert_selected_hardware_id_list_to_delimited_string
 }
 
 function print_usage
@@ -486,9 +570,9 @@ function set_group_properties
   this_bus_id="${bus_id::2}"
 
   if [[ "${this_bus_id}" == "${internal_bus_id}" ]]; then
-    has_internal=true
+    has_host=true
   else
-    has_external=true
+    has_pci=true
   fi
 }
 
@@ -575,7 +659,7 @@ function main
 {
   parse_arguments "${@}"
   print_groups
-  output_info
+  print_output
 }
 
 main "$@"
