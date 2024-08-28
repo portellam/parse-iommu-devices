@@ -22,10 +22,12 @@ shopt -s nullglob
 declare -r SCRIPT_VERSION="1.0.2"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
 declare -i MIN_VGA_INDEX_VALUE=1
+declare -i MIN_IOMMU_VALUE=0
 
 declare -A ARGUMENTS=(
   ["GET_MINIMUM_OUTPUT"]=false
   ["GROUPS_TO_MATCH"]=""
+  ["GROUPS_TO_REVERSE_MATCH"]=""
   ["MATCH_GROUPS"]=false
   ["MATCH_HOST"]=false
   ["MATCH_NAMES"]=false
@@ -33,6 +35,7 @@ declare -A ARGUMENTS=(
   ["MATCH_VGA_GROUP_INDEX"]=false
   ["NAMES_TO_MATCH"]=""
   ["NAMES_TO_REVERSE_MATCH"]=""
+  ["REVERSE_MATCH_GROUPS"]=false
   ["REVERSE_MATCH_NAMES"]=false
   ["VGA_GROUP_INDEX_TO_MATCH"]=""
 )
@@ -48,18 +51,21 @@ declare -A OUTPUTS=(
   ["UNSELECTED_GROUP_ID_LIST"]=""
 )
 
+function wrap_text
+{
+  column  --separator '|' \
+          --table \
+          --output-width 30 \
+          --table-noheadings \
+          --table-columns C1,C2 \
+          --table-wrap C2 \
+    key1|$1
+}
+
 function append_output_to_lists
 {
   # if ! is_quiet_enabled \
   #   && ! is_output_empty; then
-
-  if ! is_quiet_enabled; then
-    group_output=(
-      "IOMMU Group ${group_id}:"
-      "${group_output[@]}"
-      ""
-    )
-  fi
 
   if "${has_host}"; then
     OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${group_id},"
@@ -95,9 +101,11 @@ function append_output_to_temp_lists
       driver_output+="N/A"
     fi
 
+    name_output="$( echo "${name}" | fmt --crown-margin )"
+
     group_output+=(
-      "\t${index}.\tSlot ID:\t\t${bus_id}"
-      "\t\tName:\t\t${name}"
+      "\t${device_index}.\tSlot ID:\t${bus_id}"
+      "\t\tName:\t\t${name_output}"
       "\t\tHardware ID:\t${hardware_id}"
       "${driver_output}"
     )
@@ -294,13 +302,13 @@ function convert_unselected_group_id_list_to_delimited_string
   )"
 }
 
-function is_quiet_enabled
+function is_comma_delimited_list_of_positive_numbers
 {
-  if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
+  if echo "${1}" \
+      | grep --extended-regexp --quiet '^(?!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
+    echo -e "Error: Input is not a comma delimited list of positive numbers."
     return 1
   fi
-
-  return 0
 }
 
 function is_output_empty
@@ -310,42 +318,13 @@ function is_output_empty
   fi
 }
 
-function print_output
+function is_quiet_enabled
 {
-  if is_quiet_enabled; then
-    if is_output_empty; then
-      return 1
-    else
-      echo "${OUTPUTS["SELECTED_DRIVERS"]}"
-      echo "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-      return 0
-    fi
-  fi
-
-  if is_output_empty; then
-    echo -e "Error: No IOMMU groups found."
+  if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
     return 1
   fi
 
-  for line in ${group_output{@}}; do
-    echo -e "${line}"
-  done
-
-  echo -e "Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
-  echo
-  echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+  return 0
 }
 
 function parse_arguments
@@ -363,7 +342,6 @@ function parse_arguments
       fi
 
       parse_argument "${argument}"
-      (( index++ ))
     done
 
     shift
@@ -376,25 +354,46 @@ function parse_argument
 {
   while [[ ! -z "${1}" ]]; do
     case "${1,,}" in
-      "-g" | "--group" )
+      "-g" | "--groups" )
         ARGUMENTS["MATCH_GROUPS"]=true
         shift
-        parse_invalid_option "${1}"
+
+        if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+          || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+          print_invalid_option
+        fi
+
         ARGUMENTS["GROUPS_TO_MATCH"]="${1}"
         ;;
 
-      "--host" )
+      "-H" | "--host" )
         ARGUMENTS["MATCH_HOST"]=true
+        ;;
+
+      "--ignore-group" )
+        ARGUMENTS["REVERSE_MATCH_GROUPS"]=""
+        shift
+
+        if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+          || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]="${1}"
         ;;
 
       "--ignore-name" )
         ARGUMENTS["REVERSE_MATCH_NAMES"]=true
         shift
-        parse_invalid_option "${1}"
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
         ARGUMENTS["NAMES_TO_REVERSE_MATCH"]="${1}"
         ;;
 
-      "--pcie" )
+      "-p" | "--pci" | "--pcie" )
         ARGUMENTS["MATCH_PCI"]=true
         ;;
 
@@ -405,16 +404,10 @@ function parse_argument
       "-v" | "--vga-index" )
         ARGUMENTS["MATCH_VGA_GROUP_INDEX"]=true
         shift
-        parse_invalid_option "${1}"
 
-        if ! $( \
-          echo "${1}" \
-            | grep --extended-regexp --quiet '^[0-9]+(,[0-9]+)*$'
-          ) || [[ "${1}" -lt "${MIN_VGA_INDEX_VALUE}" ]]; then
-          is_quiet_enabled && exit 1
-          echo -e "Error: Invalid input specified."
-          echo "Please enter a positive non-zero number."
-          exit 1
+        if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+          || [[ "${1}" -lt "${MIN_VGA_INDEX_VALUE}" ]]; then
+          print_invalid_option
         fi
 
         ARGUMENTS["VGA_GROUP_INDEX_TO_MATCH"]="${1}"
@@ -423,7 +416,11 @@ function parse_argument
     "-n" | "--name" )
         ARGUMENTS["MATCH_NAMES"]=true
         shift
-        parse_invalid_option "${1}"
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
         ARGUMENTS["NAMES_TO_MATCH"]="${1}"
         ;;
 
@@ -446,77 +443,111 @@ function parse_argument
   done
 }
 
+function parse_group_devices
+{
+  set_device_properties
+  set_group_properties
+  set_name_match_property
+  set_reverse_name_match_property
+  set_vga_type_match_property
+
+  if "${ARGUMENTS["MATCH_HOST"]}" \
+      && ! "${has_host}" \
+      && ! "${ARGUMENTS["MATCH_PCI"]}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["MATCH_PCI"]}" \
+      && ! "${has_pci}" \
+      && ! "${ARGUMENTS["MATCH_HOST"]}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["MATCH_NAMES"]}" \
+      && ! "${has_name}" \
+      && ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+      && ! "${has_reverse_name}" \
+      && ! "${ARGUMENTS["MATCH_NAMES"]}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["MATCH_VGA_GROUP_INDEX"]}" \
+      && ! "${has_vga}"; then
+    return 1
+  fi
+
+  is_selected=true
+  append_output_to_temp_lists
+}
+
+function parse_group
+{
+  group_id="${group##*/}"
+  OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
+
+  if ! is_quiet_enabled; then
+    group_output+=(
+      "IOMMU Group ${group_id}:"
+    )
+  fi
+
+  # if "${ARGUMENTS["MATCH_GROUPS"]}" \
+  #   && ! echo ",${ARGUMENTS["GROUPS_TO_MATCH"]}," \
+  #     | grep --quiet ",${group_id},"; then
+  #   return 1
+  # fi
+
+  # if "${ARGUMENTS["REVERSE_MATCH_GROUPS"]}" \
+  #   && ! echo ",${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}," \
+  #     | grep --quiet ",${group_id},"; then
+  #   return 1
+  # fi
+
+  if "${ARGUMENTS["MATCH_GROUPS"]}" \
+    && [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
+    && echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+        | grep --quiet "${group_id}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["REVERSE_MATCH_GROUPS"]}" \
+    && ! [[ -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
+    && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+        | grep --quiet "${group_id}"; then
+    return 1
+  fi
+
+  device_index=0
+  group_id_list=""
+  driver_list=""
+  hardware_id_list=""
+  has_host=false
+  has_pci=false
+  has_name=false
+  has_reverse_name=false
+  has_vga=false
+  is_selected=false
+
+  for device in ${group##}/devices/*; do
+    parse_group_devices
+  done
+
+  append_output_to_lists
+}
+
 function parse_groups
 {
-  vga_group_index=0
+  local -i vga_group_index=0
 
   for group in $( \
     find /sys/kernel/iommu_groups/* -maxdepth 0 -type d \
-    | sort --version-sort
+      | sort --version-sort
   ); do
-    group_id="${group##*/}"
-    OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
-
-    if "${ARGUMENTS["MATCH_GROUPS"]}" \
-      && ! $( \
-        echo ",${ARGUMENTS["GROUPS_TO_MATCH"]}," \
-          | grep --quiet ",${group_id},"
-      ); then
-      continue
-    fi
-
-    index=0
-    group_id_list=""
-    driver_list=""
-    hardware_id_list=""
-    has_host=false
-    has_pci=false
-    has_name=false
-    has_reverse_name=false
-    has_vga=false
-    is_selected=false
-
-    for device in ${group##}/devices/*; do
-      set_device_properties
-      set_group_properties
-      set_name_match_property
-      set_reverse_name_match_property
-      set_vga_type_match_property
-
-      if "${ARGUMENTS["MATCH_HOST"]}" \
-          && ! "${has_host}" \
-          && ! "${ARGUMENTS["MATCH_PCI"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_PCI"]}" \
-          && ! "${has_pci}" \
-          && ! "${ARGUMENTS["MATCH_HOST"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_NAMES"]}" \
-          && ! "${has_name}" \
-          && ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-          && ! "${has_reverse_name}" \
-          && ! "${ARGUMENTS["MATCH_NAMES"]}"; then
-        continue
-      fi
-
-      if "${ARGUMENTS["MATCH_VGA_GROUP_INDEX"]}" \
-          && ! "${has_vga}"; then
-        continue
-      fi
-
-      is_selected=true
-      append_output_to_temp_lists
-    done
-
-    append_output_to_lists
+    parse_group
   done
 
   verify_vga_group_index "${vga_group_index}"
@@ -530,13 +561,8 @@ function parse_groups
   convert_unselected_group_id_list_to_delimited_string
 }
 
-function parse_invalid_option
+function print_invalid_option
 {
-  if [[ "${1}" != "-"* ]] \
-    && [[ ! -z "${1}" ]]; then
-    return 0
-  fi
-
   is_quiet_enabled && exit 1
   echo -e "Error: Invalid option specified."
   exit 1
@@ -550,47 +576,113 @@ function print_invalid_argument
   exit 1
 }
 
+function print_output
+{
+  if is_quiet_enabled; then
+    if is_output_empty; then
+      return 1
+    else
+      echo "${OUTPUTS["SELECTED_DRIVERS"]}"
+      echo "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+      return 0
+    fi
+  fi
+
+  # if is_output_empty; then
+  #   echo -e "Error: No IOMMU groups found."
+  #   return 1
+  # fi
+
+  # TODO: just output groups here.
+  # TODO: make a function to format output given iommu id, not like devices will change immediately.
+
+  for line in "${group_output[@]}"; do
+    echo -e "${line}"
+  done
+
+  echo -e "Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
+  echo
+  echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+}
+
+function print_with_fold
+{
+  echo -e "${*}" | fold
+}
+
 function print_usage
 {
   if is_quiet_enabled; then
     return 0
   fi
 
-  echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]..."
+  text="$( \
+    wrap_text \
+      "Quiet all output except for comma delimited lists of device drivers and" \
+      "hardware IDs." \
+  )"
+
+  echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]"
   echo
   echo -e "Parse, sort, and display hardware devices by IOMMU group(s)."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
   echo -e "  -h, --help                Print this help and exit."
 
-  echo -e "  -q, --quiet               Quiet all output except for comma" \
-    "delimited lists of device drivers and hardware IDs."
+  echo -e "  -q, --quiet               ${text}"
 
-  echo -e "  -g, --group [OPTION]      Match IOMMU group ID(s)." \
-    "Comma delimited."
+  echo -e "  -g, --group=GROUPS        Match IOMMU group ID(s);"
 
-  echo -e "--host                      Match IOMMU groups with at least one" \
+  echo -e "                            GROUPS is a comma delimited list of" \
+    "numbers."
+
+  echo -e "  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);"
+
+  echo -e "                            GROUPS is a comma delimited list of" \
+    "numbers."
+
+  echo -e "  -H, --host                Match IOMMU groups with at least one" \
     "(1) or more Host devices."
 
-  echo -e "  --ignore-name [OPTION]    Match IOMMU group(s) without device" \
-    "name. Comma delimited."
+  echo -e "  --ignore-name=NAME        Match IOMMU group(s) without device" \
+    "name;"
 
-  echo -e "  -n, --name [OPTION]       Match IOMMU group(s) with device" \
-    "name. Comma delimited."
+  echo -e "                            NAME is a comma delimited list of" \
+    "text."
 
-  echo -e "--pcie                      Match IOMMU groups with at least one" \
+  echo -e "  -n, --name=NAME           Match IOMMU group(s) with device" \
+    "name;"
+
+  echo -e "                            NAME is a comma delimited list of" \
+    "text."
+
+  echo -e "  -p, --pci, --pcie         Match IOMMU groups with at least one" \
     "(1) or more PCI and/or PCIe bus devices."
 
-  echo -e "  -v, --vga-index [OPTION]  Match all IOMMU groups without VGA," \
-    "and any with VGA which match the index value(s) (not an IOMMU group ID)." \
-    "Comma delimited."
+  echo -e "  -v, --vga-index=INDEX     Match all IOMMU groups without VGA," \
+    "and any with VGA which match the index value(s) (not an IOMMU group ID);"
+
+  echo -e "                            INDEX is a comma delimited list of" \
+    "numbers."
 
   echo
   echo -e "Examples:"
 
   echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
 
-  echo -e "    Quiet output except for drivers and" \
+  echo -e "                            Quiet output except for drivers and" \
   "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
   "groups with VGA device(s) before and after the second matched group, and" \
   "exclude any wired ethernet devices (onboard or PCI/e)."
@@ -598,7 +690,7 @@ function print_usage
 
 function set_device_properties
 {
-  (( index++ ))
+  (( device_index++ ))
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
 
@@ -642,10 +734,8 @@ function set_name_match_property
     echo "${ARGUMENTS["NAMES_TO_MATCH"]}" \
       | sed "s/,/ /g"
   ); do
-    if $( \
-      echo "${name,,}" \
-        | grep --invert-match --quiet "${this_name,,}"
-    ); then
+    if echo "${name,,}" \
+        | grep --invert-match --quiet "${this_name,,}"; then
       continue
     fi
 
@@ -662,12 +752,10 @@ function set_reverse_name_match_property
 
   for this_name in $( \
     echo "${ARGUMENTS["NAMES_TO_REVERSE_MATCH"]}" \
-      | sed "s/,/ /g"
+    | sed "s/,/ /g" \
   ); do
-    if $( \
-      echo "${name,,}" \
-        | grep --quiet "${this_name,,}"
-    ); then
+    if echo "${name,,}" \
+        | grep --quiet "${this_name,,}"; then
       continue
     fi
 
@@ -677,10 +765,8 @@ function set_reverse_name_match_property
 
 function set_vga_type_match_property
 {
-  if $( \
-    echo "${name,,}" \
-      | grep --quiet "vga"
-  ); then
+  if echo "${name,,}" \
+      | grep --quiet "vga"; then
     has_vga=true
   fi
 }
@@ -693,20 +779,26 @@ function verify_groups
       | head --lines 1
   )"
 
-  local -i min_iommu=0
-
-  if $( \
-      echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-      | grep --extended-regexp --quiet '^(?!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'
-    ) \
-    || [[ "$( \
-      echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+  if ! is_comma_delimited_list_of_positive_numbers \
+      "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+    || [[ "$( echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
       | sort --reverse --version-sort \
-      | --lines 1
-    )" -gt "${greatest_iommu}" ]]; then
+      | --lines 1)" -gt "${greatest_iommu}" ]]; then
     echo -e "Error: Invalid IOMMU group ID(s) specified."
 
-    echo "Please enter a number between '${min_iommu}' and '${greatest_iommu}'."
+    echo "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
+
+    exit 1
+  fi
+
+  if ! is_comma_delimited_list_of_positive_numbers \
+      "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+    || [[ "$( echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+      | sort --reverse --version-sort \
+      | --lines 1)" -gt "${greatest_iommu}" ]]; then
+    echo -e "Error: Invalid IOMMU group ID(s) specified."
+
+    echo "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
 
     exit 1
   fi
@@ -742,7 +834,7 @@ function main
 {
   parse_arguments "${@}"
 
-  declare -a group_output=()
+  local -a group_output=()
 
   if is_quiet_enabled; then
     parse_groups &> /dev/null
