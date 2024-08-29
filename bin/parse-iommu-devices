@@ -23,6 +23,8 @@ declare -r SCRIPT_VERSION="1.0.2"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
 declare -i MIN_VGA_INDEX_VALUE=1
 declare -i MIN_IOMMU_VALUE=0
+declare -ir THIS_COLUMNS=$( tput cols )
+declare -r USE_WORD_WRAP=true
 
 declare -A ARGUMENTS=(
   ["GET_MINIMUM_OUTPUT"]=false
@@ -53,13 +55,62 @@ declare -A OUTPUTS=(
 
 function wrap_text
 {
-  column  --separator '|' \
-          --table \
-          --output-width 30 \
-          --table-noheadings \
-          --table-columns C1,C2 \
-          --table-wrap C2 \
-    key1|$1
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  if ! "${USE_WORD_WRAP}"; then
+    shift
+    echo -e "$@"
+    return
+  fi
+
+  local column_prefix_text=""
+  local -i column_prefix_width="${1}"
+  local -i column_width="${THIS_COLUMNS}"
+
+  if [[ "${column_prefix_width}" =~ ^[0-9]+$ ]] \
+    || [[ "${column_prefix_width}" =~ ^[-][0-9]+$ ]]; then
+    for index in $( seq 0 "${column_prefix_width}" ); do
+      column_prefix_text+=" "
+    done
+
+    column_width=$(( column_width - ${column_prefix_width} ))
+    shift
+  fi
+
+  if [[ "${column_width}" -lt 0 ]]; then
+    column_width=$(( column_width * -1 ))
+  fi
+
+  set -o noglob
+  old_ifs="${IFS}"
+  IFS=$'\n'
+
+  lines="$( \
+    echo "$@" \
+      | fold --spaces --width="${column_width}" \
+  )"
+
+  lines=(${lines[@]})
+
+  set +o noglob
+  IFS="${old_ifs}"
+  echo -e "${lines[0]}"
+
+  if [[ "${#lines[@]}" -lt 1 ]]; then
+    return
+  fi
+
+  unset 'lines[0]'
+
+  for line in "${lines[@]}"; do
+    line="$( echo "${line}" | sed 's/^[ \t]*//;s/[ \t]*$//' )"
+    line="${column_prefix_text}${line}"
+    echo -e " ${line}"
+  done
+
+  unset lines
 }
 
 function append_output_to_lists
@@ -628,61 +679,81 @@ function print_usage
     return 0
   fi
 
-  text="$( \
-    wrap_text \
-      "Quiet all output except for comma delimited lists of device drivers and" \
-      "hardware IDs." \
-  )"
+  local -r column_prefix_count=28
 
   echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]"
   echo
   echo -e "Parse, sort, and display hardware devices by IOMMU group(s)."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
-  echo -e "  -h, --help                Print this help and exit."
 
-  echo -e "  -q, --quiet               ${text}"
+  echo -e "  -h, --help                "
+  wrap_text "${column_prefix_count}" "Print this help and exit."
 
-  echo -e "  -g, --group=GROUPS        Match IOMMU group ID(s);"
+  echo -en "  -q, --quiet               "
 
-  echo -e "                            GROUPS is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "Quiet all output except for comma delimited lists of device drivers and hardware IDs."
+
+  echo -en "  -g, --group=GROUPS        "
+  wrap_text "${column_prefix_count}" "Match IOMMU group ID(s);"
+
+  echo -en "                            "
+  wrap_text "${column_prefix_count}" "GROUPS is a comma delimited list of" \
     "numbers."
 
-  echo -e "  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);"
+  echo -en "  --ignore-group=GROUPS     "
+  wrap_text "${column_prefix_count}" "Reverse match IOMMU group ID(s);"
 
-  echo -e "                            GROUPS is a comma delimited list of" \
-    "numbers."
+  echo -en "                            "
+  wrap_text "${column_prefix_count}" "GROUPS is a comma delimited list of" \
+    "numbers.D"
 
-  echo -e "  -H, --host                Match IOMMU groups with at least one" \
+  echo -en "  -H, --host                "
+
+  wrap_text "${column_prefix_count}" "Match IOMMU groups with at least one" \
     "(1) or more Host devices."
 
-  echo -e "  --ignore-name=NAME        Match IOMMU group(s) without device" \
+  echo -en "  --ignore-name=NAME        "
+
+  wrap_text "${column_prefix_count}" "Match IOMMU group(s) without device" \
     "name;"
 
-  echo -e "                            NAME is a comma delimited list of" \
+  echo -en "                            "
+  wrap_text "${column_prefix_count}" "NAME is a comma delimited list of" \
     "text."
 
-  echo -e "  -n, --name=NAME           Match IOMMU group(s) with device" \
+  echo -en "  -n, --name=NAME           "
+
+  wrap_text "${column_prefix_count}" "Match IOMMU group(s) with device" \
     "name;"
 
-  echo -e "                            NAME is a comma delimited list of" \
+  echo -en "                            "
+
+  wrap_text "${column_prefix_count}" "NAME is a comma delimited list of" \
     "text."
 
-  echo -e "  -p, --pci, --pcie         Match IOMMU groups with at least one" \
+  echo -en "  -p, --pci, --pcie         "
+
+  wrap_text "${column_prefix_count}" "Match IOMMU groups with at least one" \
     "(1) or more PCI and/or PCIe bus devices."
 
-  echo -e "  -v, --vga-index=INDEX     Match all IOMMU groups without VGA," \
+  echo -en "  -v, --vga-index=INDEX     "
+
+  wrap_text "${column_prefix_count}" "Match all IOMMU groups without VGA," \
     "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
-  echo -e "                            INDEX is a comma delimited list of" \
+  echo -en "                            "
+
+  wrap_text "${column_prefix_count}" "INDEX is a comma delimited list of" \
     "numbers."
 
   echo
   echo -e "Examples:"
 
   echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
+  echo -en "                            "
 
-  echo -e "                            Quiet output except for drivers and" \
+  wrap_text "${column_prefix_count}" "Quiet output except for drivers and" \
   "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
   "groups with VGA device(s) before and after the second matched group, and" \
   "exclude any wired ethernet devices (onboard or PCI/e)."
