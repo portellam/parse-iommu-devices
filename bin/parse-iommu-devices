@@ -13,8 +13,8 @@
 #
 # TODO:
 # - [ ] add validation for all inputs.
-# - [ ] fix output to show every IOMMU group and it's device info.
-# - [ ] fix lists?
+# - [x] fix output to show every IOMMU group and it's device info.
+# - [x] fix lists?
 #
 
 shopt -s nullglob
@@ -53,71 +53,8 @@ declare -A OUTPUTS=(
   ["UNSELECTED_GROUP_ID_LIST"]=""
 )
 
-function wrap_text
-{
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  if ! "${USE_WORD_WRAP}"; then
-    shift
-    echo -e "$@"
-    return
-  fi
-
-  local column_prefix_text=""
-  local -i column_prefix_width="${1}"
-  local -i column_width="${THIS_COLUMNS}"
-
-  if [[ "${column_prefix_width}" =~ ^[0-9]+$ ]] \
-    || [[ "${column_prefix_width}" =~ ^[-][0-9]+$ ]]; then
-    for index in $( seq 0 "${column_prefix_width}" ); do
-      column_prefix_text+=" "
-    done
-
-    column_width=$(( column_width - ${column_prefix_width} ))
-    shift
-  fi
-
-  if [[ "${column_width}" -lt 0 ]]; then
-    column_width=$(( column_width * -1 ))
-  fi
-
-  set -o noglob
-  old_ifs="${IFS}"
-  IFS=$'\n'
-
-  lines="$( \
-    echo "$@" \
-      | fold --spaces --width="${column_width}" \
-  )"
-
-  lines=(${lines[@]})
-
-  set +o noglob
-  IFS="${old_ifs}"
-  echo -e "${lines[0]}"
-
-  if [[ "${#lines[@]}" -lt 1 ]]; then
-    return
-  fi
-
-  unset 'lines[0]'
-
-  for line in "${lines[@]}"; do
-    line="$( echo "${line}" | sed 's/^[ \t]*//;s/[ \t]*$//' )"
-    line="${column_prefix_text}${line}"
-    echo -e " ${line}"
-  done
-
-  unset lines
-}
-
 function append_output_to_lists
 {
-  # if ! is_quiet_enabled \
-  #   && ! is_output_empty; then
-
   if "${has_host}"; then
     OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${group_id},"
   fi
@@ -152,20 +89,19 @@ function append_output_to_temp_lists
       driver_output+="N/A"
     fi
 
-    name_output="$( echo "${name}" | fmt --crown-margin )"
+    name_output="$( \
+      echo "${name}" \
+        | fmt --crown-margin \
+    )"
 
-    group_output+=(
+    group_temp_output+=(
       "\t${device_index}.\tSlot ID:\t${bus_id}"
       "\t\tName:\t\t${name_output}"
       "\t\tHardware ID:\t${hardware_id}"
       "${driver_output}"
     )
 
-    group_output+=( "" )
-  fi
-
-  if [[ ",${group_id_list,,}," != *",${group_id},"* ]]; then
-    group_id_list+="${group_id},"
+    group_temp_output+=( "" )
   fi
 
   if [[ ",${driver_list,,}," != *",${driver},"* ]]; then
@@ -356,13 +292,13 @@ function convert_unselected_group_id_list_to_delimited_string
 function is_comma_delimited_list_of_positive_numbers
 {
   if echo "${1}" \
-      | grep --extended-regexp --quiet '^(?!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
+      | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
     echo -e "Error: Input is not a comma delimited list of positive numbers."
     return 1
   fi
 }
 
-function is_output_empty
+function is_output_not_empty
 {
   if [[ "${#group_output[@]}" -lt 1 ]]; then
     return 1
@@ -405,7 +341,7 @@ function parse_argument
 {
   while [[ ! -z "${1}" ]]; do
     case "${1,,}" in
-      "-g" | "--groups" )
+      "-g" | "--group" )
         ARGUMENTS["MATCH_GROUPS"]=true
         shift
 
@@ -546,32 +482,6 @@ function parse_group
     )
   fi
 
-  # if "${ARGUMENTS["MATCH_GROUPS"]}" \
-  #   && ! echo ",${ARGUMENTS["GROUPS_TO_MATCH"]}," \
-  #     | grep --quiet ",${group_id},"; then
-  #   return 1
-  # fi
-
-  # if "${ARGUMENTS["REVERSE_MATCH_GROUPS"]}" \
-  #   && ! echo ",${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}," \
-  #     | grep --quiet ",${group_id},"; then
-  #   return 1
-  # fi
-
-  if "${ARGUMENTS["MATCH_GROUPS"]}" \
-    && [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
-    && echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-        | grep --quiet "${group_id}"; then
-    return 1
-  fi
-
-  if "${ARGUMENTS["REVERSE_MATCH_GROUPS"]}" \
-    && ! [[ -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
-    && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
-        | grep --quiet "${group_id}"; then
-    return 1
-  fi
-
   device_index=0
   group_id_list=""
   driver_list=""
@@ -582,12 +492,44 @@ function parse_group
   has_reverse_name=false
   has_vga=false
   is_selected=false
+  local -a group_temp_output=()
+
+  if [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
+    && ! echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+      | grep --quiet "${group_id}"; then
+    if ! is_quiet_enabled; then
+      group_output[-1]+="\tNot matched.\n"
+    fi
+
+    return 1
+  fi
+
+  if [[ ! -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
+      && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+        | grep --quiet "${group_id}"; then
+    if ! is_quiet_enabled; then
+      group_output[-1]+="\tSkipped.\n"
+    fi
+
+    return 1
+  fi
 
   for device in ${group##}/devices/*; do
     parse_group_devices
+
+    if [[ ",${group_id_list,,}," != *",${group_id},"* ]]; then
+      group_id_list+="${group_id},"
+    fi
   done
 
-  append_output_to_lists
+  if ! is_quiet_enabled; then
+    if [[ "${#group_temp_output[@]}" -lt 1 ]]; then
+      group_output+=( "\tNo devices found for group ${group_id}." )
+      exit 1
+    else
+      group_output+=( "${group_temp_output[@]}" )
+    fi
+  fi
 }
 
 function parse_groups
@@ -599,6 +541,7 @@ function parse_groups
       | sort --version-sort
   ); do
     parse_group
+    append_output_to_lists
   done
 
   verify_vga_group_index "${vga_group_index}"
@@ -612,17 +555,18 @@ function parse_groups
   convert_unselected_group_id_list_to_delimited_string
 }
 
+function print_invalid_argument
+{
+  is_quiet_enabled && exit 1
+  echo -e "Error: Invalid argument(s) specified."
+  print_usage
+  exit 1
+}
+
 function print_invalid_option
 {
   is_quiet_enabled && exit 1
   echo -e "Error: Invalid option specified."
-  exit 1
-}
-
-function print_invalid_argument
-{
-  echo -e "Error: Invalid option specified."
-  echo -e "Error: Invalid argument(s) specified."
   print_usage
   exit 1
 }
@@ -630,47 +574,35 @@ function print_invalid_argument
 function print_output
 {
   if is_quiet_enabled; then
-    if is_output_empty; then
-      return 1
-    else
-      echo "${OUTPUTS["SELECTED_DRIVERS"]}"
-      echo "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-      return 0
-    fi
+    echo -e "${OUTPUTS["SELECTED_DRIVERS"]}"
+    echo -e "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+    return 0
   fi
 
-  # if is_output_empty; then
-  #   echo -e "Error: No IOMMU groups found."
-  #   return 1
-  # fi
-
-  # TODO: just output groups here.
-  # TODO: make a function to format output given iommu id, not like devices will change immediately.
+  if ! is_output_not_empty; then
+    echo -e "Error: No IOMMU groups found."
+    return 1
+  fi
 
   for line in "${group_output[@]}"; do
     echo -e "${line}"
   done
 
-  echo -e "Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  # echo -e "Found Groups:\t\t${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  # echo
+  echo -e "Unselected Groups:\t${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
   echo
-  echo -e "Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
+  echo -e "Selected Groups:\t${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
   echo
-  echo -e "Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
+  echo -e "Selected Groups with Host device(s):\t${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
   echo
-  echo -e "Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
+  echo -e "Selected Groups with PCI device(s):\t${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
   echo
-  echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
+  echo -e "Selected Groups with VGA device(s):\t${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
   echo
   echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
   echo
   echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-}
-
-function print_with_fold
-{
-  echo -e "${*}" | fold
 }
 
 function print_usage
@@ -688,63 +620,63 @@ function print_usage
   echo
 
   echo -e "  -h, --help                "
-  wrap_text "${column_prefix_count}" "Print this help and exit."
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Print this help and exit."
 
   echo -en "  -q, --quiet               "
 
-  wrap_text "${column_prefix_count}" "Quiet all output except for comma delimited lists of device drivers and hardware IDs."
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Quiet all output except for comma delimited lists of device drivers and hardware IDs."
 
   echo -en "  -g, --group=GROUPS        "
-  wrap_text "${column_prefix_count}" "Match IOMMU group ID(s);"
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group ID(s);"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "GROUPS is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "GROUPS is a comma delimited list of" \
     "numbers."
 
   echo -en "  --ignore-group=GROUPS     "
-  wrap_text "${column_prefix_count}" "Reverse match IOMMU group ID(s);"
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Reverse match IOMMU group ID(s);"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "GROUPS is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "GROUPS is a comma delimited list of" \
     "numbers.D"
 
   echo -en "  -H, --host                "
 
-  wrap_text "${column_prefix_count}" "Match IOMMU groups with at least one" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU groups with at least one" \
     "(1) or more Host devices."
 
   echo -en "  --ignore-name=NAME        "
 
-  wrap_text "${column_prefix_count}" "Match IOMMU group(s) without device" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group(s) without device" \
     "name;"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "NAME is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "NAME is a comma delimited list of" \
     "text."
 
   echo -en "  -n, --name=NAME           "
 
-  wrap_text "${column_prefix_count}" "Match IOMMU group(s) with device" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group(s) with device" \
     "name;"
 
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "NAME is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "NAME is a comma delimited list of" \
     "text."
 
   echo -en "  -p, --pci, --pcie         "
 
-  wrap_text "${column_prefix_count}" "Match IOMMU groups with at least one" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU groups with at least one" \
     "(1) or more PCI and/or PCIe bus devices."
 
   echo -en "  -v, --vga-index=INDEX     "
 
-  wrap_text "${column_prefix_count}" "Match all IOMMU groups without VGA," \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match all IOMMU groups without VGA," \
     "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "INDEX is a comma delimited list of" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "INDEX is a comma delimited list of" \
     "numbers."
 
   echo
@@ -753,7 +685,7 @@ function print_usage
   echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "Quiet output except for drivers and" \
+  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Quiet output except for drivers and" \
   "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
   "groups with VGA device(s) before and after the second matched group, and" \
   "exclude any wired ethernet devices (onboard or PCI/e)."
@@ -764,6 +696,7 @@ function set_device_properties
   (( device_index++ ))
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
+  name="$( wrap_text 33 "${THIS_COLUMNS}" "${name}" )"
 
   bus_id="$( \
     lspci -ns ${device##*/} \
@@ -901,18 +834,76 @@ function verify_vga_group_index
   done
 }
 
+function wrap_text
+{
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  local column_prefix_text=""
+  local -i column_prefix_width="${1}"
+  shift
+  local -i column_width="${1}"
+  shift
+
+  if ! "${USE_WORD_WRAP}" \
+    || ! [[ "${column_width}" =~ ^[0-9]+$ ]] \
+    || [[ "${column_width}" =~ ^[-][0-9]+$ ]]; then
+    echo -e "$@"
+    return
+  fi
+
+  if [[ "${column_prefix_width}" =~ ^[0-9]+$ ]] \
+    || [[ "${column_prefix_width}" =~ ^[-][0-9]+$ ]]; then
+    for index in $( seq 0 "${column_prefix_width}" ); do
+      column_prefix_text+=" "
+    done
+
+    column_width=$(( column_width - ${column_prefix_width} ))
+  fi
+
+  if [[ "${column_width}" -lt 0 ]]; then
+    column_width=$(( column_width * -1 ))
+  fi
+
+  set -o noglob
+  IFS=$'\n'
+
+  lines="$( \
+    echo "$@" \
+      | fold --spaces --width="${column_width}" \
+  )"
+
+  lines=(${lines[@]})
+
+  set +o noglob
+  unset IFS
+  echo -e "${lines[0]}"
+
+  if [[ "${#lines[@]}" -lt 1 ]]; then
+    return
+  fi
+
+  unset 'lines[0]'
+
+  for line in "${lines[@]}"; do
+    line="$( \
+      echo "${line}" \
+        | sed 's/^[ \t]*//;s/[ \t]*$//'
+    )"
+
+    line="${column_prefix_text}${line}"
+    echo -e " ${line}"
+  done
+
+  unset lines
+}
+
 function main
 {
   parse_arguments "${@}"
-
   local -a group_output=()
-
-  if is_quiet_enabled; then
-    parse_groups &> /dev/null
-  else
-    parse_groups
-  fi
-
+  parse_groups
   print_output
 }
 
