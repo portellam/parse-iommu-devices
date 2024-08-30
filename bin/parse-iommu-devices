@@ -494,25 +494,25 @@ function parse_group
   is_selected=false
   local -a group_temp_output=()
 
-  if [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
-    && ! echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-      | grep --quiet "${group_id}"; then
-    if ! is_quiet_enabled; then
-      group_output[-1]+="\tNot matched.\n"
-    fi
+  # if [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
+  #   && ! echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+  #     | grep --quiet "${group_id}"; then
+  #   if ! is_quiet_enabled; then
+  #     group_output[-1]+="\tNot matched.\n"
+  #   fi
 
-    return 1
-  fi
+  #   return 1
+  # fi
 
-  if [[ ! -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
-      && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
-        | grep --quiet "${group_id}"; then
-    if ! is_quiet_enabled; then
-      group_output[-1]+="\tSkipped.\n"
-    fi
+  # if [[ ! -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
+  #     && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+  #       | grep --quiet "${group_id}"; then
+  #   if ! is_quiet_enabled; then
+  #     group_output[-1]+="\tSkipped.\n"
+  #   fi
 
-    return 1
-  fi
+  #   return 1
+  # fi
 
   for device in ${group##}/devices/*; do
     parse_group_devices
@@ -587,6 +587,14 @@ function print_output
   for line in "${group_output[@]}"; do
     echo -e "${line}"
   done
+
+  if [[ -z "${OUTPUTS["SELECTED_DRIVERS"]}" ]]; then
+    OUTPUTS["SELECTED_DRIVERS"]="N/A"
+  fi
+
+  if [[ -z "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" ]]; then
+    OUTPUTS["SELECTED_DRIVERS"]="N/A"
+  fi
 
   # echo -e "Found Groups:\t\t${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
   # echo
