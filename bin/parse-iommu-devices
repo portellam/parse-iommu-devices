@@ -89,9 +89,16 @@ function append_output_to_temp_lists
       driver_output+="N/A"
     fi
 
+    # name_output="$( \
+    #   echo "${name}" \
+    #     | fmt --crown-margin \
+    # )"
+
     name_output="$( \
-      echo "${name}" \
-        | fmt --crown-margin \
+      wrap_text \
+        28 \
+        "${THIS_COLUMNS}" \
+        "${name}"
     )"
 
     group_temp_output+=(
@@ -477,9 +484,7 @@ function parse_group
   OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
 
   if ! is_quiet_enabled; then
-    group_output+=(
-      "IOMMU Group ${group_id}:"
-    )
+    group_output+=( "IOMMU Group ${group_id}:" )
   fi
 
   device_index=0
@@ -627,64 +632,113 @@ function print_usage
   echo -e "Version ${SCRIPT_VERSION}."
   echo
 
-  echo -e "  -h, --help                "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Print this help and exit."
+  echo -e "  -h, --help                Print this help and exit."
 
   echo -en "  -q, --quiet               "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Quiet all output except for comma delimited lists of device drivers and hardware IDs."
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Quiet all output except for comma delimited lists of device drivers and" \
+    "hardware IDs."
 
   echo -en "  -g, --group=GROUPS        "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group ID(s);"
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group ID(s);"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "GROUPS is a comma delimited list of" \
-    "numbers."
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "GROUPS is a comma delimited list of numbers."
 
   echo -en "  --ignore-group=GROUPS     "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Reverse match IOMMU group ID(s);"
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Reverse match IOMMU group ID(s);"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "GROUPS is a comma delimited list of" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "GROUPS is a comma delimited list of" \
     "numbers.D"
 
   echo -en "  -H, --host                "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU groups with at least one" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU groups with at least one" \
     "(1) or more Host devices."
 
   echo -en "  --ignore-name=NAME        "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group(s) without device" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) without device" \
     "name;"
 
   echo -en "                            "
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "NAME is a comma delimited list of" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "NAME is a comma delimited list of" \
     "text."
 
   echo -en "  -n, --name=NAME           "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU group(s) with device" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) with device" \
     "name;"
 
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "NAME is a comma delimited list of" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "NAME is a comma delimited list of" \
     "text."
 
   echo -en "  -p, --pci, --pcie         "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match IOMMU groups with at least one" \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU groups with at least one" \
     "(1) or more PCI and/or PCIe bus devices."
 
   echo -en "  -v, --vga-index=INDEX     "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Match all IOMMU groups without VGA," \
+
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match all IOMMU groups without VGA," \
     "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "INDEX is a comma delimited list of" \
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "INDEX is a comma delimited list of" \
     "numbers."
 
   echo
@@ -693,7 +747,10 @@ function print_usage
   echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
   echo -en "                            "
 
-  wrap_text "${column_prefix_count}" "${THIS_COLUMNS}" "Quiet output except for drivers and" \
+  wrap_text \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Quiet output except for drivers and" \
   "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
   "groups with VGA device(s) before and after the second matched group, and" \
   "exclude any wired ethernet devices (onboard or PCI/e)."
@@ -704,7 +761,13 @@ function set_device_properties
   (( device_index++ ))
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
-  name="$( wrap_text 33 "${THIS_COLUMNS}" "${name}" )"
+
+  name="$( \
+    wrap_text \
+      33 \
+      "${THIS_COLUMNS}" \
+      "${name}" \
+  )"
 
   bus_id="$( \
     lspci -ns ${device##*/} \
@@ -746,7 +809,7 @@ function set_name_match_property
     echo "${ARGUMENTS["NAMES_TO_MATCH"]}" \
       | sed "s/,/ /g"
   ); do
-    if echo "${name,,}" \
+    if ! echo "${name,,}" \
         | grep --invert-match --quiet "${this_name,,}"; then
       continue
     fi
@@ -764,7 +827,7 @@ function set_reverse_name_match_property
 
   for this_name in $( \
     echo "${ARGUMENTS["NAMES_TO_REVERSE_MATCH"]}" \
-    | sed "s/,/ /g" \
+      | sed "s/,/ /g" \
   ); do
     if echo "${name,,}" \
         | grep --quiet "${this_name,,}"; then
@@ -791,27 +854,28 @@ function verify_groups
       | head --lines 1
   )"
 
+  local -r warning="Error: Invalid IOMMU group ID(s) specified."\
+    "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
+
   if ! is_comma_delimited_list_of_positive_numbers \
       "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-    || [[ "$( echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-      | sort --reverse --version-sort \
-      | --lines 1)" -gt "${greatest_iommu}" ]]; then
-    echo -e "Error: Invalid IOMMU group ID(s) specified."
-
-    echo "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
-
+    || [[ "$( \
+      echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
+        | sort --reverse --version-sort \
+        | --lines 1 \
+      )" -gt "${greatest_iommu}" ]]; then
+    echo -e "${warning}"
     exit 1
   fi
 
   if ! is_comma_delimited_list_of_positive_numbers \
       "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
-    || [[ "$( echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
-      | sort --reverse --version-sort \
-      | --lines 1)" -gt "${greatest_iommu}" ]]; then
-    echo -e "Error: Invalid IOMMU group ID(s) specified."
-
-    echo "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
-
+    || [[ "$( \
+      echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
+        | sort --reverse --version-sort \
+        | --lines 1 \
+      )" -gt "${greatest_iommu}" ]]; then
+    echo -e "${warning}"
     exit 1
   fi
 }
@@ -875,15 +939,15 @@ function wrap_text
   fi
 
   set -o noglob
-  IFS=$'\n'
+  IFS=' '
 
   lines="$( \
     echo "$@" \
       | fold --spaces --width="${column_width}" \
   )"
 
+  IFS=$'\n'
   lines=(${lines[@]})
-
   set +o noglob
   unset IFS
   echo -e "${lines[0]}"
@@ -904,7 +968,7 @@ function wrap_text
     echo -e " ${line}"
   done
 
-  unset lines
+  unset 'lines'
 }
 
 function main
