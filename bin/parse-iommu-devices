@@ -96,6 +96,7 @@ function append_output_to_temp_lists
 
     name_output="$( \
       wrap_text \
+        true \
         28 \
         "${THIS_COLUMNS}" \
         "${name}"
@@ -637,6 +638,7 @@ function print_usage
   echo -en "  -q, --quiet               "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Quiet all output except for comma delimited lists of device drivers and" \
@@ -645,6 +647,7 @@ function print_usage
   echo -en "  -g, --group=GROUPS        "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match IOMMU group ID(s);"
@@ -652,6 +655,7 @@ function print_usage
   echo -en "                            "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "GROUPS is a comma delimited list of numbers."
@@ -659,6 +663,7 @@ function print_usage
   echo -en "  --ignore-group=GROUPS     "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Reverse match IOMMU group ID(s);"
@@ -666,6 +671,7 @@ function print_usage
   echo -en "                            "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "GROUPS is a comma delimited list of" \
@@ -675,6 +681,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match IOMMU groups with at least one" \
@@ -684,6 +691,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match IOMMU group(s) without device" \
@@ -692,6 +700,7 @@ function print_usage
   echo -en "                            "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "NAME is a comma delimited list of" \
@@ -701,6 +710,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match IOMMU group(s) with device" \
@@ -710,6 +720,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "NAME is a comma delimited list of" \
@@ -719,6 +730,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match IOMMU groups with at least one" \
@@ -728,6 +740,7 @@ function print_usage
 
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "Match all IOMMU groups without VGA," \
@@ -736,6 +749,7 @@ function print_usage
   echo -en "                            "
 
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
     "INDEX is a comma delimited list of" \
@@ -747,13 +761,16 @@ function print_usage
   echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
   echo -en "                            "
 
+  text="Quiet output except for drivers and "
+  text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
+  text+="groups with VGA device(s) before and after the second matched group, "
+  text+="and exclude any wired ethernet devices (onboard or PCI/e)."
+
   wrap_text \
+    false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Quiet output except for drivers and" \
-  "hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU" \
-  "groups with VGA device(s) before and after the second matched group, and" \
-  "exclude any wired ethernet devices (onboard or PCI/e)."
+    "${text}"
 }
 
 function set_device_properties
@@ -762,12 +779,21 @@ function set_device_properties
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
 
+  echo "${name}"
+
   name="$( \
     wrap_text \
-      33 \
+      true \
+      4 \
       "${THIS_COLUMNS}" \
       "${name}" \
   )"
+
+  wrap_text \
+    true \
+    4 \
+    "${THIS_COLUMNS}" \
+    "${name}"
 
   bus_id="$( \
     lspci -ns ${device##*/} \
@@ -906,33 +932,73 @@ function verify_vga_group_index
   done
 }
 
-function wrap_text
+function get_space_count_from_tabspace
 {
   if [[ -z "${1}" ]]; then
     return 1
   fi
 
-  local column_prefix_text=""
-  local -i column_prefix_width="${1}"
+  local -i tabspace_count="${1}"
+  local output="$( get_repeated_tabspace "${1}" )"
+
+  grep -o "${output}" \
+    | wc -l
+}
+
+function get_repeated_tabspace
+{
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  local -i tabspace_count="${1}"
+  local output=""
+
+  for index in $( seq 0 "${tabspace_count}" ); do
+    output+="\t"
+  done
+
+  echo -e "${output}"
+}
+
+function wrap_text
+{
+  local -r use_tab_space="${1}"
+
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  shift
+
+  local prefix=""
+  local -i prefix_width="${1}"
+
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
   shift
   local -i column_width="${1}"
+
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
   shift
 
   if ! "${USE_WORD_WRAP}" \
     || ! [[ "${column_width}" =~ ^[0-9]+$ ]] \
-    || [[ "${column_width}" =~ ^[-][0-9]+$ ]]; then
+    || ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
     echo -e "$@"
     return
   fi
 
-  if [[ "${column_prefix_width}" =~ ^[0-9]+$ ]] \
-    || [[ "${column_prefix_width}" =~ ^[-][0-9]+$ ]]; then
-    for index in $( seq 0 "${column_prefix_width}" ); do
-      column_prefix_text+=" "
-    done
-
-    column_width=$(( column_width - ${column_prefix_width} ))
+  if "${use_tab_space}"; then
+    prefix_width="$( get_space_count_from_tabspace "${prefix_width}" )"
   fi
+
+  column_width=$(( column_width - ${prefix_width} ))
 
   if [[ "${column_width}" -lt 0 ]]; then
     column_width=$(( column_width * -1 ))
@@ -960,12 +1026,12 @@ function wrap_text
 
   for line in "${lines[@]}"; do
     line="$( \
-      echo "${line}" \
+      echo -e "${line}" \
         | sed 's/^[ \t]*//;s/[ \t]*$//'
     )"
 
-    line="${column_prefix_text}${line}"
-    echo -e " ${line}"
+    line="${prefix}${line}"
+    echo -e "${line}"
   done
 
   unset 'lines'
