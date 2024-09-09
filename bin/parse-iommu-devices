@@ -17,6 +17,7 @@
 # - [x] fix lists?
 #
 
+# set -o xtrace
 shopt -s nullglob
 
 declare -r SCRIPT_VERSION="1.0.2"
@@ -632,7 +633,6 @@ function print_usage
   echo -e "Parse, sort, and display hardware devices by IOMMU group(s)."
   echo -e "Version ${SCRIPT_VERSION}."
   echo
-
   echo -e "  -h, --help                Print this help and exit."
 
   echo -en "  -q, --quiet               "
@@ -652,7 +652,7 @@ function print_usage
     "${THIS_COLUMNS}" \
     "Match IOMMU group ID(s);"
 
-  echo -en "                            "
+  echo -en "$( get_repeated_space 28 )"
 
   wrap_text \
     false \
@@ -668,34 +668,29 @@ function print_usage
     "${THIS_COLUMNS}" \
     "Reverse match IOMMU group ID(s);"
 
-  echo -en "                            "
+  echo -en "$( get_repeated_space 28 )"
 
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "GROUPS is a comma delimited list of" \
-    "numbers.D"
+    "GROUPS is a comma delimited list of numbers."
 
   echo -en "  -H, --host                "
 
-
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU groups with at least one" \
-    "(1) or more Host devices."
+    "Match IOMMU groups with at least one (1) or more Host devices."
 
   echo -en "  --ignore-name=NAME        "
 
-
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU group(s) without device" \
-    "name;"
+    "Match IOMMU group(s) without device name;"
 
   echo -en "                            "
 
@@ -703,41 +698,33 @@ function print_usage
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "NAME is a comma delimited list of" \
-    "text."
+    "NAME is a comma delimited list of text."
 
   echo -en "  -n, --name=NAME           "
 
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) with device name;"
+
+  echo -en "$( get_repeated_space 28 )"
 
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU group(s) with device" \
-    "name;"
-
-  echo -en "                            "
-
-
-  wrap_text \
-    false \
-    "${column_prefix_count}" \
-    "${THIS_COLUMNS}" \
-    "NAME is a comma delimited list of" \
-    "text."
+    "NAME is a comma delimited list of text."
 
   echo -en "  -p, --pci, --pcie         "
 
-
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU groups with at least one" \
-    "(1) or more PCI and/or PCIe bus devices."
+    "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
   echo -en "  -v, --vga-index=INDEX     "
-
 
   wrap_text \
     false \
@@ -746,14 +733,13 @@ function print_usage
     "Match all IOMMU groups without VGA," \
     "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
-  echo -en "                            "
+  echo -en "$( get_repeated_space 28 )"
 
   wrap_text \
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "INDEX is a comma delimited list of" \
-    "numbers."
+    "INDEX is a comma delimited list of numbers."
 
   echo
   echo -e "Examples:"
@@ -779,8 +765,6 @@ function set_device_properties
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
 
-  echo "${name}"
-
   name="$( \
     wrap_text \
       true \
@@ -788,12 +772,6 @@ function set_device_properties
       "${THIS_COLUMNS}" \
       "${name}" \
   )"
-
-  wrap_text \
-    true \
-    4 \
-    "${THIS_COLUMNS}" \
-    "${name}"
 
   bus_id="$( \
     lspci -ns ${device##*/} \
@@ -938,9 +916,24 @@ function get_space_count_from_tabspace
 
   local -i tabspace_count="${1}"
   local output="$( get_repeated_tabspace "${1}" )"
+  local result="${output//[^ ]}"
+  echo "${#result}"
+}
 
-  grep -o "${output}" \
-    | wc -l
+function get_repeated_space
+{
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  local -i space_count="${1}"
+  local output=""
+
+  for index in $( seq 0 "${space_count}" ); do
+    output+=" "
+  done
+
+  echo -e "${output}"
 }
 
 function get_repeated_tabspace
@@ -1044,3 +1037,11 @@ function main
 }
 
 main "$@"
+
+
+#
+# FIXME:
+# 1. wrap text.
+# 2. hung whenever not using "--help" operator.
+#
+#
