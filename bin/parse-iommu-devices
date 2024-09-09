@@ -19,6 +19,7 @@ declare -r SCRIPT_NAME="$( basename "${0}" )"
 # - [x] fix output to show every IOMMU group and it's device info.
 # - [x] fix lists?
 # - [ ] check if all commands used are installed.
+# - [ ] ignore groups with vfio.
 #
 
 # set -o xtrace     # debug output.
@@ -27,8 +28,7 @@ shopt -s nullglob   # aid with argument inputs.
 #
 # Terminal formatting
 #
-  tabs -8
-  declare -ir TABSPACE_WHITESPACE_COUNT=8
+  declare -i TABSPACE_WHITESPACE_COUNT=0
   declare -ir THIS_COLUMNS=$( tput cols )
   declare -r USE_WORD_WRAP=true
 
@@ -44,10 +44,18 @@ declare -A ARGUMENTS=(
   ["MATCH_NAMES"]=false
   ["MATCH_PCI"]=false
   ["MATCH_VGA_GROUP_INDEX"]=false
+  ["MATCH_TYPES"]=false
+  ["MATCH_VENDORS"]=false
   ["NAMES_TO_MATCH"]=""
   ["NAMES_TO_REVERSE_MATCH"]=""
   ["REVERSE_MATCH_GROUPS"]=false
   ["REVERSE_MATCH_NAMES"]=false
+  ["REVERSE_MATCH_TYPE"]=false
+  ["REVERSE_MATCH_VENDOR"]=false
+  ["TYPES_TO_MATCH"]=""
+  ["TYPES_TO_REVERSE_MATCH"]=""
+  ["VENDORS_TO_MATCH"]=""
+  ["VENDORS_TO_REVERSE_MATCH"]=""
   ["VGA_GROUP_INDEX_TO_MATCH"]=""
 )
 
@@ -90,27 +98,52 @@ function append_output_to_lists
 function append_output_to_temp_lists
 {
   if ! is_quiet_enabled; then
-    local driver_output="\t\tDriver:\t\t"
-
-    if [[ ! -z "${driver}" ]]; then
-      driver_output+="${driver}"
-    else
-      driver_output+="N/A"
+    if [[ -z "${driver}" ]]; then
+      driver="N/A"
     fi
+
+    local -r prefix="\t\t              "
+
+    hardware_id_output="$( \
+      wrap_text \
+        true \
+        "${prefix}" \
+        "${THIS_COLUMNS}" \
+        "\t\tHardware ID:  ${hardware_id}"
+    )"
 
     name_output="$( \
       wrap_text \
         true \
-        4 \
+        "${prefix}" \
         "${THIS_COLUMNS}" \
-        "\t\tName:\t\t${name}"
+        "\t\tName:         ${name}"
+    )"
+
+    type_output="$( \
+      wrap_text \
+        true \
+        "${prefix}" \
+        "${THIS_COLUMNS}" \
+        "\t\tType:         ${type}"
+    )"
+
+    vendor_output="$( \
+      wrap_text \
+        true \
+        "${prefix}" \
+        "${THIS_COLUMNS}" \
+        "\t\tVendor:       ${vendor}"
     )"
 
     group_temp_output+=(
-      "\t${device_index}.\tSlot ID:\t${bus_id}"
+      "\t${device_index}:"
+      "\t\tSlot ID:      ${bus_id}"
+      "${vendor_output}"
       "${name_output}"
-      "\t\tHardware ID:\t${hardware_id}"
-      "${driver_output}"
+      "${type_output}"
+      "\t\tDriver:       ${driver}"
+      "${hardware_id_output}"
     )
 
     group_temp_output+=( "" )
@@ -446,6 +479,39 @@ function parse_argument
         ARGUMENTS["NAMES_TO_REVERSE_MATCH"]="${1}"
         ;;
 
+      "--ignore-type" )
+        ARGUMENTS["REVERSE_MATCH_TYPE"]=true
+        shift
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["TYPES_TO_REVERSE_MATCH"]="${1}"
+        ;;
+
+      "--ignore-vendor" )
+        ARGUMENTS["REVERSE_MATCH_VENDOR"]=true
+        shift
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["VENDORS_TO_REVERSE_MATCH"]="${1}"
+        ;;
+
+      "-n" | "--name" )
+        ARGUMENTS["MATCH_NAMES"]=true
+        shift
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["NAMES_TO_MATCH"]="${1}"
+        ;;
+
       "-p" | "--pci" | "--pcie" )
         ARGUMENTS["MATCH_PCI"]=true
         ;;
@@ -454,7 +520,29 @@ function parse_argument
         ARGUMENTS["GET_MINIMUM_OUTPUT"]=true
         ;;
 
-      "-v" | "--vga-index" )
+      "-t" | "--type" )
+        ARGUMENTS["MATCH_TYPES"]=true
+        shift
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["TYPES_TO_MATCH"]="${1}"
+        ;;
+
+      "-v" | "--vendor" )
+        ARGUMENTS["MATCH_VENDORS"]=true
+        shift
+
+        if [[ -z "${1}" ]]; then
+          print_invalid_option
+        fi
+
+        ARGUMENTS["VENDORS_TO_MATCH"]="${1}"
+        ;;
+
+      "-V" | "--vga-index" )
         ARGUMENTS["MATCH_VGA_GROUP_INDEX"]=true
         shift
 
@@ -464,17 +552,6 @@ function parse_argument
         fi
 
         ARGUMENTS["VGA_GROUP_INDEX_TO_MATCH"]="${1}"
-        ;;
-
-    "-n" | "--name" )
-        ARGUMENTS["MATCH_NAMES"]=true
-        shift
-
-        if [[ -z "${1}" ]]; then
-          print_invalid_option
-        fi
-
-        ARGUMENTS["NAMES_TO_MATCH"]="${1}"
         ;;
 
       "" )
@@ -660,21 +737,21 @@ function print_output
     OUTPUTS["SELECTED_DRIVERS"]="N/A"
   fi
 
-  # # echo -e "Found Groups:\t\t${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
-  # # echo
-  # echo -e "Unselected Groups:\t${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
-  # echo
-  # echo -e "Selected Groups:\t${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
-  # echo
-  # echo -e "Selected Groups with Host device(s):\t${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
-  # echo
-  # echo -e "Selected Groups with PCI device(s):\t${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
-  # echo
-  # echo -e "Selected Groups with VGA device(s):\t${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
-  # echo
-  # echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
-  # echo
-  # echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+  echo -e "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
+  echo
+  echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
 }
 
 function print_usage
@@ -757,6 +834,38 @@ function print_usage
     "${THIS_COLUMNS}" \
     "NAME is a comma delimited list of text."
 
+  echo -en "  --ignore-type=TYPE        "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) without device type;"
+
+  echo -en "                            "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "TYPE is a comma delimited list of text."
+
+  echo -en "  --ignore-vendor=VENDOR    "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) without device vendor;"
+
+  echo -en "                            "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "VENDOR is a comma delimited list of text."
+
   echo -en "  -n, --name=NAME           "
 
   wrap_text \
@@ -773,6 +882,38 @@ function print_usage
     "${THIS_COLUMNS}" \
     "NAME is a comma delimited list of text."
 
+  echo -en "  -t, --type=TYPE           "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) with device type;"
+
+  echo -en "$( get_repeated_space 28 )"
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "TYPE is a comma delimited list of text."
+
+  echo -en "  -v, --vendor=VENDOR       "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Match IOMMU group(s) with device vendor;"
+
+  echo -en "$( get_repeated_space 28 )"
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "VENDOR is a comma delimited list of text."
+
   echo -en "  -p, --pci, --pcie         "
 
   wrap_text \
@@ -781,7 +922,7 @@ function print_usage
     "${THIS_COLUMNS}" \
     "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
-  echo -en "  -v, --vga-index=INDEX     "
+  echo -en "  -V, --vga-index=INDEX     "
 
   wrap_text \
     false \
@@ -807,13 +948,7 @@ function print_usage
   text="Quiet output except for drivers and "
   text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
   text+="groups with VGA device(s) before and after the second matched group, "
-  text+="and exclude any wired ethernet devices (onboard or PCI/e)."
-
-  # wrap_text \
-  #   true \
-  #   4 \
-  #   "${THIS_COLUMNS}" \
-  #   "${text}"
+  text+="and exclude any wired ethernet devices (Host and PCI/e)."
 
   wrap_text \
     false \
@@ -825,12 +960,15 @@ function print_usage
 function set_device_properties
 {
   (( device_index++ ))
-  name="$( lspci -s ${device##*/} )"
-  name="${name:8}"
 
   bus_id="$( \
     lspci -ns ${device##*/} \
       | awk 'END {print $1}'
+  )"
+
+  name="$( \
+    lspci -ms ${device##*/} \
+      | cut --delimiter '"' --fields 6
   )"
 
   hardware_id="$( \
@@ -838,10 +976,19 @@ function set_device_properties
       | awk 'END {print $3}'
   )"
 
-  driver="$( \
-    lspci -kns ${device##*/} \
-      | grep "driver" \
-      | awk 'END {print $5}'
+  vendor="$( \
+    lspci -ms ${device##*/} \
+      | cut --delimiter '"' --fields 4 \
+  )"
+
+  type="$( \
+    lspci -ms ${device##*/} \
+      | cut --delimiter '"' --fields 2 \
+  )"
+
+  vendor="$( \
+    lspci -ms ${device##*/} \
+      | cut --delimiter '"' --fields 4 \
   )"
 }
 
@@ -893,6 +1040,27 @@ function set_reverse_name_match_property
       break
     fi
   done
+}
+
+function set_tabspace_size
+{
+  if [[ "${THIS_COLUMNS}" -lt 16 ]]; then
+    TABSPACE_WHITESPACE_COUNT=1
+  fi
+
+  if [[ "${THIS_COLUMNS}" -gt 32 ]]; then
+    TABSPACE_WHITESPACE_COUNT=2
+  fi
+
+  if [[ "${THIS_COLUMNS}" -gt 64 ]]; then
+    TABSPACE_WHITESPACE_COUNT=4
+  fi
+
+  if [[ "${THIS_COLUMNS}" -gt 96 ]]; then
+    TABSPACE_WHITESPACE_COUNT=8
+  fi
+
+  tabs "${TABSPACE_WHITESPACE_COUNT}"
 }
 
 function set_vga_type_match_property
@@ -973,7 +1141,7 @@ function wrap_text
 
   shift
 
-  local -i prefix_width="${1}"
+  local prefix_width="${1}"
 
   if [[ -z "${1}" ]]; then
     return 1
@@ -988,23 +1156,26 @@ function wrap_text
 
   shift
 
-  if ! "${USE_WORD_WRAP}" \
-    || ! [[ "${column_width}" =~ ^[0-9]+$ ]] \
-    || ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
+  if ! "${USE_WORD_WRAP}"\
+    || ! [[ "${column_width}" =~ ^[0-9]+$ ]]; then
     echo -e "$@"
     return
   fi
 
-  if "${use_tab_space}"; then
-    prefix_width="$( get_space_count_from_tabspace_count "${prefix_width}" )"
-  fi
-
-  local prefix="$( get_repeated_space "${prefix_width}" )"
-
-  if [[ "${prefix_width}" -gt ${column_width} ]]; then
-    column_width=$(( ${prefix_width} - ${column_width} ))
+  if ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
+    local prefix_text="${prefix_width}"
   else
-    column_width=$(( ${column_width} - ${prefix_width} ))
+    if "${use_tab_space}"; then
+      prefix_width="$( get_space_count_from_tabspace_count "${prefix_width}" )"
+    fi
+
+    local prefix_text="$( get_repeated_space "${prefix_width}" )"
+
+    if [[ "${prefix_width}" -gt ${column_width} ]]; then
+      column_width=$(( ${prefix_width} - ${column_width} ))
+    else
+      column_width=$(( ${column_width} - ${prefix_width} ))
+    fi
   fi
 
   set -o noglob
@@ -1020,7 +1191,7 @@ function wrap_text
   unset 'lines[0]'
 
   for line in "${lines[@]}"; do
-    echo -en "${prefix}"
+    echo -en "${prefix_text}"
 
     echo -e "${line}" \
       | sed 's/^[ \t]*//;s/[ \t]*$//'
@@ -1031,6 +1202,7 @@ function wrap_text
 
 function main
 {
+  set_tabspace_size
   parse_arguments "${@}"
   local -a group_output=()
   parse_groups
