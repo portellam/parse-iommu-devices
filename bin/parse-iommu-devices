@@ -458,17 +458,17 @@ function parse_group_devices
     return 1
   fi
 
-  if "${ARGUMENTS["MATCH_NAMES"]}" \
-      && ! "${has_name}" \
-      && ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
-    return 1
-  fi
+  # if "${ARGUMENTS["MATCH_NAMES"]}" \
+  #     && ! "${has_name}" \
+  #     && ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
+  #   return 1
+  # fi
 
-  if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-      && ! "${has_reverse_name}" \
-      && ! "${ARGUMENTS["MATCH_NAMES"]}"; then
-    return 1
-  fi
+  # if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+  #     && ! "${has_reverse_name}" \
+  #     && ! "${ARGUMENTS["MATCH_NAMES"]}"; then
+  #   return 1
+  # fi
 
   if "${ARGUMENTS["MATCH_VGA_GROUP_INDEX"]}" \
       && ! "${has_vga}"; then
@@ -835,12 +835,11 @@ function set_name_match_property
     echo "${ARGUMENTS["NAMES_TO_MATCH"]}" \
       | sed "s/,/ /g"
   ); do
-    if ! echo "${name,,}" \
-        | grep --invert-match --quiet "${this_name,,}"; then
-      continue
+    if echo "${name,,}" \
+      | grep --quiet "${this_name,,}"; then
+      has_name=true
+      break
     fi
-
-    has_name=true
   done
 }
 
@@ -856,11 +855,10 @@ function set_reverse_name_match_property
       | sed "s/,/ /g" \
   ); do
     if echo "${name,,}" \
-        | grep --quiet "${this_name,,}"; then
-      continue
+      | grep --quiet "${this_name,,}"; then
+      has_reverse_name=true
+      break
     fi
-
-    has_reverse_name=true
   done
 }
 
