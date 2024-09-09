@@ -752,6 +752,12 @@ function print_usage
   text+="groups with VGA device(s) before and after the second matched group, "
   text+="and exclude any wired ethernet devices (onboard or PCI/e)."
 
+  # wrap_text \
+  #   true \
+  #   1 \
+  #   "${THIS_COLUMNS}" \
+  #   "${text}"
+
   wrap_text \
     false \
     "${column_prefix_count}" \
@@ -914,10 +920,8 @@ function get_space_count_from_tabspace
     return 1
   fi
 
-  local -i tabspace_count="${1}"
-  local output="$( get_repeated_tabspace "${1}" )"
-  local result="${output//[^ ]}"
-  echo "${#result}"
+  grep -o ' ' <<<"$( get_repeated_tabspace "${1}" )" \
+    | grep --count .
 }
 
 function get_repeated_space
@@ -929,7 +933,7 @@ function get_repeated_space
   local -i space_count="${1}"
   local output=""
 
-  for index in $( seq 0 "${space_count}" ); do
+  for index in $( seq 1 "${space_count}" ); do
     output+=" "
   done
 
@@ -945,7 +949,7 @@ function get_repeated_tabspace
   local -i tabspace_count="${1}"
   local output=""
 
-  for index in $( seq 0 "${tabspace_count}" ); do
+  for index in $( seq 1 "${tabspace_count}" ); do
     output+="\t"
   done
 
@@ -962,7 +966,6 @@ function wrap_text
 
   shift
 
-  local prefix=""
   local -i prefix_width="${1}"
 
   if [[ -z "${1}" ]]; then
@@ -995,6 +998,8 @@ function wrap_text
     column_width=$(( column_width * -1 ))
   fi
 
+  local prefix="$( get_repeated_space "${prefix_width}" )"
+
   set -o noglob
   IFS=' '
 
@@ -1016,10 +1021,10 @@ function wrap_text
   unset 'lines[0]'
 
   for line in "${lines[@]}"; do
-    line="$( \
-      echo -e "${line}" \
-        | sed 's/^[ \t]*//;s/[ \t]*$//'
-    )"
+    # line="$( \
+    #   echo -e "${line}" \
+    #     | sed 's/^[ \t]*//;s/[ \t]*$//'
+    # )"
 
     line="${prefix}${line}"
     echo -e "${line}"
@@ -1036,12 +1041,44 @@ function main
   print_output
 }
 
-main "$@"
+# main "$@"
 
+get_repeated_tabspace 1
+
+get_space_count_from_tabspace 1
+
+echo -e "original output:"
+
+echo -e \
+  "\t2.\tSlot ID:\t0b:00.1\n" \
+  "\t\tName:\t\tAudio device: Advanced Micro Devices, Inc. [AMD/ATI] Cayman/Antilles HDMI Audio [Radeon HD 6930/6950/6970/6990]\n" \
+  "\t\tHardware ID:\t1002:aa80\n" \
+  "\t\tDriver:\t\tsnd_hda_intel"
+
+echo -e "wrapped output:"
+
+echo -e \
+  "\t2.\tSlot ID:\t0b:00.1" \
+
+# wrap_text \
+#   false \
+#   32 \
+#   "${THIS_COLUMNS}" \
+#   "                Name:           Audio device: Advanced Micro Devices, Inc. [AMD/ATI] Cayman/Antilles HDMI Audio [Radeon HD 6930/6950/6970/6990]"
+
+wrap_text \
+  true \
+  4 \
+  "${THIS_COLUMNS}" \
+  "\t\tName:\t\tAudio device: Advanced Micro Devices, Inc. [AMD/ATI] Cayman/Antilles HDMI Audio [Radeon HD 6930/6950/6970/6990]"
+
+echo -e \
+  "\t\tHardware ID:\t1002:aa80\n" \
+  "\t\tDriver:\t\tsnd_hda_intel"
 
 #
 # FIXME:
 # 1. wrap text.
-# 2. hung whenever not using "--help" operator.
+# 2. hung whenever not using "--help" operator. FIXED.
 #
 #
