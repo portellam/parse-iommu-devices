@@ -20,6 +20,13 @@ declare -r SCRIPT_NAME="$( basename "${0}" )"
 # - [x] fix lists?
 # - [ ] check if all commands used are installed.
 # - [ ] ignore groups with vfio.
+# - [ ] xml file
+#   - hardware ID as primary key.
+#   - record one or more driver(s).
+#   - if `lspci` differs and is not binded to vfio, update or append.
+#   - append new information.
+#   - add functionality to sort by driver name?
+#  - use this script inside deploy-VFIO.
 #
 
 # set -o xtrace     # debug output.
@@ -68,6 +75,7 @@ declare -A OUTPUTS=(
   ["SELECTED_GROUP_ID_LIST"]=""
   ["SELECTED_HARDWARE_ID_LIST"]=""
   ["UNSELECTED_GROUP_ID_LIST"]=""
+  ["VFIO_GROUP_ID_LIST"]=""
 )
 
 function append_output_to_lists
@@ -78,6 +86,10 @@ function append_output_to_lists
 
   if "${has_pci}"; then
     OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${group_id},"
+  fi
+
+  if "${has_vfio}"; then
+    OUTPUTS["VFIO_GROUP_ID_LIST"]+="${group_id},"
   fi
 
   if "${has_vga}"; then
@@ -149,11 +161,15 @@ function append_output_to_temp_lists
     group_temp_output+=( "" )
   fi
 
-  if [[ ",${driver_list,,}," != *",${driver},"* ]]; then
+  if [[ -z "${driver_list}" ]] \
+    || [[ ! -z "${driver}" ]] \
+    || [[ "${driver}" != "N/A" ]] \
+    || [[ ",${driver_list,,}," != *",${driver},"* ]]; then
     driver_list+="${driver},"
   fi
 
-  if [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
+  if [[ -z "${hardware_id_list}" ]] \
+    || [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
     hardware_id_list+="${hardware_id},"
   fi
 }
@@ -323,6 +339,28 @@ function convert_unselected_group_id_list_to_delimited_string
 
   OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="$( \
     echo "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --human-numeric-sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+}
+
+function convert_vfio_group_id_list_to_delimited_string
+{
+  if [[ -z "${OUTPUTS["VFIO_GROUP_ID_LIST"]}" ]]; then
+    OUTPUTS["VFIO_GROUP_ID_LIST"]="N/A"
+    return 0
+  fi
+
+  OUTPUTS["VFIO_GROUP_ID_LIST"]="${OUTPUTS["VFIO_GROUP_ID_LIST"]::-1}"
+
+  OUTPUTS["VFIO_GROUP_ID_LIST"]="$( \
+    echo "${OUTPUTS["VFIO_GROUP_ID_LIST"]}" \
       | sed --expression $'s/,/\\\n/g' \
       | sort --numeric-sort \
       | tr '\n' ',' \
@@ -579,7 +617,12 @@ function parse_group_devices
   set_group_properties
   set_name_match_property
   set_reverse_name_match_property
+  set_vfio_match_property
   set_vga_type_match_property
+
+  if "${has_vfio}";then
+    return 1
+  fi
 
   if "${ARGUMENTS["MATCH_HOST"]}" \
       && ! "${has_host}" \
@@ -631,6 +674,7 @@ function parse_group
   has_pci=false
   has_name=false
   has_reverse_name=false
+  has_vfio=false
   has_vga=false
   is_selected=false
   local -a group_temp_output=()
@@ -694,6 +738,7 @@ function parse_groups
   convert_selected_group_id_list_to_delimited_string
   convert_selected_hardware_id_list_to_delimited_string
   convert_unselected_group_id_list_to_delimited_string
+  convert_vfio_group_id_list_to_delimited_string
 }
 
 function print_invalid_argument
@@ -740,6 +785,8 @@ function print_output
   echo -e "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
   echo
   echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Unselected Groups binded to VFIO:\n${OUTPUTS["VFIO_GROUP_ID_LIST"]}"
   echo
   echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
   echo
@@ -966,6 +1013,12 @@ function set_device_properties
       | awk 'END {print $1}'
   )"
 
+  driver="$( \
+    lspci -ks ${device##*/} \
+      | grep driver \
+      | awk 'END {print $5}'
+  )"
+
   name="$( \
     lspci -ms ${device##*/} \
       | cut --delimiter '"' --fields 6
@@ -1063,9 +1116,19 @@ function set_tabspace_size
   tabs "${TABSPACE_WHITESPACE_COUNT}"
 }
 
+function set_vfio_match_property
+{
+  if echo "${driver,,}" \
+      | grep --quiet "stub" \
+    || echo "${driver,,}" \
+      | grep --quiet "vfio"; then
+    has_vfio=true
+  fi
+}
+
 function set_vga_type_match_property
 {
-  if echo "${name,,}" \
+  if echo "${type,,}" \
       | grep --quiet "vga"; then
     has_vga=true
   fi
