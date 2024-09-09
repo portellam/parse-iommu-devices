@@ -22,7 +22,7 @@
 shopt -s nullglob
 
 tabs -8
-declare -ir TABSPACE_WHITESPACE_COUNT=7
+declare -ir TABSPACE_WHITESPACE_COUNT=8
 
 declare -r SCRIPT_VERSION="1.0.2"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
@@ -925,7 +925,7 @@ function get_space_count_from_tabspace
     return 1
   fi
 
-  echo -e "$( (( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" )) )"
+  echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
 }
 
 function get_repeated_space
@@ -995,8 +995,8 @@ function wrap_text
   local prefix=""
 
   if "${use_tab_space}"; then
-    prefix_width="$( get_space_count_from_tabspace "${prefix_width}" )"
     prefix="$( get_repeated_tabspace "${prefix_width}" )"
+    prefix_width="$( get_space_count_from_tabspace "${prefix_width}" )"
   else
     prefix="$( get_repeated_space "${prefix_width}" )"
   fi
@@ -1028,10 +1028,10 @@ function wrap_text
   unset 'lines[0]'
 
   for line in "${lines[@]}"; do
-    # line="$( \
-    #   echo -e "${line}" \
-    #     | sed 's/^[ \t]*//;s/[ \t]*$//'
-    # )"
+    line="$( \
+      echo -e "${line}" \
+        | sed 's/^[ \t]*//;s/[ \t]*$//'
+    )"                                    # NOTE: what does this do? TODO: remove?
 
     line="${prefix}${line}"
     echo -e "${line}"
@@ -1051,8 +1051,8 @@ function main
 # main "$@"
 
 # get_space_count_from_tabspace 1
-echo "'$( get_repeated_space 8 )'"
-echo "'$( get_repeated_tabspace 1 )'"
+# echo "'$( get_repeated_space 8 )'"
+# echo "'$( get_repeated_tabspace 1 )'"
 
 echo -e "original output:"
 
@@ -1085,7 +1085,7 @@ echo -e \
 
 #
 # FIXME:
-# 1. wrap text.
+# 1. wrap text. FIXED?
 # 2. hung whenever not using "--help" operator. FIXED.
 #
 #
