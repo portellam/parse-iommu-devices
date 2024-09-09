@@ -839,7 +839,7 @@ function set_device_properties
   name="$( \
     wrap_text \
       true \
-      28 \
+      4 \
       "${THIS_COLUMNS}" \
       "${name}" \
   )"
@@ -1039,7 +1039,7 @@ function wrap_text
   echo -e "${lines[0]}"
   unset 'lines[0]'
 
-  for line in ${lines[*]}; do
+  for line in "${lines[@]}"; do
     echo -en "${prefix}"
 
     echo -e "${line}" \
