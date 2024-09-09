@@ -98,18 +98,10 @@ function append_output_to_temp_lists
       driver_output+="N/A"
     fi
 
-    # name_output="$( \
-    #   wrap_text \
-    #     true \
-    #     4 \
-    #     "${THIS_COLUMNS}" \
-    #     "${name}"
-    # )"
-
     name_output="$( \
       wrap_text \
-        false \
-        32 \
+        true \
+        4 \
         "${THIS_COLUMNS}" \
         "\t\tName:\t\t${name}"
     )"
@@ -836,14 +828,6 @@ function set_device_properties
   name="$( lspci -s ${device##*/} )"
   name="${name:8}"
 
-  name="$( \
-    wrap_text \
-      true \
-      4 \
-      "${THIS_COLUMNS}" \
-      "${name}" \
-  )"
-
   bus_id="$( \
     lspci -ns ${device##*/} \
       | awk 'END {print $1}'
@@ -1024,10 +1008,6 @@ function wrap_text
   fi
 
   set -o noglob
-  IFS=' '
-
-  # echo "'column_width = '${column_width}'"
-
   IFS=$'\n'
   set +o noglob
   local -a lines="$( \
