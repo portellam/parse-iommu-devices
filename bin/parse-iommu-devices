@@ -29,6 +29,12 @@ declare -r SCRIPT_NAME="$( basename "${0}" )"
 #  - use this script inside deploy-VFIO.
 #
 
+# traps
+#
+  trap 'catch_error' SIGINT SIGTERM ERR
+  trap 'catch_exit' EXIT
+  trap 'uncatch_exit' EXIT 3
+
 # set -o xtrace       # debug output.
 shopt -s nullglob   # aid with argument inputs.
 
@@ -178,57 +184,7 @@ function append_output_to_temp_lists
   fi
 }
 
-function convert_referenced_newline_delimited_list_to_comma_delimited_string
-{
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  local reference_name="${1}"
-  local is_dictionary=false
-
-  if [[ "${reference_name}" =~ "[\"" ]] \
-    && [[ "${reference_name}" =~ "\"]" ]]; then
-    is_dictionary=true
-    reference_name="$( echo "\${$reference_name}" )"
-  fi
-
-  if "${is_dictionary}"; then
-    local reference_list="$( echo "\${$reference_name}" )"
-  else
-    local -n reference_list="${reference_name}"
-  fi
-
-  if [[ "${#reference_list[@]}" -eq 0 ]]; then
-    reference_list="N/A"
-
-    if "${is_dictionary}"; then
-      eval "echo \${$reference_name}=\"${reference_list}\""
-    fi
-
-    return 0
-  fi
-
-  reference_list="${reference_list::-1}"
-
-  reference_list="$( \
-    echo "${reference_list}" \
-      | sed --expression $'s/,/\\\n/g' \
-      | sort --numeric-sort \
-      | tr '\n' ',' \
-      | sed 's/.$//' \
-      | tr ',' '\n' \
-      | sort --human-numeric-sort --unique \
-      | xargs \
-      | tr ' ' ','
-  )"
-
-  if "${is_dictionary}"; then
-    eval "echo \${$reference_name}=\"${reference_list}\""
-  fi
-}
-
-function convert_found_group_id_list_to_delimited_string
+function convert_found_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["FOUND_GROUP_ID_LIST"]="N/A"
@@ -250,7 +206,7 @@ function convert_found_group_id_list_to_delimited_string
   )"
 }
 
-function convert_found_host_group_id_list_to_delimited_string
+function convert_found_host_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="N/A"
@@ -272,7 +228,7 @@ function convert_found_host_group_id_list_to_delimited_string
   )"
 }
 
-function convert_found_pci_group_id_list_to_delimited_string
+function convert_found_pci_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="N/A"
@@ -294,7 +250,7 @@ function convert_found_pci_group_id_list_to_delimited_string
   )"
 }
 
-function convert_found_vga_group_id_list_to_delimited_string
+function convert_found_vga_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="N/A"
@@ -316,7 +272,7 @@ function convert_found_vga_group_id_list_to_delimited_string
   )"
 }
 
-function convert_selected_driver_list_to_delimited_string
+function convert_selected_driver_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["SELECTED_DRIVERS"]}" ]]; then
     OUTPUTS["SELECTED_DRIVERS"]="N/A"
@@ -338,7 +294,7 @@ function convert_selected_driver_list_to_delimited_string
   )"
 }
 
-function convert_selected_group_id_list_to_delimited_string
+function convert_selected_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["SELECTED_GROUP_ID_LIST"]="N/A"
@@ -360,7 +316,7 @@ function convert_selected_group_id_list_to_delimited_string
   )"
 }
 
-function convert_selected_hardware_id_list_to_delimited_string
+function convert_selected_hardware_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" ]]; then
     OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="N/A"
@@ -382,7 +338,7 @@ function convert_selected_hardware_id_list_to_delimited_string
   )"
 }
 
-function convert_unselected_group_id_list_to_delimited_string
+function convert_unselected_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="N/A"
@@ -404,7 +360,7 @@ function convert_unselected_group_id_list_to_delimited_string
   )"
 }
 
-function convert_vfio_group_id_list_to_delimited_string
+function convert_vfio_group_id_newline_celimited_list_to_comma_delimited_list
 {
   if [[ -z "${OUTPUTS["VFIO_GROUP_ID_LIST"]}" ]]; then
     OUTPUTS["VFIO_GROUP_ID_LIST"]="N/A"
@@ -778,45 +734,19 @@ function parse_groups
     append_output_to_lists
   done
 
-  verify_vga_group_index "${vga_group_index}"
-  # convert_found_group_id_list_to_delimited_string
-  # convert_found_host_group_id_list_to_delimited_string
-  # convert_found_pci_group_id_list_to_delimited_string
-  # convert_found_vga_group_id_list_to_delimited_string
-  # convert_selected_driver_list_to_delimited_string
-  # convert_selected_group_id_list_to_delimited_string
-  # convert_selected_hardware_id_list_to_delimited_string
-  # convert_unselected_group_id_list_to_delimited_string
-  # convert_vfio_group_id_list_to_delimited_string
+  if ! verify_vga_group_index "${vga_group_index}"; then
+    return 1
+  fi
 
-  #FIXME: almost all lists do not work with new function.
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"FOUND_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"FOUND_HOST_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"FOUND_PCI_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"FOUND_VGA_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"SELECTED_DRIVERS\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"SELECTED_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"SELECTED_HARDWARE_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"UNSELECTED_GROUP_ID_LIST\"]"
-
-  convert_referenced_newline_delimited_list_to_comma_delimited_string \
-    "OUTPUTS[\"VFIO_GROUP_ID_LIST\"]"
+  convert_found_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_found_host_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_found_pci_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_found_vga_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_selected_driver_newline_celimited_list_to_comma_delimited_list
+  convert_selected_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_selected_hardware_id_newline_celimited_list_to_comma_delimited_list
+  convert_unselected_group_id_newline_celimited_list_to_comma_delimited_list
+  convert_vfio_group_id_newline_celimited_list_to_comma_delimited_list
 }
 
 function print_invalid_argument
@@ -1218,7 +1148,7 @@ function verify_groups
         | --lines 1 \
       )" -gt "${greatest_iommu}" ]]; then
     echo -e "${warning}"
-    exit 1
+    return 1
   fi
 
   if ! is_comma_delimited_list_of_positive_numbers \
@@ -1229,7 +1159,7 @@ function verify_groups
         | --lines 1 \
       )" -gt "${greatest_iommu}" ]]; then
     echo -e "${warning}"
-    exit 1
+    return 1
   fi
 }
 
@@ -1249,13 +1179,16 @@ function verify_vga_group_index
       continue
     fi
 
-    get_minimum_output && exit 1
+    if get_minimum_output; then
+      return 1
+    fi
+
     echo -e "Error: Invalid index specified."
 
     echo "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
       "'${vga_group_index}'."
 
-    exit 1
+    return 1
   done
 }
 
@@ -1334,8 +1267,13 @@ function main
   parse_arguments "${@}"
   local -a group_output=()
   echo -en "Parsing hardware devices..."
-  parse_groups
-  echo -e " Done.\n"
+
+  if ! parse_groups &> /dev/null; then
+    echo -e " Failed.\n"
+    return 1
+  fi
+
+  echo -e " Successful.\n"
   print_output
 }
 
