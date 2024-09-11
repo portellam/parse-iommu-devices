@@ -29,7 +29,7 @@ declare -r SCRIPT_NAME="$( basename "${0}" )"
 #  - use this script inside deploy-VFIO.
 #
 
-# set -o xtrace     # debug output.
+# set -o xtrace       # debug output.
 shopt -s nullglob   # aid with argument inputs.
 
 #
@@ -42,8 +42,11 @@ shopt -s nullglob   # aid with argument inputs.
 declare -i MIN_VGA_INDEX_VALUE=1
 declare -i MIN_IOMMU_VALUE=0
 
+declare -r NULL_VALUE="N/A"
+
 declare -A ARGUMENTS=(
   ["GET_MINIMUM_OUTPUT"]=false
+  ["GET_LESS_OUTPUT"]=true
   ["GROUPS_TO_MATCH"]=""
   ["GROUPS_TO_REVERSE_MATCH"]=""
   ["MATCH_GROUPS"]=false
@@ -109,19 +112,21 @@ function append_output_to_lists
 
 function append_output_to_temp_lists
 {
-  if ! is_quiet_enabled; then
+  if ! get_minimum_output; then
     if [[ -z "${driver}" ]]; then
-      driver="N/A"
+      driver="${NULL_VALUE}"
     fi
 
-    local -r prefix="\t\t              "
+    local -r tab_prefix="\t\t"
+
+    local -r prefix="${tab_prefix}              "
 
     hardware_id_output="$( \
       wrap_text \
         true \
         "${prefix}" \
         "${THIS_COLUMNS}" \
-        "\t\tHardware ID:  ${hardware_id}"
+        "${tab_prefix}Hardware ID:  ${hardware_id}"
     )"
 
     name_output="$( \
@@ -129,7 +134,7 @@ function append_output_to_temp_lists
         true \
         "${prefix}" \
         "${THIS_COLUMNS}" \
-        "\t\tName:         ${name}"
+        "${tab_prefix}Name:         ${name}"       # FIXME: some names do not appear. Why?
     )"
 
     type_output="$( \
@@ -137,7 +142,7 @@ function append_output_to_temp_lists
         true \
         "${prefix}" \
         "${THIS_COLUMNS}" \
-        "\t\tType:         ${type}"
+        "${tab_prefix}Type:         ${type}"
     )"
 
     vendor_output="$( \
@@ -145,32 +150,81 @@ function append_output_to_temp_lists
         true \
         "${prefix}" \
         "${THIS_COLUMNS}" \
-        "\t\tVendor:       ${vendor}"
+        "${tab_prefix}Vendor:       ${vendor}"
     )"
 
     group_temp_output+=(
       "\t${device_index}:"
-      "\t\tSlot ID:      ${bus_id}"
+      "${tab_prefix}Slot ID:      ${bus_id}"
       "${vendor_output}"
       "${name_output}"
       "${type_output}"
-      "\t\tDriver:       ${driver}"
+      "${tab_prefix}Driver:       ${driver}"
       "${hardware_id_output}"
+      ""
     )
-
-    group_temp_output+=( "" )
   fi
 
   if [[ -z "${driver_list}" ]] \
+    || [[ "${driver^^}" != "${NULL_VALUE}" ]] \
     || [[ ! -z "${driver}" ]] \
-    || [[ "${driver}" != "N/A" ]] \
-    || [[ ",${driver_list,,}," != *",${driver},"* ]]; then
+    || ! [[ ",${driver_list,,}," =~ ",${driver,,}," ]]; then
     driver_list+="${driver},"
   fi
 
   if [[ -z "${hardware_id_list}" ]] \
     || [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
     hardware_id_list+="${hardware_id},"
+  fi
+}
+
+function convert_referenced_newline_delimited_list_to_comma_delimited_string
+{
+  if [[ -z "${1}" ]]; then
+    return 1
+  fi
+
+  local reference_name="${1}"
+  local is_dictionary=false
+
+  if [[ "${reference_name}" =~ "[\"" ]] \
+    && [[ "${reference_name}" =~ "\"]" ]]; then
+    is_dictionary=true
+    reference_name="$( echo "\${$reference_name}" )"
+  fi
+
+  if "${is_dictionary}"; then
+    local reference_list="$( echo "\${$reference_name}" )"
+  else
+    local -n reference_list="${reference_name}"
+  fi
+
+  if [[ "${#reference_list[@]}" -eq 0 ]]; then
+    reference_list="N/A"
+
+    if "${is_dictionary}"; then
+      eval "echo \${$reference_name}=\"${reference_list}\""
+    fi
+
+    return 0
+  fi
+
+  reference_list="${reference_list::-1}"
+
+  reference_list="$( \
+    echo "${reference_list}" \
+      | sed --expression $'s/,/\\\n/g' \
+      | sort --numeric-sort \
+      | tr '\n' ',' \
+      | sed 's/.$//' \
+      | tr ',' '\n' \
+      | sort --human-numeric-sort --unique \
+      | xargs \
+      | tr ' ' ','
+  )"
+
+  if "${is_dictionary}"; then
+    eval "echo \${$reference_name}=\"${reference_list}\""
   fi
 }
 
@@ -442,7 +496,16 @@ function is_output_not_empty
   fi
 }
 
-function is_quiet_enabled
+function get_less_output
+{
+  if ! "${ARGUMENTS["GET_LESS_OUTPUT"]}"; then
+    return 1
+  fi
+
+  return 0
+}
+
+function get_minimum_output
 {
   if ! "${ARGUMENTS["GET_MINIMUM_OUTPUT"]}"; then
     return 1
@@ -613,10 +676,17 @@ function parse_argument
 
 function parse_group_devices
 {
+  bus_id=""
+  driver=""
+  hardware_id=""
+  name=""
+  type=""
+  vendor=""
+
   set_device_properties
   set_group_properties
   set_name_match_property
-  set_reverse_name_match_property
+  set_name_reverse_match_property
   set_vfio_match_property
   set_vga_type_match_property
 
@@ -624,29 +694,27 @@ function parse_group_devices
     return 1
   fi
 
+  append_output_to_temp_lists
+
   if "${ARGUMENTS["MATCH_HOST"]}" \
-      && ! "${has_host}" \
-      && ! "${ARGUMENTS["MATCH_PCI"]}"; then
+      && ! "${has_host}"; then
     return 1
   fi
 
   if "${ARGUMENTS["MATCH_PCI"]}" \
-      && ! "${has_pci}" \
-      && ! "${ARGUMENTS["MATCH_HOST"]}"; then
+      && ! "${has_pci}"; then
     return 1
   fi
 
-  # if "${ARGUMENTS["MATCH_NAMES"]}" \
-  #     && ! "${has_name}" \
-  #     && ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
-  #   return 1
-  # fi
+  if "${ARGUMENTS["MATCH_NAMES"]}" \
+      && ! "${has_name}"; then
+    return 1
+  fi
 
-  # if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
-  #     && ! "${has_reverse_name}" \
-  #     && ! "${ARGUMENTS["MATCH_NAMES"]}"; then
-  #   return 1
-  # fi
+  if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+      && "${has_name_reverse_match}"; then
+    return 1
+  fi
 
   if "${ARGUMENTS["MATCH_VGA_GROUP_INDEX"]}" \
       && ! "${has_vga}"; then
@@ -654,7 +722,6 @@ function parse_group_devices
   fi
 
   is_selected=true
-  append_output_to_temp_lists
 }
 
 function parse_group
@@ -662,7 +729,7 @@ function parse_group
   group_id="${group##*/}"
   OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
 
-  if ! is_quiet_enabled; then
+  if ! get_minimum_output; then
     group_output+=( "IOMMU Group ${group_id}:" )
   fi
 
@@ -673,44 +740,26 @@ function parse_group
   has_host=false
   has_pci=false
   has_name=false
-  has_reverse_name=false
+  has_name_reverse_match=false
   has_vfio=false
   has_vga=false
   is_selected=false
   local -a group_temp_output=()
 
-  # if [[ ! -z "${ARGUMENTS["GROUPS_TO_MATCH"]}" ]] \
-  #   && ! echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
-  #     | grep --quiet "${group_id}"; then
-  #   if ! is_quiet_enabled; then
-  #     group_output[-1]+="\tNot matched.\n"
-  #   fi
-
-  #   return 1
-  # fi
-
-  # if [[ ! -z "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" ]] \
-  #     && echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
-  #       | grep --quiet "${group_id}"; then
-  #   if ! is_quiet_enabled; then
-  #     group_output[-1]+="\tSkipped.\n"
-  #   fi
-
-  #   return 1
-  # fi
-
   for device in ${group##}/devices/*; do
-    parse_group_devices
+    parse_group_devices || continue
 
     if [[ ",${group_id_list,,}," != *",${group_id},"* ]]; then
       group_id_list+="${group_id},"
     fi
   done
 
-  if ! is_quiet_enabled; then
+  if ! get_minimum_output; then
     if [[ "${#group_temp_output[@]}" -lt 1 ]]; then
-      group_output+=( "\tNo devices found for group ${group_id}." )
-      exit 1
+      group_output+=(
+        "\tNo devices matched or found for group ${group_id}."
+        ""
+      )
     else
       group_output+=( "${group_temp_output[@]}" )
     fi
@@ -730,20 +779,49 @@ function parse_groups
   done
 
   verify_vga_group_index "${vga_group_index}"
-  convert_found_group_id_list_to_delimited_string
-  convert_found_host_group_id_list_to_delimited_string
-  convert_found_pci_group_id_list_to_delimited_string
-  convert_found_vga_group_id_list_to_delimited_string
-  convert_selected_driver_list_to_delimited_string
-  convert_selected_group_id_list_to_delimited_string
-  convert_selected_hardware_id_list_to_delimited_string
-  convert_unselected_group_id_list_to_delimited_string
-  convert_vfio_group_id_list_to_delimited_string
+  # convert_found_group_id_list_to_delimited_string
+  # convert_found_host_group_id_list_to_delimited_string
+  # convert_found_pci_group_id_list_to_delimited_string
+  # convert_found_vga_group_id_list_to_delimited_string
+  # convert_selected_driver_list_to_delimited_string
+  # convert_selected_group_id_list_to_delimited_string
+  # convert_selected_hardware_id_list_to_delimited_string
+  # convert_unselected_group_id_list_to_delimited_string
+  # convert_vfio_group_id_list_to_delimited_string
+
+  #FIXME: almost all lists do not work with new function.
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"FOUND_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"FOUND_HOST_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"FOUND_PCI_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"FOUND_VGA_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"SELECTED_DRIVERS\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"SELECTED_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"SELECTED_HARDWARE_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"UNSELECTED_GROUP_ID_LIST\"]"
+
+  convert_referenced_newline_delimited_list_to_comma_delimited_string \
+    "OUTPUTS[\"VFIO_GROUP_ID_LIST\"]"
 }
 
 function print_invalid_argument
 {
-  is_quiet_enabled && exit 1
+  get_minimum_output && exit 1
   echo -e "Error: Invalid argument(s) specified."
   print_usage
   exit 1
@@ -751,7 +829,7 @@ function print_invalid_argument
 
 function print_invalid_option
 {
-  is_quiet_enabled && exit 1
+  get_minimum_output && exit 1
   echo -e "Error: Invalid option specified."
   print_usage
   exit 1
@@ -759,42 +837,36 @@ function print_invalid_option
 
 function print_output
 {
-  if is_quiet_enabled; then
+  if get_minimum_output; then
     echo -e "${OUTPUTS["SELECTED_DRIVERS"]}"
     echo -e "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
     return 0
   fi
 
-  if ! is_output_not_empty; then
-    echo -e "Error: No IOMMU groups found."
-    return 1
-  fi
+  if ! get_less_output; then
+    if ! is_output_not_empty; then
+      echo -e "Error: No IOMMU groups found."
+      return 1
+    fi
 
-  for line in "${group_output[@]}"; do
-    echo -e "${line}"
-  done
-
-  if [[ -z "${OUTPUTS["SELECTED_DRIVERS"]}" ]]; then
-    OUTPUTS["SELECTED_DRIVERS"]="N/A"
-  fi
-
-  if [[ -z "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" ]]; then
-    OUTPUTS["SELECTED_DRIVERS"]="N/A"
+    for line in "${group_output[@]}"; do
+      echo -e "${line}"
+    done
   fi
 
   echo -e "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Found Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Found Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
+  echo
+  echo -e "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
   echo
   echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
   echo
   echo -e "Unselected Groups binded to VFIO:\n${OUTPUTS["VFIO_GROUP_ID_LIST"]}"
   echo
   echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
   echo
   echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
   echo
@@ -803,7 +875,7 @@ function print_output
 
 function print_usage
 {
-  if is_quiet_enabled; then
+  if get_minimum_output; then
     return 0
   fi
 
@@ -1010,28 +1082,23 @@ function set_device_properties
 
   bus_id="$( \
     lspci -ns ${device##*/} \
-      | awk 'END {print $1}'
+      | awk 'END {print $1}' \
   )"
 
   driver="$( \
     lspci -ks ${device##*/} \
       | grep driver \
-      | awk 'END {print $5}'
-  )"
-
-  name="$( \
-    lspci -ms ${device##*/} \
-      | cut --delimiter '"' --fields 6
+      | awk 'END {print $5}' \
   )"
 
   hardware_id="$( \
     lspci -ns ${device##*/} \
-      | awk 'END {print $3}'
+      | awk 'END {print $3}' \
   )"
 
-  vendor="$( \
+  name="$( \
     lspci -ms ${device##*/} \
-      | cut --delimiter '"' --fields 4 \
+      | cut --delimiter '"' --fields 6 \
   )"
 
   type="$( \
@@ -1068,17 +1135,16 @@ function set_name_match_property
     echo "${ARGUMENTS["NAMES_TO_MATCH"]}" \
       | sed "s/,/ /g"
   ); do
-    if echo "${name,,}" \
-      | grep --quiet "${this_name,,}"; then
+    if [[ "${name,,}" =~ "${this_name,,}" ]]; then
       has_name=true
       break
     fi
   done
 }
 
-function set_reverse_name_match_property
+function set_name_reverse_match_property
 {
-  if "${has_reverse_name}" \
+  if "${has_name_reverse_match}" \
     || ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
     return 0
   fi
@@ -1087,9 +1153,8 @@ function set_reverse_name_match_property
     echo "${ARGUMENTS["NAMES_TO_REVERSE_MATCH"]}" \
       | sed "s/,/ /g" \
   ); do
-    if echo "${name,,}" \
-      | grep --quiet "${this_name,,}"; then
-      has_reverse_name=true
+    if [[ "${name,,}" =~ "${this_name,,}" ]]; then
+      has_name_reverse_match=true
       break
     fi
   done
@@ -1184,7 +1249,7 @@ function verify_vga_group_index
       continue
     fi
 
-    is_quiet_enabled && exit 1
+    get_minimum_output && exit 1
     echo -e "Error: Invalid index specified."
 
     echo "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
@@ -1268,7 +1333,9 @@ function main
   set_tabspace_size
   parse_arguments "${@}"
   local -a group_output=()
+  echo -en "Parsing hardware devices..."
   parse_groups
+  echo -e " Done.\n"
   print_output
 }
 
