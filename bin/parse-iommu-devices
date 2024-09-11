@@ -12,7 +12,7 @@
 
 declare -r SCRIPT_VERSION="1.0.2"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
-
+declare -r LOG_FILE="${SCRIPT_NAME}.log"
 #
 # TODO:
 # - [ ] add validation for all inputs.
@@ -28,12 +28,6 @@ declare -r SCRIPT_NAME="$( basename "${0}" )"
 #   - add functionality to sort by driver name?
 #  - use this script inside deploy-VFIO.
 #
-
-# traps
-#
-  trap 'catch_error' SIGINT SIGTERM ERR
-  trap 'catch_exit' EXIT
-  trap 'uncatch_exit' EXIT 3
 
 # set -o xtrace       # debug output.
 shopt -s nullglob   # aid with argument inputs.
@@ -80,7 +74,7 @@ declare -A OUTPUTS=(
   ["FOUND_HOST_GROUP_ID_LIST"]=""
   ["FOUND_PCI_GROUP_ID_LIST"]=""
   ["FOUND_VGA_GROUP_ID_LIST"]=""
-  ["SELECTED_DRIVERS"]=""
+  ["SELECTED_DRIVER_LIST"]=""
   ["SELECTED_GROUP_ID_LIST"]=""
   ["SELECTED_HARDWARE_ID_LIST"]=""
   ["UNSELECTED_GROUP_ID_LIST"]=""
@@ -111,7 +105,7 @@ function append_output_to_lists
     return 0
   fi
 
-  OUTPUTS["SELECTED_DRIVERS"]+="${driver_list}"
+  OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver_list}"
   OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${group_id},"
   OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id_list}"
 }
@@ -124,7 +118,6 @@ function append_output_to_temp_lists
     fi
 
     local -r tab_prefix="\t\t"
-
     local -r prefix="${tab_prefix}              "
 
     hardware_id_output="$( \
@@ -171,15 +164,13 @@ function append_output_to_temp_lists
     )
   fi
 
-  if [[ -z "${driver_list}" ]] \
-    || [[ "${driver^^}" != "${NULL_VALUE}" ]] \
-    || [[ ! -z "${driver}" ]] \
-    || ! [[ ",${driver_list,,}," =~ ",${driver,,}," ]]; then
+  if [[ "${driver}" != "${NULL_VALUE}" ]] \
+    && ! [[ ",${driver_list,,}," =~ ",${driver,,}," ]]; then
     driver_list+="${driver},"
   fi
 
-  if [[ -z "${hardware_id_list}" ]] \
-    || [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
+  if [[ "${hardware_id}" != "${NULL_VALUE}" ]] \
+    && [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
     hardware_id_list+="${hardware_id},"
   fi
 }
@@ -274,15 +265,15 @@ function convert_found_vga_group_id_newline_celimited_list_to_comma_delimited_li
 
 function convert_selected_driver_newline_celimited_list_to_comma_delimited_list
 {
-  if [[ -z "${OUTPUTS["SELECTED_DRIVERS"]}" ]]; then
-    OUTPUTS["SELECTED_DRIVERS"]="N/A"
+  if [[ -z "${OUTPUTS["SELECTED_DRIVER_LIST"]}" ]]; then
+    OUTPUTS["SELECTED_DRIVER_LIST"]="N/A"
     return 0
   fi
 
-  OUTPUTS["SELECTED_DRIVERS"]="${OUTPUTS["SELECTED_DRIVERS"]::-1}"
+  OUTPUTS["SELECTED_DRIVER_LIST"]="${OUTPUTS["SELECTED_DRIVER_LIST"]::-1}"
 
-  OUTPUTS["SELECTED_DRIVERS"]="$( \
-    echo "${OUTPUTS["SELECTED_DRIVERS"]}" \
+  OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
+    echo "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
       | sed --expression $'s/,/\\\n/g' \
       | sort --numeric-sort \
       | tr '\n' ',' \
@@ -440,7 +431,9 @@ function is_comma_delimited_list_of_positive_numbers
 {
   if echo "${1}" \
       | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
-    echo -e "Error: Input is not a comma delimited list of positive numbers."
+    print_and_log_output "Error: Input is not a comma delimited list of positive"\
+      "numbers."
+
     return 1
   fi
 }
@@ -468,6 +461,20 @@ function get_minimum_output
   fi
 
   return 0
+}
+
+function log_to_stderr
+{
+  local -ir int_return_code="${?}"
+  logger --stderr "${1}" 2>> "${LOG_FILE}"
+  return "${int_return_code}"
+}
+
+function log_to_stdout
+{
+  local -ir int_return_code="${?}"
+  logger "${1}" 2>> "${LOG_FILE}"
+  return "${int_return_code}"
 }
 
 function parse_arguments
@@ -630,7 +637,7 @@ function parse_argument
   done
 }
 
-function parse_group_devices
+function parse_this_group_devices
 {
   bus_id=""
   driver=""
@@ -680,7 +687,7 @@ function parse_group_devices
   is_selected=true
 }
 
-function parse_group
+function parse_this_group
 {
   group_id="${group##*/}"
   OUTPUTS["FOUND_GROUP_ID_LIST"]+="${group_id},"
@@ -703,7 +710,7 @@ function parse_group
   local -a group_temp_output=()
 
   for device in ${group##}/devices/*; do
-    parse_group_devices || continue
+    parse_this_group_devices || continue
 
     if [[ ",${group_id_list,,}," != *",${group_id},"* ]]; then
       group_id_list+="${group_id},"
@@ -722,7 +729,7 @@ function parse_group
   fi
 }
 
-function parse_groups
+function parse_many_groups
 {
   local -i vga_group_index=0
 
@@ -730,7 +737,7 @@ function parse_groups
     find /sys/kernel/iommu_groups/* -maxdepth 0 -type d \
       | sort --version-sort
   ); do
-    parse_group
+    parse_this_group
     append_output_to_lists
   done
 
@@ -749,10 +756,27 @@ function parse_groups
   convert_vfio_group_id_newline_celimited_list_to_comma_delimited_list
 }
 
+function print_and_log_output
+{
+  local -ir int_return_code="${?}"
+
+  if [[ "${int_return_code}" -ne 0 ]]; then
+    log_to_stderr "${1}"
+  else
+    log_to_stdout "${1}"
+  fi
+
+  if ! get_minimum_output; then
+    echo -e "${1}" >&1
+  fi
+
+  return "${int_return_code}"
+}
+
 function print_invalid_argument
 {
   get_minimum_output && exit 1
-  echo -e "Error: Invalid argument(s) specified."
+  print_and_log_output "Error: Invalid argument(s) specified."
   print_usage
   exit 1
 }
@@ -760,47 +784,55 @@ function print_invalid_argument
 function print_invalid_option
 {
   get_minimum_output && exit 1
-  echo -e "Error: Invalid option specified."
+  print_and_log_output "Error: Invalid option specified."
   print_usage
   exit 1
 }
 
-function print_output
+function print_groups_output
 {
-  if get_minimum_output; then
-    echo -e "${OUTPUTS["SELECTED_DRIVERS"]}"
-    echo -e "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-    return 0
-  fi
-
   if ! get_less_output; then
     if ! is_output_not_empty; then
-      echo -e "Error: No IOMMU groups found."
+      print_and_log_output "Error: No IOMMU groups found."
       return 1
     fi
 
     for line in "${group_output[@]}"; do
-      echo -e "${line}"
+      print_and_log_output "${line}"
     done
   fi
 
-  echo -e "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Found Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Found Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Unselected Groups binded to VFIO:\n${OUTPUTS["VFIO_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"
-  echo
-  echo -e "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVERS"]}"
-  echo
-  echo -e "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+  print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Found Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Found Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Unselected Groups binded to VFIO:\n${OUTPUTS["VFIO_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output \
+    "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}\n"
+
+  print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}\n"
+
+  print_and_log_output \
+    "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+
+  if ! get_minimum_output; then
+    return 0
+  fi
+
+  print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
+  print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
 }
 
 function print_usage
@@ -1137,17 +1169,17 @@ function verify_groups
       | head --lines 1
   )"
 
-  local -r warning="Error: Invalid IOMMU group ID(s) specified."\
-    "Please enter a number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
+  local warning="Error: Invalid IOMMU group ID(s) specified. Please enter a "
+  warning+="number between '${MIN_IOMMU_VALUE}' and '${greatest_iommu}'."
 
   if ! is_comma_delimited_list_of_positive_numbers \
       "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
     || [[ "$( \
       echo "${ARGUMENTS["GROUPS_TO_MATCH"]}" \
         | sort --reverse --version-sort \
-        | --lines 1 \
+        | head --lines 1 \
       )" -gt "${greatest_iommu}" ]]; then
-    echo -e "${warning}"
+    print_and_log_output "${warning}"
     return 1
   fi
 
@@ -1156,9 +1188,9 @@ function verify_groups
     || [[ "$( \
       echo "${ARGUMENTS["GROUPS_TO_REVERSE_MATCH"]}" \
         | sort --reverse --version-sort \
-        | --lines 1 \
+        | head --lines 1 \
       )" -gt "${greatest_iommu}" ]]; then
-    echo -e "${warning}"
+    print_and_log_output "${warning}"
     return 1
   fi
 }
@@ -1183,9 +1215,10 @@ function verify_vga_group_index
       return 1
     fi
 
-    echo -e "Error: Invalid index specified."
+    print_and_log_output "Error: Invalid index specified."
 
-    echo "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
+    print_and_log_output \
+      "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
       "'${vga_group_index}'."
 
     return 1
@@ -1265,16 +1298,23 @@ function main
 {
   set_tabspace_size
   parse_arguments "${@}"
-  local -a group_output=()
-  echo -en "Parsing hardware devices..."
 
-  if ! parse_groups &> /dev/null; then
-    echo -e " Failed.\n"
+  if ! verify_groups; then
     return 1
   fi
 
-  echo -e " Successful.\n"
-  print_output
+  local -r message="Parsing hardware devices..."
+
+  local -a group_output=()
+  print_and_log_output "${message}"
+
+  if ! parse_many_groups; then
+    print_and_log_output "${message} Failed."
+    return 1
+  fi
+
+  print_and_log_output "${message} Successful.\n"
+  print_groups_output
 }
 
 main "$@"
