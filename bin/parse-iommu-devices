@@ -20,7 +20,7 @@ declare -r LOG_FILE="${SCRIPT_NAME}.log"
 # - [x] fix output to show every IOMMU group and it's device info.
 # - [x] fix lists?
 # - [ ] check if all commands used are installed.
-# - [ ] ignore groups with vfio.
+# - [x] ignore groups with vfio.
 # - [ ] xml file
 #   - hardware ID as primary key.
 #   - record one or more driver(s).
@@ -33,9 +33,9 @@ declare -r LOG_FILE="${SCRIPT_NAME}.log"
 
 #
 # TESTS:
-# - all operators
-# - else?
-# - create tests?
+# - [x] all operators
+#   - fix comma delimited lists for each match operator (works for first value).
+# - [ ] test with vfio setup.
 #
 
 # set -o xtrace       # debug output.
@@ -1242,7 +1242,7 @@ function set_vendor_match_property
   fi
 
   for this_vendor in $( \
-    echo "${ARGUMENTS["VENDORS_TO_REVERSE_MATCH"]}" \
+    echo "${ARGUMENTS["VENDORS_TO_MATCH"]}" \
       | sed "s/,/ /g" \
   ); do
     if [[ "${vendor,,}" =~ "${this_vendor,,}" ]]; then
