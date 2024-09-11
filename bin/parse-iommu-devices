@@ -13,6 +13,7 @@
 declare -r SCRIPT_VERSION="1.0.2"
 declare -r SCRIPT_NAME="$( basename "${0}" )"
 declare -r LOG_FILE="${SCRIPT_NAME}.log"
+
 #
 # TODO:
 # - [ ] add validation for all inputs.
@@ -27,6 +28,13 @@ declare -r LOG_FILE="${SCRIPT_NAME}.log"
 #   - append new information.
 #   - add functionality to sort by driver name?
 #  - use this script inside deploy-VFIO.
+#
+
+#
+# TESTS:
+# - all operators
+# - else?
+# - create tests?
 #
 
 # set -o xtrace       # debug output.
@@ -51,15 +59,15 @@ declare -A ARGUMENTS=(
   ["GROUPS_TO_REVERSE_MATCH"]=""
   ["MATCH_GROUPS"]=false
   ["MATCH_HOST"]=false
-  ["MATCH_NAMES"]=false
+  ["MATCH_NAME"]=false
   ["MATCH_PCI"]=false
   ["MATCH_VGA_GROUP_INDEX"]=false
-  ["MATCH_TYPES"]=false
-  ["MATCH_VENDORS"]=false
+  ["MATCH_TYPE"]=false
+  ["MATCH_VENDOR"]=false
   ["NAMES_TO_MATCH"]=""
   ["NAMES_TO_REVERSE_MATCH"]=""
   ["REVERSE_MATCH_GROUPS"]=false
-  ["REVERSE_MATCH_NAMES"]=false
+  ["REVERSE_MATCH_NAME"]=false
   ["REVERSE_MATCH_TYPE"]=false
   ["REVERSE_MATCH_VENDOR"]=false
   ["TYPES_TO_MATCH"]=""
@@ -533,7 +541,7 @@ function parse_argument
         ;;
 
       "--ignore-name" )
-        ARGUMENTS["REVERSE_MATCH_NAMES"]=true
+        ARGUMENTS["REVERSE_MATCH_NAME"]=true
         shift
 
         if [[ -z "${1}" ]]; then
@@ -566,7 +574,7 @@ function parse_argument
         ;;
 
       "-n" | "--name" )
-        ARGUMENTS["MATCH_NAMES"]=true
+        ARGUMENTS["MATCH_NAME"]=true
         shift
 
         if [[ -z "${1}" ]]; then
@@ -585,7 +593,7 @@ function parse_argument
         ;;
 
       "-t" | "--type" )
-        ARGUMENTS["MATCH_TYPES"]=true
+        ARGUMENTS["MATCH_TYPE"]=true
         shift
 
         if [[ -z "${1}" ]]; then
@@ -596,7 +604,7 @@ function parse_argument
         ;;
 
       "-v" | "--vendor" )
-        ARGUMENTS["MATCH_VENDORS"]=true
+        ARGUMENTS["MATCH_VENDOR"]=true
         shift
 
         if [[ -z "${1}" ]]; then
@@ -639,6 +647,7 @@ function parse_argument
 
 function parse_this_group_devices
 {
+  is_selected=false
   bus_id=""
   driver=""
   hardware_id=""
@@ -650,6 +659,10 @@ function parse_this_group_devices
   set_group_properties
   set_name_match_property
   set_name_reverse_match_property
+  set_type_match_property
+  set_type_reverse_match_property
+  set_vendor_match_property
+  set_vendor_reverse_match_property
   set_vfio_match_property
   set_vga_type_match_property
 
@@ -669,13 +682,33 @@ function parse_this_group_devices
     return 1
   fi
 
-  if "${ARGUMENTS["MATCH_NAMES"]}" \
+  if "${ARGUMENTS["MATCH_NAME"]}" \
       && ! "${has_name}"; then
     return 1
   fi
 
-  if "${ARGUMENTS["REVERSE_MATCH_NAMES"]}" \
+  if "${ARGUMENTS["MATCH_TYPE"]}" \
+      && ! "${has_type}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["MATCH_VENDOR"]}" \
+      && ! "${has_vendor}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["REVERSE_MATCH_NAME"]}" \
       && "${has_name_reverse_match}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["REVERSE_MATCH_TYPE"]}" \
+      && "${has_type_reverse_match}"; then
+    return 1
+  fi
+
+  if "${ARGUMENTS["REVERSE_MATCH_VENDOR"]}" \
+      && "${has_vendor_reverse_match}"; then
     return 1
   fi
 
@@ -704,6 +737,10 @@ function parse_this_group
   has_pci=false
   has_name=false
   has_name_reverse_match=false
+  has_type=false
+  has_type_reverse_match=false
+  has_vendor=false
+  has_vendor_reverse_match=false
   has_vfio=false
   has_vga=false
   is_selected=false
@@ -1089,7 +1126,7 @@ function set_group_properties
 function set_name_match_property
 {
   if "${has_name}" \
-    || ! "${ARGUMENTS["MATCH_NAMES"]}"; then
+    || ! "${ARGUMENTS["MATCH_NAME"]}"; then
     return 0
   fi
 
@@ -1107,7 +1144,7 @@ function set_name_match_property
 function set_name_reverse_match_property
 {
   if "${has_name_reverse_match}" \
-    || ! "${ARGUMENTS["REVERSE_MATCH_NAMES"]}"; then
+    || ! "${ARGUMENTS["REVERSE_MATCH_NAME"]}"; then
     return 0
   fi
 
@@ -1117,6 +1154,78 @@ function set_name_reverse_match_property
   ); do
     if [[ "${name,,}" =~ "${this_name,,}" ]]; then
       has_name_reverse_match=true
+      break
+    fi
+  done
+}
+
+function set_type_match_property
+{
+  if "${has_type}" \
+    || ! "${ARGUMENTS["MATCH_TYPE"]}"; then
+    return 0
+  fi
+
+  for this_type in $( \
+    echo "${ARGUMENTS["TYPES_TO_MATCH"]}" \
+      | sed "s/,/ /g"
+  ); do
+    if [[ "${type,,}" =~ "${this_type,,}" ]]; then
+      has_type=true
+      break
+    fi
+  done
+}
+
+function set_type_reverse_match_property
+{
+  if "${has_type_reverse_match}" \
+    || ! "${ARGUMENTS["REVERSE_MATCH_TYPE"]}"; then
+    return 0
+  fi
+
+  for this_type in $( \
+    echo "${ARGUMENTS["TYPES_TO_REVERSE_MATCH"]}" \
+      | sed "s/,/ /g" \
+  ); do
+    if [[ "${type,,}" =~ "${this_type,,}" ]]; then
+      has_type_reverse_match=true
+      break
+    fi
+  done
+}
+
+function set_vendor_match_property
+{
+  if "${has_vendor}" \
+    || ! "${ARGUMENTS["MATCH_VENDOR"]}"; then
+    return 0
+  fi
+
+  for this_vendor in $( \
+    echo "${ARGUMENTS["VENDORS_TO_REVERSE_MATCH"]}" \
+      | sed "s/,/ /g" \
+  ); do
+    if [[ "${vendor,,}" =~ "${this_vendor,,}" ]]; then
+      has_vendor=true
+      break
+    fi
+  done
+}
+
+function set_vendor_reverse_match_property
+{
+  if "${has_vendor_reverse_match}" \
+    || ! "${ARGUMENTS["REVERSE_MATCH_VENDOR"]}"; then
+    return 0
+  fi
+
+  for this_vendor in $( \
+    echo "${ARGUMENTS["VENDORS_TO_REVERSE_MATCH"]}" \
+      | sed "s/,/ /g" \
+  ); do
+    if [[ "${vendor,,}" =~ "${this_vendor,,}" ]]; then
+      has_vendor_reverse_match=true
       break
     fi
   done
