@@ -28,6 +28,7 @@ declare -r LOG_FILE="${SCRIPT_NAME}.log"
 #   - append new information.
 #   - add functionality to sort by driver name?
 #  - use this script inside deploy-VFIO.
+# - [ ] create logger.
 #
 
 #
