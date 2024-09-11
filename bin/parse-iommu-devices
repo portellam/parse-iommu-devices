@@ -54,8 +54,8 @@ declare -i MIN_IOMMU_VALUE=0
 declare -r NULL_VALUE="N/A"
 
 declare -A ARGUMENTS=(
+  ["GET_LESS_OUTPUT"]=false
   ["GET_MINIMUM_OUTPUT"]=false
-  ["GET_LESS_OUTPUT"]=true
   ["GROUPS_TO_MATCH"]=""
   ["GROUPS_TO_REVERSE_MATCH"]=""
   ["MATCH_GROUPS"]=false
@@ -129,7 +129,7 @@ function append_output_to_temp_lists
     local -r tab_prefix="\t\t"
     local -r prefix="${tab_prefix}              "
 
-    hardware_id_output="$( \
+    local -r hardware_id_output="$( \
       wrap_text \
         true \
         "${prefix}" \
@@ -137,15 +137,24 @@ function append_output_to_temp_lists
         "${tab_prefix}Hardware ID:  ${hardware_id}"
     )"
 
-    name_output="$( \
+    local -r name_input="${tab_prefix}Name:         ${name}"
+
+    # FIXME: some names do not appear. Why?
+    local name_output="$( \
       wrap_text \
         true \
         "${prefix}" \
         "${THIS_COLUMNS}" \
-        "${tab_prefix}Name:         ${name}"       # FIXME: some names do not appear. Why?
+        "${name_input}"
     )"
 
-    type_output="$( \
+    if [[ -z "${name_output}" ]]; then
+      name_output="${name_input}"
+    fi
+
+    readonly name_output
+
+    local -r type_output="$( \
       wrap_text \
         true \
         "${prefix}" \
@@ -153,7 +162,7 @@ function append_output_to_temp_lists
         "${tab_prefix}Type:         ${type}"
     )"
 
-    vendor_output="$( \
+    local -r vendor_output="$( \
       wrap_text \
         true \
         "${prefix}" \
@@ -181,6 +190,18 @@ function append_output_to_temp_lists
   if [[ "${hardware_id}" != "${NULL_VALUE}" ]] \
     && [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
     hardware_id_list+="${hardware_id},"
+  fi
+}
+
+function create_logfile
+{
+  if [[ -e "${LOG_FILE}" ]] \
+    && ! rm --force "${LOG_FILE}" &> /dev/null; then
+    echo -e "Failed to delete logfile."
+  fi
+
+  if ! touch "${LOG_FILE}" &> /dev/null; then
+    echo -e "Failed to create logfile."
   fi
 }
 
@@ -472,17 +493,17 @@ function get_minimum_output
   return 0
 }
 
-function log_to_stderr
+function log
 {
   local -ir int_return_code="${?}"
-  logger --stderr "${1}" 2>> "${LOG_FILE}"
-  return "${int_return_code}"
-}
+  local warn_level="SCRIPT"
 
-function log_to_stdout
-{
-  local -ir int_return_code="${?}"
-  logger "${1}" 2>> "${LOG_FILE}"
+
+  if [[ "${int_return_code}" -ne 0 ]]; then
+    warn_level="WARNING"
+  fi
+
+  logger -i --tag "${warn_level}" "${LOG_FILE}" "${1}"
   return "${int_return_code}"
 }
 
@@ -590,6 +611,10 @@ function parse_argument
         ;;
 
       "-q" | "--quiet" )
+        ARGUMENTS["GET_LESS_OUTPUT"]=true
+        ;;
+
+      "-qq" | "--quieter" )
         ARGUMENTS["GET_MINIMUM_OUTPUT"]=true
         ;;
 
@@ -799,9 +824,7 @@ function print_and_log_output
   local -ir int_return_code="${?}"
 
   if [[ "${int_return_code}" -ne 0 ]]; then
-    log_to_stderr "${1}"
-  else
-    log_to_stdout "${1}"
+    log "${1}"
   fi
 
   if ! get_minimum_output; then
@@ -860,17 +883,24 @@ function print_groups_output
   print_and_log_output \
     "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}\n"
 
-  print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}\n"
+  #
+  # NOTE: Print hardware IDs first, as this value is never null, but drivers
+  #       may be. Should a user rely on the output as input, the user may only
+  #       have to validate if $2 is null or not. Otherwise, the user would have
+  #       to validate by regex, which is not nice.
+  #
 
   print_and_log_output \
-    "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+    "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}\n"
+
+  print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}"
 
   if ! get_minimum_output; then
     return 0
   fi
 
-  print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
   print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+  print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
 }
 
 function print_usage
@@ -894,8 +924,16 @@ function print_usage
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Quiet all output except for comma delimited lists of device drivers and" \
-    "hardware IDs."
+    "Quiet most output except for IOMMU groups output, and lists of device drivers"\
+      "and hardware IDs."
+
+  echo -en "  -qq, --very-quiet         "
+
+  wrap_text \
+    false \
+    "${column_prefix_count}" \
+    "${THIS_COLUMNS}" \
+    "Quiet all output except for lists of device drivers and hardware IDs."
 
   echo -en "  -g, --group=GROUPS        "
 
@@ -943,7 +981,7 @@ function print_usage
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU group(s) without device name;"
+    "Match IOMMU group(s) without device name, overrides "--name";"
 
   echo -en "                            "
 
@@ -959,7 +997,7 @@ function print_usage
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU group(s) without device type;"
+    "Match IOMMU group(s) without device type, overrides "--type";"
 
   echo -en "                            "
 
@@ -975,7 +1013,7 @@ function print_usage
     false \
     "${column_prefix_count}" \
     "${THIS_COLUMNS}" \
-    "Match IOMMU group(s) without device vendor;"
+    "Match IOMMU group(s) without device vendor, overrides "--vendor";"
 
   echo -en "                            "
 
@@ -1061,7 +1099,7 @@ function print_usage
   echo
   echo -e "Examples:"
 
-  echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -q -v 2"
+  echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -qq -v 2"
   echo -en "                            "
 
   text="Quiet output except for drivers and "
@@ -1404,9 +1442,13 @@ function wrap_text
   unset IFS
 }
 
+
+
 function main
 {
   set_tabspace_size
+  create_logfile
+  log "${0} ${@}"
   parse_arguments "${@}"
 
   if ! verify_groups; then
