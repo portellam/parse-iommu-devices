@@ -1,7 +1,8 @@
-<xml version="1.0">
+<xml version="1.0" UTF="8.0">
   <devices>
-    <hardware id="10de:0000">
-      <driver>nvidia</driver>
+    <hardware id="10de:2484">
+      <driver id=0>nouveau</driver>
+      <driver id=1>nvidia</driver>
     </hardware>
   </devices>
 </xml>
