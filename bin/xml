@@ -1,5 +1,7 @@
 #!/bin/false
 
+set -o xtrace
+
 #
 # params
 #
@@ -7,82 +9,166 @@
     exit 1
   fi
 
-  declare -gr XML_FILE="${1}.xml"
+  declare -gr XML_FILE="${1}"
 
-  declare -agr XML_KEYS_A=(
+  declare -ag XML_KEYS_A=(
     "devices"
   )
 
-  declare -Agr XML_KEYS_B=(
+  declare -Ag XML_KEYS_B=(
     [${XML_KEYS_A[0]}]="hardware"
   )
 
-  declare -Agr XML_KEYS_C=(
+  declare -Ag XML_KEYS_C=(
     [${XML_KEYS_B[${XML_KEYS_A[0]}]}]="@id,driver"
+  )
+
+  declare -Ag XML_KEYS_D=(
+    [${XML_KEYS_C[${XML_KEYS_B[${XML_KEYS_A[0]}]}]}]="@id"
   )
 
 #
 # logic
 #
-  function get_bus_id_from_hardware_id
+  function get_bus_id_from_hardware_index
   {
-    if [[ -z "${1}" ]]; then
+    if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r hardware_id="${1}"
+    local -r hardware_index="${1}"
 
-    if [[ -z "${2}" ]]; then
+    if is_empty_string "${2}"; then
       return 1
     fi
 
     local -n reference="${2}"
 
-    local -r bus_id="$( \
+    local get_bus_id="$( \
       lspci -n \
-        | grep "${hardware_id}" \
+        | grep "${hardware_index}" \
+        | head --lines 1 \
         | awk 'END {print $1}' \
     )"
 
-    if [[ -z "${bus_id}" ]]; then
+    if is_empty_string "${get_bus_id}"; then
       return 1
     fi
 
-    reference="${bus_id}"
+    reference="${get_bus_id}"
     return 0
   }
 
-  function get_driver_at_index_from_hardware_id
+  function get_attribute_at_index
   {
-    if [[ -z "${1}" ]]; then
+    if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r hardware_id="${1}"
+    local -n reference="${1}"
+    local -ir min_index=0
+    local -i index="${min_index}"
 
-    if [[ -z "${2}" ]]; then
+    if is_empty_string "${2}"; then
+      index="${2}"
+    fi
+
+    if [[ "${index}" -lt "${min_index}" ]] \
+      || ! is_positive_number "${index}"; then
+      return 1
+    fi
+
+    shift
+    shift
+
+    if is_empty_string "${@}"; then
+      return 1
+    fi
+
+    local -r get_attribute="$( \
+      echo -e "${@}" \
+        | grep "^[@]" \
+        | tail +${index} \
+        | head --lines 1
+    )"
+
+    if is_empty_string "${get_attribute}"; then
+      return 1
+    fi
+
+    reference="${get_attribute}"
+  }
+
+  function get_key_at_index
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -n reference="${1}"
+    local -ir min_index=0
+    local -i index="${min_index}"
+
+    if is_empty_string "${2}"; then
+      index="${2}"
+    fi
+
+    if [[ "${index}" -lt "${min_index}" ]] \
+      || ! is_positive_number "${index}"; then
+      return 1
+    fi
+
+    shift
+    shift
+
+    if is_empty_string "${@}"; then
+      return 1
+    fi
+
+    local -r get_key="$( \
+      echo -e "${@}" \
+        | grep --invert-match "^[@]" \
+        | tail +${index} \
+        | head --lines 1
+    )"
+
+    if is_empty_string "${get_key}"; then
+      return 1
+    fi
+
+    reference="${get_key}"
+  }
+
+  function get_driver_at_index_from_hardware_index
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_index="${1}"
+
+    if is_empty_string "${2}"; then
       return 1
     fi
 
     local -n reference="${2}"
+    local -ir min_index=0
+    local -i driver_id="${min_index}"
 
-    local -i index=1
-
-    if [[ ! -z "${3}" ]]; then
-      index="${3}"
+    if is_empty_string "${driver_id}"; then
+      driver_id="${3}"
     fi
 
-    if [[ "${index}" -lt 1 ]] \
-      || ! [[ "${index}" =~ ^[0-9]+$ ]]; then
+    if [[ "${driver_id}" -lt "${min_index}" ]] \
+      || ! is_positive_number "${driver_id}"; then
       return 1
     fi
 
-    local -r key_a="${XML_KEYS_A[0]}"
-    local -r key_b="${XML_KEYS_B[${key_a}]}"
-    local -r key_c="${XML_KEYS_C[${key_b}]}"
+    local -r drivers_tag="${XML_KEYS_A[0]}"
+    local -r hardware_tag="${XML_KEYS_B[${drivers_tag}]}"
+    local -r key_c="${XML_KEYS_C[${hardware_tag}]}"
     local key_c_list=()
     get_newline_list_from_comma_list "${key_c}" "key_c_list"
-
     IFS=$'\n'
 
     key_c_list="$( \
@@ -90,72 +176,90 @@
         | grep -i "^[@]"
     )"
 
+    local hardware_id
+    get_attribute_at_index "hardware_id" 1 "${key_c_list[@]}"
+    local -r key_d="${XML_KEYS_D[${key_d}]}"
+    local key_d_list=()
+    get_newline_list_from_comma_list "${key_c}" "key_d_list"
+    local driver_id
+    get_attribute_at_index "driver_id" 1 "${key_d_list[@]}"
     unset IFS
+    local -r driver_tag="driver"
 
-    local -r key_b_attribute_a="$( \
-      echo -e "${key_c_list}" \
-        | grep -i "^[@]" \
-        | head --lines 1
-    )"
-
-    local -r driver="$(
+    local get_driver="$(
       xmlstarlet sel -t --value-of \
-        "/xml/${key_a}/${key_b}[${key_b_attribute_a}=\"${hardware_id}\"]/driver" \
+        "/xml/${drivers_tag}/${hardware_tag}[${hardware_id}=\"${hardware_index}\"]/${driver_tag}[${driver_id}=\"${driver_id}\"]" \
         "${XML_FILE}" \
-          | tail +${index} \
           | head --lines 1
     )"
 
-    if [[ -z "${driver}" ]]; then
+    if is_empty_string "${get_driver}"; then
       return 1
     fi
 
-    reference="${driver}"
+    reference="${get_driver}"
   }
 
-  function get_driver_from_hardware_id
+  function get_driver_from_hardware_index
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_index="${1}"
+
+    if is_empty_string "${2}"; then
+      return 1
+    fi
+
+    local -n reference="${2}"
+    local bus_id=""
+
+    get_bus_id_from_hardware_index \
+      "${hardware_index}" \
+      "bus_id"
+
+    local get_driver="$( \
+      lspci -kns "${bus_id}" \
+        | grep driver \
+        | awk 'END {print $5}'
+    )"
+
+    if [[ ! -z "${get_driver}" ]] \
+      || ! [[ "${get_driver}" =~ "stub" ]] \
+      || ! [[ "${get_driver}" =~ "vfio" ]]; then
+      local -ir driver_index="${3}"
+
+      get_driver="$( \
+        get_driver_at_index_from_hardware_index \
+          "${hardware_index}" "${driver_index}"
+      )"
+    fi
+
+    if is_empty_string "${get_driver}"; then
+      return 1
+    fi
+
+    reference="${get_driver}"
+    return 0
+  }
+
+  function is_empty_string
   {
     if [[ -z "${1}" ]]; then
       return 1
     fi
 
-    local -r hardware_id="${1}"
+    return 0
+  }
 
-    if [[ -z "${2}" ]]; then
+  function is_positive_number
+  {
+    if is_empty_string "${1}" \
+      || ! [[ "${1}" =~ ^[0-9]+$ ]] \
+      || ! [[ "${1}" -lt 0 ]]; then
       return 1
     fi
 
-    local -n reference="${2}"
-
-    if [[ -z "${hardware_id}" ]]; then
-      return 1
-    fi
-
-    local bus_id=""
-
-    get_bus_id_from_hardware_id \
-      "${hardware_id}" \
-      "${bus_id}"
-
-    local -r driver="$( \
-      lspci -nnks "${bus_id}" \
-        | grep driver \
-        | awk 'END {print $5}'
-    )"
-
-    if [[ -z "${driver}" ]]; then
-      local -ir driver_index="${3}"
-
-      driver="$( \
-        get_driver_at_index_from_hardware_id \
-          "${hardware_id}" "${driver_index}"
-      )"
-    fi
-
-    if [[ -z "${driver}" ]]; then
-      return 1
-    fi
-
-    reference="${driver}"
     return 0
   }
