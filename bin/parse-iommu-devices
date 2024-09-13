@@ -403,70 +403,6 @@ function convert_vfio_group_id_newline_celimited_list_to_comma_delimited_list
   )"
 }
 
-function get_repeated_space
-{
-  if [[ -z "${1}" ]] \
-    || ! [[ "${1}" =~ ^[0-9]+$ ]]; then
-    return 1
-  fi
-
-  local -i space_count="${1}"
-  local output=""
-
-  for index in $( seq 1 "${space_count}" ); do
-    output+=" "
-  done
-
-  echo -e "${output}"
-}
-
-function get_repeated_space_from_tabspace
-{
-  if [[ -z "${1}" ]] \
-    || ! [[ "${1}" =~ ^[0-9]+$ ]]; then
-    return 1
-  fi
-
-  local -i tabspace_count="$( get_space_count_from_tabspace_count "${1}" )"
-  local output=""
-
-  for index in $( seq 1 "${tabspace_count}" ); do
-    output+="\t"
-  done
-
-  echo -e "${output}"
-}
-
-function get_space_count
-{
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  grep -o ' ' <<<"${1}" \
-    | grep -c .
-}
-
-function get_space_count_from_tabspace_count
-{
-  if [[ -z "${1}" ]] \
-    || ! [[ "${1}" =~ ^[0-9]+$ ]]; then
-    return 1
-  fi
-
-  echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
-}
-
-function is_comma_delimited_list_of_positive_numbers
-{
-  if echo "${1}" \
-      | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
-    print_and_log_output "Error: Input is not a comma delimited list of positive"\
-      "numbers."
-
-    return 1
-  fi
-}
 
 function is_output_not_empty
 {
@@ -493,19 +429,7 @@ function get_minimum_output
   return 0
 }
 
-function log
-{
-  local -ir int_return_code="${?}"
-  local warn_level="SCRIPT"
 
-
-  if [[ "${int_return_code}" -ne 0 ]]; then
-    warn_level="WARNING"
-  fi
-
-  logger -i --tag "${warn_level}" "${LOG_FILE}" "${1}"
-  return "${int_return_code}"
-}
 
 function parse_arguments
 {
@@ -817,21 +741,6 @@ function parse_many_groups
   convert_selected_hardware_id_newline_celimited_list_to_comma_delimited_list
   convert_unselected_group_id_newline_celimited_list_to_comma_delimited_list
   convert_vfio_group_id_newline_celimited_list_to_comma_delimited_list
-}
-
-function print_and_log_output
-{
-  local -ir int_return_code="${?}"
-
-  if [[ "${int_return_code}" -ne 0 ]]; then
-    log "${1}"
-  fi
-
-  if ! get_minimum_output; then
-    echo -e "${1}" >&1
-  fi
-
-  return "${int_return_code}"
 }
 
 function print_invalid_argument
@@ -1270,26 +1179,7 @@ function set_vendor_reverse_match_property
   done
 }
 
-function set_tabspace_size
-{
-  if [[ "${THIS_COLUMNS}" -lt 16 ]]; then
-    TABSPACE_WHITESPACE_COUNT=1
-  fi
 
-  if [[ "${THIS_COLUMNS}" -gt 32 ]]; then
-    TABSPACE_WHITESPACE_COUNT=2
-  fi
-
-  if [[ "${THIS_COLUMNS}" -gt 64 ]]; then
-    TABSPACE_WHITESPACE_COUNT=4
-  fi
-
-  if [[ "${THIS_COLUMNS}" -gt 96 ]]; then
-    TABSPACE_WHITESPACE_COUNT=8
-  fi
-
-  tabs "${TABSPACE_WHITESPACE_COUNT}"
-}
 
 function set_vfio_match_property
 {
@@ -1371,75 +1261,6 @@ function verify_vga_group_index
 
     return 1
   done
-}
-
-function wrap_text
-{
-  local -r use_tab_space="${1}"
-
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  shift
-
-  local prefix_width="${1}"
-
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  shift
-  local -i column_width="${1}"
-
-  if [[ -z "${1}" ]]; then
-    return 1
-  fi
-
-  shift
-
-  if ! "${USE_WORD_WRAP}"\
-    || ! [[ "${column_width}" =~ ^[0-9]+$ ]]; then
-    echo -e "$@"
-    return
-  fi
-
-  if ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
-    local prefix_text="${prefix_width}"
-  else
-    if "${use_tab_space}"; then
-      prefix_width="$( get_space_count_from_tabspace_count "${prefix_width}" )"
-    fi
-
-    local prefix_text="$( get_repeated_space "${prefix_width}" )"
-
-    if [[ "${prefix_width}" -gt ${column_width} ]]; then
-      column_width=$(( ${prefix_width} - ${column_width} ))
-    else
-      column_width=$(( ${column_width} - ${prefix_width} ))
-    fi
-  fi
-
-  set -o noglob
-  IFS=$'\n'
-  set +o noglob
-  local -a lines="$( \
-    echo "${@}" \
-      | fold --spaces --width="${column_width}" \
-  )"
-
-  lines=(${lines[@]})
-  echo -e "${lines[0]}"
-  unset 'lines[0]'
-
-  for line in "${lines[@]}"; do
-    echo -en "${prefix_text}"
-
-    echo -e "${line}" \
-      | sed 's/^[ \t]*//;s/[ \t]*$//'
-  done
-
-  unset IFS
 }
 
 
