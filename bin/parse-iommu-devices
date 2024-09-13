@@ -10,36 +10,23 @@
 # Version:        1.0.2
 #
 
-#
-# TODO:
-# - [ ] add validation for all inputs.
-# - [x] fix output to show every IOMMU group and it's device info.
-# - [x] fix lists?
-# - [ ] check if all commands used are installed.
-# - [x] ignore groups with vfio.
-# - [ ] xml file
-#   - hardware ID as primary key.
-#   - record one or more driver(s).
-#   - if `lspci` differs and is not binded to vfio, update or append.
-#   - append new information.
-#   - add functionality to sort by driver name?
-#  - use this script inside deploy-VFIO.
-# - [ ] create logger.
-#
+# set -o xtrace
 
 #
-# TESTS:
-# - [x] all operators
-#   - fix comma delimited lists for each match operator (works for first value).
-# - [ ] test with vfio setup.
+# params
 #
+  declare -g SCRIPT_FILE="$( basename "${0}" )"
+  declare -g SCRIPT_VERSION="1.0.2"
+  declare -g SOURCE_PATH="/usr/local/bin/${SCRIPT_FILE}.d/"
 
 #
 # sources
 #
-  source ./datatype_src
-  source ./print_src
-  source ./parse_src "$( basename "${0}" )" "1.0.2"
+  source \
+    "${SOURCE_PATH}parse_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_FILE}" \
+    "${SCRIPT_VERSION}"
 
   function main
   {

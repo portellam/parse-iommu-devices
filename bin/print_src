@@ -7,24 +7,34 @@
 #
 
 #
-# sources
+# params (1/2)
 #
-  source ./datatype_src
-
-#
-# params
-#
-  if is_empty_string "${@}"; then
+  if [[ -z "${1}" ]]; then
     exit 1
   fi
 
-  declare -gr LOG_FILE="${1}"
+  declare -g SOURCE_PATH="${1}"
 
-  if ! is_positive_integer "${2}"; then
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
+
+#
+# params (2/2)
+#
+  if is_empty_string "${2}"; then
     exit 1
   fi
 
-  declare -gr COLUMN_SIZE="${2}"
+  if ! is_positive_integer "${3}"; then
+    exit 1
+  fi
+
+  declare -g LOG_FILE="${2}"
+  declare -g COLUMN_SIZE="${3}"
   declare -i TABSPACE_WHITESPACE_COUNT=0
   declare -r USE_WORD_WRAP=true
 #

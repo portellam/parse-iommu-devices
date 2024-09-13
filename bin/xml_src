@@ -7,19 +7,29 @@
 #
 
 #
-# sources
+# params (1/2)
 #
-  source ./datatype_src
+  if [[ -z "${1}" ]]; then
+    exit 1
+  fi
+  declare -g SOURCE_PATH="${1}"
 
 #
-# params
+# sources (1/2)
 #
-  if is_empty_string "${@}"; then
+  source \
+    "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
+
+#
+# params (2/2)
+#
+  if is_empty_string "${2}"; then
     exit 1
   fi
 
-  declare -gr XML_FILE="${1}"
-  declare -gr XML_ID_TAG="@id"
+  declare -g XML_FILE="${2}"
+  declare -g XML_ID_TAG="@id"
 
   declare -ag XML_KEYS_A=(
     "devices"

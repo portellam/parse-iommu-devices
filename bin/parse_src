@@ -31,37 +31,42 @@
 #
 
 #
-# sources (1/2)
+# params (1/2)
 #
-  source ./datatype_src
-
-#
-# params
-#
-  shopt -s nullglob   # aid with argument inputs.
-
-  if is_empty_string "${@}"; then
+  if [[ -z "${1}" ]]; then
     exit 1
   fi
+  declare -g SOURCE_PATH="${1}"
+
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
+
+#
+# params (2/2)
+#
+  shopt -s nullglob   # aid with argument inputs.
 
   if is_empty_string "${2}"; then
     exit 1
   fi
 
-  declare -gr SCRIPT_NAME="${1}"
-  declare -gr SCRIPT_VERSION="${2}"
-  declare -gr LOG_EXTENSION=".log"
-  declare -gr XML_EXTENSION=".xml"
+  if is_empty_string "${3}"; then
+    exit 1
+  fi
 
-#
-# sources (2/2)
-#
-  source ./print_src "${SCRIPT_NAME}${LOG_EXTENSION}" "$( tput cols )"
-  source ./xml_src "${SCRIPT_NAME}${XML_EXTENSION}"
+  declare -g SCRIPT_NAME="${2}"
+  declare -g SCRIPT_VERSION="${3}"
+  declare -g LOG_EXTENSION=".log"
+  declare -g XML_EXTENSION=".xml"
 
+  declare -gi COLUMN_SIZE="$( tput cols )"
   declare -gi MIN_VGA_INDEX_VALUE=1
   declare -gi MIN_IOMMU_VALUE=0
-  declare -gr NULL_VALUE="N/A"
+  declare -g NULL_VALUE="N/A"
 
   declare -gA ARGUMENTS=(
     ["GET_LESS_OUTPUT"]=false
@@ -99,6 +104,20 @@
     ["UNSELECTED_GROUP_ID_LIST"]=""
     ["VFIO_GROUP_ID_LIST"]=""
   )
+
+#
+# sources (2/2)
+#
+  source \
+    "${SOURCE_PATH}print_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_NAME}${LOG_EXTENSION}" \
+    "${COLUMN_SIZE}"
+
+  source \
+    "${SOURCE_PATH}xml_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_NAME}${XML_EXTENSION}"
 
 #
 # logic
@@ -146,7 +165,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "$( tput cols )" \
+          "${COLUMN_SIZE}" \
           "${tab_prefix}Hardware ID:  ${hardware_id}"
       )"
 
@@ -157,7 +176,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "$( tput cols )" \
+          "${COLUMN_SIZE}" \
           "${name_input}"
       )"
 
@@ -171,7 +190,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "$( tput cols )" \
+          "${COLUMN_SIZE}" \
           "${tab_prefix}Type:         ${type}"
       )"
 
@@ -179,7 +198,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "$( tput cols )" \
+          "${COLUMN_SIZE}" \
           "${tab_prefix}Vendor:       ${vendor}"
       )"
 
@@ -842,7 +861,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Quiet most output except for IOMMU groups output, and lists of device drivers"\
         "and hardware IDs."
 
@@ -851,7 +870,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Quiet all output except for lists of device drivers and hardware IDs."
 
     echo -en "  -g, --group=GROUPS        "
@@ -859,7 +878,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group ID(s);"
 
     echo -en "$( get_repeated_space 28 )"
@@ -867,7 +886,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "GROUPS is a comma delimited list of numbers."
 
     echo -en "  --ignore-group=GROUPS     "
@@ -875,7 +894,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Reverse match IOMMU group ID(s);"
 
     echo -en "$( get_repeated_space 28 )"
@@ -883,7 +902,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "GROUPS is a comma delimited list of numbers."
 
     echo -en "  -H, --host                "
@@ -891,7 +910,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more Host devices."
 
     echo -en "  --ignore-name=NAME        "
@@ -899,7 +918,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device name, overrides "--name";"
 
     echo -en "                            "
@@ -907,7 +926,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "NAME is a comma delimited list of text."
 
     echo -en "  --ignore-type=TYPE        "
@@ -915,7 +934,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device type, overrides "--type";"
 
     echo -en "                            "
@@ -923,7 +942,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "TYPE is a comma delimited list of text."
 
     echo -en "  --ignore-vendor=VENDOR    "
@@ -931,7 +950,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device vendor, overrides "--vendor";"
 
     echo -en "                            "
@@ -939,7 +958,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "VENDOR is a comma delimited list of text."
 
     echo -en "  -n, --name=NAME           "
@@ -947,7 +966,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device name;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -955,7 +974,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "NAME is a comma delimited list of text."
 
     echo -en "  -t, --type=TYPE           "
@@ -963,7 +982,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device type;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -971,7 +990,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "TYPE is a comma delimited list of text."
 
     echo -en "  -v, --vendor=VENDOR       "
@@ -979,7 +998,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device vendor;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -987,7 +1006,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "VENDOR is a comma delimited list of text."
 
     echo -en "  -p, --pci, --pcie         "
@@ -995,7 +1014,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
     echo -en "  -V, --vga-index=INDEX     "
@@ -1003,7 +1022,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "Match all IOMMU groups without VGA," \
       "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
@@ -1012,7 +1031,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "INDEX is a comma delimited list of numbers."
 
     echo
@@ -1029,7 +1048,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "$( tput cols )" \
+      "${COLUMN_SIZE}" \
       "${text}"
   }
 
