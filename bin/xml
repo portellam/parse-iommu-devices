@@ -27,58 +27,6 @@ set -o xtrace
 #
 # logic
 #
-  function get_attribute_at_index
-  {
-    if is_empty_string "${1}"; then
-      return 1
-    fi
-
-    local -n reference="${1}"
-    local -ir min_index=0
-
-    if ! is_integer "${2}" \
-      || [[ "${2}" -lt -1 ]]; then
-      return 1
-    fi
-
-    local -i attribute_index="${2}"
-
-    shift
-    shift
-
-    if is_empty_string "${@}"; then
-      return 1
-    fi
-
-    local -a attribute_list=()
-    local -i index=1
-
-    while true; do
-      attribute="$( \
-        echo "${@}" \
-          | cut --delimiter ',' --fields "${index}" \
-      )"
-
-      if is_empty_string "${attribute}"; then
-        break
-      fi
-
-      if [[ "${attribute}" =~ ^"@" ]]; then
-        attribute_list+=( "${attribute}" )
-      fi
-
-      (( index++ ))
-    done
-
-    attribute_at_index="${attribute_list["${attribute_index}"]}"
-
-    if is_empty_string "${attribute_at_index}"; then
-      return 1
-    fi
-
-    reference="${attribute_at_index}"
-  }
-
   function get_bus_id_from_hardware_id
   {
     if is_empty_string "${1}"; then
