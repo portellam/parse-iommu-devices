@@ -1,6 +1,13 @@
 #!/bin/false
 
 #
+# Filename:       print_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+# Version:        1.0.0
+#
+
+#
 # sources
 #
   source ./datatype_src
@@ -8,12 +15,19 @@
 #
 # params
 #
-  if [[ -z "${1}" ]]; then
+  if [[ -z "${@}" ]]; then
     exit 1
   fi
 
   declare -gr LOG_FILE="${1}"
 
+  if ! is_positive_integer "${2}"; then
+    return 1
+  fi
+
+  declare -gr COLUMN_SIZE="${2}"
+  declare -i TABSPACE_WHITESPACE_COUNT=0
+  declare -r USE_WORD_WRAP=true
 #
 # logic
 #
@@ -118,19 +132,19 @@
 
   function set_tabspace_size
   {
-    if [[ "${THIS_COLUMNS}" -lt 16 ]]; then
+    if [[ "${COLUMN_SIZE}" -lt 16 ]]; then
       TABSPACE_WHITESPACE_COUNT=1
     fi
 
-    if [[ "${THIS_COLUMNS}" -gt 32 ]]; then
+    if [[ "${COLUMN_SIZE}" -gt 32 ]]; then
       TABSPACE_WHITESPACE_COUNT=2
     fi
 
-    if [[ "${THIS_COLUMNS}" -gt 64 ]]; then
+    if [[ "${COLUMN_SIZE}" -gt 64 ]]; then
       TABSPACE_WHITESPACE_COUNT=4
     fi
 
-    if [[ "${THIS_COLUMNS}" -gt 96 ]]; then
+    if [[ "${COLUMN_SIZE}" -gt 96 ]]; then
       TABSPACE_WHITESPACE_COUNT=8
     fi
 
