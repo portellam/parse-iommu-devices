@@ -1,6 +1,9 @@
 #!/bin/false
 
-set -o xtrace
+#
+# sources
+#
+  source ./datatype_src
 
 #
 # params
@@ -197,45 +200,5 @@ set -o xtrace
     fi
 
     reference="${driver_from_hardware_index,,}"
-    return 0
-  }
-
-  function is_empty_string
-  {
-    if [[ ! -z "${1}" ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function is_integer
-  {
-    if is_empty_string "${1}" \
-      || ! [[ "${1}" =~ ^[0-9]+$ ]] \
-      && ! [[ "${1}" =~ ^-[0-9]+$ ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function is_negative_integer
-  {
-    if ! is_integer "${1}" \
-      || [[ "${1}" -ge 0 ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function is_positive_integer
-  {
-    if ! is_integer "${1}" \
-      || [[ "${1}" -lt 0 ]]; then
-      return 1
-    fi
-
     return 0
   }
