@@ -869,7 +869,7 @@
       return 0
     fi
 
-    local -r column_prefix_count=28
+    local -i column_prefix_count=28
 
     wrap_text \
       false \
@@ -1130,9 +1130,21 @@
 
     echo -e "Examples:"
 
-    echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -qq -v 2" # do wrap_text for args here.
+    echo -en "  ${SCRIPT_NAME} " # do wrap_text for args here.
+
+    column_prefix_count=$(( "${#SCRIPT_NAME}" + 3 ))
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "--ignore-name ether --pcie -qq -v 2"
+
     echo -en "$( get_repeated_space 28 )"
 
+    column_prefix_count=28
     text="Quiet output except for drivers and "
     text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
     text+="groups with VGA device(s) before and after the second matched group, "

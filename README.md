@@ -114,36 +114,63 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -q, --quiet               Quiet most output except for IOMMU groups output, and lists of device drivers and
+
+  -q, --quiet               Quiet most output except for IOMMU groups
+                            output, and lists of device drivers and
                             hardware IDs.
-  -qq, --very-quiet         Quiet all output except for lists of device drivers and hardware IDs.
+
+  -qq, --very-quiet         Quiet all output except for lists of device
+                            drivers and hardware IDs.
+
   -g, --group=GROUPS        Match IOMMU group ID(s);
-                            GROUPS is a comma delimited list of numbers.
-  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);
-                            GROUPS is a comma delimited list of numbers.
-  -H, --host                Match IOMMU groups with at least one (1) or more Host devices.
-  --ignore-name=NAME        Match IOMMU group(s) without device name, overrides --name;
-                            NAME is a comma delimited list of text.
-  --ignore-type=TYPE        Match IOMMU group(s) without device type, overrides --type;
-                            TYPE is a comma delimited list of text.
-  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor, overrides --vendor;
-                            VENDOR is a comma delimited list of text.
+                            GROUPS is a comma delimited list of positive
+                            numbers.
+
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s), overrides
+                            "--group";
+                            GROUPS is a comma delimited list of positive
+                            numbers.
+
+  -H, --host                Match IOMMU groups with at least one (1) or
+                            more Host devices.
+
   -n, --name=NAME           Match IOMMU group(s) with device name;
                             NAME is a comma delimited list of text.
+
+  --ignore-name=NAME        Match IOMMU group(s) without device name,
+                            overrides "--name";
+                            NAME is a comma delimited list of text.
+
   -t, --type=TYPE           Match IOMMU group(s) with device type;
                             TYPE is a comma delimited list of text.
+
+  --ignore-type=TYPE        Match IOMMU group(s) without device type,
+                            overrides "--type";
+                            TYPE is a comma delimited list of text.
+
   -v, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
                             VENDOR is a comma delimited list of text.
-  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices.
-  -V, --vga-index=INDEX     Match all IOMMU groups without VGA, and any with VGA which match the index value(s)
-                            (not an IOMMU group ID);
-                            INDEX is a comma delimited list of numbers.
+
+  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor,
+                            overrides "--vendor";
+                            VENDOR is a comma delimited list of text.
+
+  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or
+                            more PCI/PCIe bus devices.
+
+  -V, --vga-index=INDEX     Match all IOMMU groups without VGA, and any
+                            with VGA which match the index value(s) (not an
+                            IOMMU group ID);
+                            INDEX is a comma delimited list of postive
+                            non-zero numbers.
 
 Examples:
   parse-iommu-devices --ignore-name ether --pcie -qq -v 2
-                            Quiet output except for drivers and hardware IDs (of IOMMU groups with PCI/e devices),
-                            exclude IOMMU groups with VGA device(s) before and after the second matched group, and
-                            exclude any wired ethernet devices (Host and PCI/e).
+                            Quiet output except for drivers and hardware
+                            IDs (of IOMMU groups with PCI/e devices),
+                            exclude IOMMU groups with VGA device(s) before
+                            and after the second matched group, and exclude
+                            any wired ethernet devices (Host and PCI/e).
 ```
 
 #### 6.3. XML file
