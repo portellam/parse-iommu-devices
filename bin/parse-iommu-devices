@@ -10,7 +10,7 @@
 # Version:        1.0.2
 #
 
-# set -o xtrace
+# set -o xtrace  # uncomment to debug.
 
 #
 # params
