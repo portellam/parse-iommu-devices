@@ -3,6 +3,19 @@
 #
 # logic
 #
+  function is_boolean
+  {
+    case "${1}" in
+      true | false )
+        return 0
+        ;;
+
+      * )
+        return 1
+        ;;
+    esac
+  }
+
   function is_empty_string
   {
     if [[ ! -z "${1}" ]]; then
