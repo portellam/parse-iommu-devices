@@ -137,7 +137,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "${"$( tput cols )"}" \
+          "$( tput cols )" \
           "${tab_prefix}Hardware ID:  ${hardware_id}"
       )"
 
@@ -148,7 +148,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "${"$( tput cols )"}" \
+          "$( tput cols )" \
           "${name_input}"
       )"
 
@@ -162,7 +162,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "${"$( tput cols )"}" \
+          "$( tput cols )" \
           "${tab_prefix}Type:         ${type}"
       )"
 
@@ -170,7 +170,7 @@
         wrap_text \
           true \
           "${prefix}" \
-          "${"$( tput cols )"}" \
+          "$( tput cols )" \
           "${tab_prefix}Vendor:       ${vendor}"
       )"
 
@@ -833,7 +833,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Quiet most output except for IOMMU groups output, and lists of device drivers"\
         "and hardware IDs."
 
@@ -842,7 +842,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Quiet all output except for lists of device drivers and hardware IDs."
 
     echo -en "  -g, --group=GROUPS        "
@@ -850,7 +850,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group ID(s);"
 
     echo -en "$( get_repeated_space 28 )"
@@ -858,7 +858,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "GROUPS is a comma delimited list of numbers."
 
     echo -en "  --ignore-group=GROUPS     "
@@ -866,7 +866,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Reverse match IOMMU group ID(s);"
 
     echo -en "$( get_repeated_space 28 )"
@@ -874,7 +874,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "GROUPS is a comma delimited list of numbers."
 
     echo -en "  -H, --host                "
@@ -882,7 +882,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU groups with at least one (1) or more Host devices."
 
     echo -en "  --ignore-name=NAME        "
@@ -890,7 +890,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) without device name, overrides "--name";"
 
     echo -en "                            "
@@ -898,7 +898,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "NAME is a comma delimited list of text."
 
     echo -en "  --ignore-type=TYPE        "
@@ -906,7 +906,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) without device type, overrides "--type";"
 
     echo -en "                            "
@@ -914,7 +914,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "TYPE is a comma delimited list of text."
 
     echo -en "  --ignore-vendor=VENDOR    "
@@ -922,7 +922,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) without device vendor, overrides "--vendor";"
 
     echo -en "                            "
@@ -930,7 +930,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "VENDOR is a comma delimited list of text."
 
     echo -en "  -n, --name=NAME           "
@@ -938,7 +938,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) with device name;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -946,7 +946,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "NAME is a comma delimited list of text."
 
     echo -en "  -t, --type=TYPE           "
@@ -954,7 +954,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) with device type;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -962,7 +962,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "TYPE is a comma delimited list of text."
 
     echo -en "  -v, --vendor=VENDOR       "
@@ -970,7 +970,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU group(s) with device vendor;"
 
     echo -en "$( get_repeated_space 28 )"
@@ -978,7 +978,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "VENDOR is a comma delimited list of text."
 
     echo -en "  -p, --pci, --pcie         "
@@ -986,7 +986,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
     echo -en "  -V, --vga-index=INDEX     "
@@ -994,7 +994,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "Match all IOMMU groups without VGA," \
       "and any with VGA which match the index value(s) (not an IOMMU group ID);"
 
@@ -1003,7 +1003,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "INDEX is a comma delimited list of numbers."
 
     echo
@@ -1020,7 +1020,7 @@
     wrap_text \
       false \
       "${column_prefix_count}" \
-      "${"$( tput cols )"}" \
+      "$( tput cols )" \
       "${text}"
   }
 
@@ -1033,16 +1033,12 @@
         | awk 'END {print $1}' \
     )"
 
-    driver="$( \
-      lspci -ks ${device##*/} \
-        | grep driver \
-        | awk 'END {print $5}' \
-    )"
-
     hardware_id="$( \
       lspci -ns ${device##*/} \
         | awk 'END {print $3}' \
     )"
+
+    get_driver_from_hardware_index "driver" "${hardware_id}" 0
 
     name="$( \
       lspci -ms ${device##*/} \
