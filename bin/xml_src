@@ -4,7 +4,6 @@
 # Filename:       xml_src
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
-# Version:        1.0.0
 #
 
 #
@@ -15,7 +14,7 @@
 #
 # params
 #
-  if [[ -z "${1}" ]]; then
+  if is_empty_string "${@}"; then
     exit 1
   fi
 

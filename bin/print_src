@@ -4,7 +4,6 @@
 # Filename:       print_src
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
-# Version:        1.0.0
 #
 
 #
@@ -15,14 +14,14 @@
 #
 # params
 #
-  if [[ -z "${@}" ]]; then
+  if is_empty_string "${@}"; then
     exit 1
   fi
 
   declare -gr LOG_FILE="${1}"
 
   if ! is_positive_integer "${2}"; then
-    return 1
+    exit 1
   fi
 
   declare -gr COLUMN_SIZE="${2}"
