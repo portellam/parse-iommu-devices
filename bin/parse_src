@@ -19,14 +19,32 @@
 #   - if `lspci` differs and is not binded to vfio, update or append.
 #   - append new information.
 #   - add functionality to sort by driver name?
+#  - [ ] add to xml
+#  - [ ] delete from xml
+#  - [ ] update xml
+#  - [ ] create xml
+#  - [ ] get next valid value if current is not available (driver is not installed).
+#  - [ ] make a command line operator.
+#  - [ ] append usage
 #  - use this script inside deploy-VFIO.
 # - [ ] create logger.
 #
 
 #
 # TESTS:
-# - [x] all operators
+# - [ ] all operators
 #   - fix comma delimited lists for each match operator (works for first value).
+#  - [ ] group match
+#  - [ ] group reverse match
+#  - [ ] less output
+#  - [ ] min. output
+#  - [ ] name match
+#  - [x] name reverse match
+#  - [x] type match
+#  - [x] type reverse match
+#  - [x] vendor match
+#  - [x] vendor reverse match
+#  - [ ] vga group index match
 # - [ ] test with vfio setup.
 #
 
