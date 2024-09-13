@@ -1,0 +1,207 @@
+#!/bin/false
+
+#
+# sources
+#
+  source ./datatype_src
+
+#
+# params
+#
+  if [[ -z "${1}" ]]; then
+    exit 1
+  fi
+
+  declare -gr LOG_FILE="${1}"
+
+#
+# logic
+#
+  function get_repeated_space
+  {
+    if is_empty_string "${1}" \
+      || ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    local -i space_count="${1}"
+    local output=""
+
+    for index in $( seq 1 "${space_count}" ); do
+      output+=" "
+    done
+
+    echo -e "${output}"
+  }
+
+  function get_repeated_space_from_tabspace
+  {
+    if is_empty_string "${1}" \
+      || ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    local -i tabspace_count="$( get_space_count_from_tabspace_count "${1}" )"
+    local output=""
+
+    for index in $( seq 1 "${tabspace_count}" ); do
+      output+="\t"
+    done
+
+    echo -e "${output}"
+  }
+
+  function get_space_count
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    grep -o ' ' <<<"${1}" \
+      | grep -c .
+  }
+
+  function get_space_count_from_tabspace_count
+  {
+    if is_empty_string "${1}" \
+      || ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
+  }
+
+  function is_comma_delimited_list_of_positive_numbers
+  {
+    if echo "${1}" \
+        | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
+      print_and_log_output "Error: Input is not a comma delimited list of positive"\
+        "numbers."
+
+      return 1
+    fi
+  }
+
+  function log
+  {
+    local -ir int_return_code="${?}"
+    local warn_level="SCRIPT"
+
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      warn_level="WARNING"
+    fi
+
+    logger -i --tag "${warn_level}" "${LOG_FILE}" "${1}"
+    return "${int_return_code}"
+  }
+
+  function print_and_log_output
+  {
+    local -ir int_return_code="${?}"
+    local is_minimum_output=false
+
+    if is_boolean "${1}"; then
+      is_minimum_output="${1}"
+    fi
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      log "${1}"
+    fi
+
+    if ! "${is_minimum_output}"; then
+      echo -e "${1}" >&1
+    fi
+
+    return "${int_return_code}"
+  }
+
+  function set_tabspace_size
+  {
+    if [[ "${THIS_COLUMNS}" -lt 16 ]]; then
+      TABSPACE_WHITESPACE_COUNT=1
+    fi
+
+    if [[ "${THIS_COLUMNS}" -gt 32 ]]; then
+      TABSPACE_WHITESPACE_COUNT=2
+    fi
+
+    if [[ "${THIS_COLUMNS}" -gt 64 ]]; then
+      TABSPACE_WHITESPACE_COUNT=4
+    fi
+
+    if [[ "${THIS_COLUMNS}" -gt 96 ]]; then
+      TABSPACE_WHITESPACE_COUNT=8
+    fi
+
+    tabs "${TABSPACE_WHITESPACE_COUNT}"
+  }
+
+  function wrap_text
+  {
+    local -r use_tab_space="${1}"
+
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    shift
+
+    local prefix_width="${1}"
+
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    shift
+    local -i column_width="${1}"
+
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    shift
+
+    if ! "${USE_WORD_WRAP}"\
+      || ! [[ "${column_width}" =~ ^[0-9]+$ ]]; then
+      echo -e "$@"
+      return
+    fi
+
+    if ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
+      local prefix_text="${prefix_width}"
+    else
+      if "${use_tab_space}"; then
+        prefix_width="$( get_space_count_from_tabspace_count "${prefix_width}" )"
+      fi
+
+      local prefix_text="$( get_repeated_space "${prefix_width}" )"
+
+      if [[ "${prefix_width}" -gt ${column_width} ]]; then
+        column_width=$(( ${prefix_width} - ${column_width} ))
+      else
+        column_width=$(( ${column_width} - ${prefix_width} ))
+      fi
+    fi
+
+    set -o noglob
+    IFS=$'\n'
+    set +o noglob
+    local -a lines="$( \
+      echo "${@}" \
+        | fold --spaces --width="${column_width}" \
+    )"
+
+    lines=(${lines[@]})
+    echo -e "${lines[0]}"
+    unset 'lines[0]'
+
+    for line in "${lines[@]}"; do
+      echo -en "${prefix_text}"
+
+      echo -e "${line}" \
+        | sed 's/^[ \t]*//;s/[ \t]*$//'
+    done
+
+    unset IFS
+  }
