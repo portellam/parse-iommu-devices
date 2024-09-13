@@ -10,6 +10,7 @@ set -o xtrace
   fi
 
   declare -gr XML_FILE="${1}"
+  declare -gr XML_ID_TAG="@id"
 
   declare -ag XML_KEYS_A=(
     "devices"
@@ -20,11 +21,7 @@ set -o xtrace
   )
 
   declare -Ag XML_KEYS_C=(
-    [${XML_KEYS_B[${XML_KEYS_A[0]}]}]="@id,driver"
-  )
-
-  declare -Ag XML_KEYS_D=(
-    [${XML_KEYS_C[${XML_KEYS_B[${XML_KEYS_A[0]}]}]}]="@id"
+    [${XML_KEYS_B[${XML_KEYS_A[0]}]}]="driver"
   )
 
 #
@@ -203,40 +200,17 @@ set -o xtrace
     fi
 
     local -i driver_id="${3}"
-    local -r devices_tag="${XML_KEYS_A[0]}"
-    local -r hardware_tag="${XML_KEYS_B[${devices_tag}]}"
-    local -r key_c="${XML_KEYS_C[${hardware_tag}]}"
-    local key_c_list=()
-
-    get_space_list_from_comma_list "key_c_list" "${key_c}"
-
-    IFS=$'\n'
-
-    key_c_list="$( \
-      echo -e "${key_c_list}" \
-        | grep -i "^[@]"
-    )"
-
-    local hardware_id
-    get_attribute_at_index "hardware_id" "${key_c_list[@]}"
-
-    local -r key_d="${XML_KEYS_D[${key_d}]}"
-    local key_d_list=()
-    get_space_list_from_comma_list "key_d_list" "${key_d}"
-
-    local driver_id
-    get_attribute_at_index "driver_id" "${key_d_list[@]}"
-
-    unset IFS
-
-    local -r driver_tag="driver"
+    local -r key_a="${XML_KEYS_A[0]}"
+    local -r key_b="${XML_KEYS_B["${key_a}"]}"
+    local -r key_c="${XML_KEYS_C["${key_b}"]}"
 
     local -r driver_from_driver_index="$(
       xmlstarlet sel --template --value-of \
-        "//xml/${devices_tag}/${hardware_tag}[${hardware_id}=\"${hardware_index}\"]/${driver_tag}[${driver_id}=\"${driver_id}\"]" \
+        "//xml/${key_a}/${key_b}[${XML_ID_TAG}=\"${hardware_index}\"]/${key_c}[${XML_ID_TAG}=\"${driver_id}\"]" \
         "${XML_FILE}" \
           | head --lines 1
     )"
+
 
     if is_empty_string "${driver_from_driver_index}"; then
       return 1
