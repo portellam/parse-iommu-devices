@@ -182,6 +182,7 @@
       local -r hardware_id_output="$( \
         wrap_text \
           true \
+          true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
           "${tab_prefix}Hardware ID:  ${hardware_id}"
@@ -192,6 +193,7 @@
       # FIXME: some names do not appear. Why?
       local name_output="$( \
         wrap_text \
+          true \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
@@ -207,6 +209,7 @@
       local -r type_output="$( \
         wrap_text \
           true \
+          true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
           "${tab_prefix}Type:         ${type}"
@@ -214,6 +217,7 @@
 
       local -r vendor_output="$( \
         wrap_text \
+          true \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
@@ -873,11 +877,12 @@
     echo -e "Version ${SCRIPT_VERSION}."
     echo
     echo -e "  -h, --help                Print this help and exit."
-
+    echo
     echo -en "  -q, --quiet               "
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Quiet most output except for IOMMU groups output, and lists of device drivers"\
@@ -887,6 +892,7 @@
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Quiet all output except for lists of device drivers and hardware IDs."
@@ -894,6 +900,7 @@
     echo -en "  -g, --group=GROUPS        "
 
     wrap_text \
+      false \
       false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -903,85 +910,42 @@
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "GROUPS is a comma delimited list of numbers."
+      "GROUPS is a comma delimited list of positive numbers."
 
     echo -en "  --ignore-group=GROUPS     "
 
     wrap_text \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "Reverse match IOMMU group ID(s);"
+      "Reverse match IOMMU group ID(s), overrides \"--group\";"
 
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "GROUPS is a comma delimited list of numbers."
+      "GROUPS is a comma delimited list of positive numbers."
 
     echo -en "  -H, --host                "
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more Host devices."
 
-    echo -en "  --ignore-name=NAME        "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Match IOMMU group(s) without device name, overrides "--name";"
-
-    echo -en "                            "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "NAME is a comma delimited list of text."
-
-    echo -en "  --ignore-type=TYPE        "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Match IOMMU group(s) without device type, overrides "--type";"
-
-    echo -en "                            "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "TYPE is a comma delimited list of text."
-
-    echo -en "  --ignore-vendor=VENDOR    "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Match IOMMU group(s) without device vendor, overrides "--vendor";"
-
-    echo -en "                            "
-
-    wrap_text \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "VENDOR is a comma delimited list of text."
-
     echo -en "  -n, --name=NAME           "
 
     wrap_text \
+      false \
       false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -991,6 +955,25 @@
 
     wrap_text \
       false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "NAME is a comma delimited list of text."
+
+    echo -en "  --ignore-name=NAME        "
+
+    wrap_text \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device name, overrides \"--name\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "NAME is a comma delimited list of text."
@@ -998,6 +981,7 @@
     echo -en "  -t, --type=TYPE           "
 
     wrap_text \
+      false \
       false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -1007,6 +991,25 @@
 
     wrap_text \
       false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "TYPE is a comma delimited list of text."
+
+    echo -en "  --ignore-type=TYPE        "
+
+    wrap_text \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device type, overrides \"--type\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "TYPE is a comma delimited list of text."
@@ -1014,6 +1017,7 @@
     echo -en "  -v, --vendor=VENDOR       "
 
     wrap_text \
+      false \
       false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -1023,6 +1027,25 @@
 
     wrap_text \
       false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "VENDOR is a comma delimited list of text."
+
+    echo -en "  --ignore-vendor=VENDOR    "
+
+    wrap_text \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device vendor, overrides \"--vendor\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "VENDOR is a comma delimited list of text."
@@ -1031,6 +1054,7 @@
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
@@ -1038,6 +1062,7 @@
     echo -en "  -V, --vga-index=INDEX     "
 
     wrap_text \
+      false \
       false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -1048,15 +1073,16 @@
 
     wrap_text \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "INDEX is a comma delimited list of numbers."
+      "INDEX is a comma delimited list of postive non-zero numbers."
 
     echo
     echo -e "Examples:"
 
     echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -qq -v 2"
-    echo -en "                            "
+    echo -en "$( get_repeated_space 28 )"
 
     text="Quiet output except for drivers and "
     text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
@@ -1065,6 +1091,7 @@
 
     wrap_text \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "${text}"
