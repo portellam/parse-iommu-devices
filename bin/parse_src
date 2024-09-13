@@ -871,12 +871,41 @@
 
     local -r column_prefix_count=28
 
-    echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]"
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Usage:\t${SCRIPT_NAME} [ARGUMENTS]"
+
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Parse, sort, and display hardware devices by IOMMU group(s)."
+
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Version ${SCRIPT_VERSION}."
+
     echo
-    echo -e "Parse, sort, and display hardware devices by IOMMU group(s)."
-    echo -e "Version ${SCRIPT_VERSION}."
-    echo
-    echo -e "  -h, --help                Print this help and exit."
+    echo -en "  -h, --help                "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Print this help and exit."
+
     echo -en "  -q, --quiet               "
 
     wrap_text \
