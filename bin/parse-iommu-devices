@@ -28,6 +28,9 @@
     "${SCRIPT_FILE}" \
     "${SCRIPT_VERSION}"
 
+#
+# logic
+#
   function main
   {
     set_tabspace_size
