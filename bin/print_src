@@ -9,7 +9,7 @@
 #
 # params (1/2)
 #
-  if [[ -z "${1}" ]]; then
+  if is_empty_string "${1}"; then
     exit 1
   fi
 
@@ -164,7 +164,15 @@
   {
     local -r use_tab_space="${1}"
 
-    if [[ -z "${1}" ]]; then
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    shift
+
+    local -r do_append_newline="${1}"
+
+    if ! is_boolean "${1}"; then
       return 1
     fi
 
@@ -172,26 +180,26 @@
 
     local prefix_width="${1}"
 
-    if [[ -z "${1}" ]]; then
+    if is_empty_string "${1}"; then
       return 1
     fi
 
     shift
     local -i column_width="${1}"
 
-    if [[ -z "${1}" ]]; then
+    if is_empty_string "${1}"; then
       return 1
     fi
 
     shift
 
     if ! "${USE_WORD_WRAP}"\
-      || ! [[ "${column_width}" =~ ^[0-9]+$ ]]; then
+      || ! is_positive_integer "${column_width}"; then
       echo -e "$@"
       return
     fi
 
-    if ! [[ "${prefix_width}" =~ ^[0-9]+$ ]]; then
+    if ! is_positive_integer "${prefix_width}"; then
       local prefix_text="${prefix_width}"
     else
       if "${use_tab_space}"; then
@@ -219,6 +227,11 @@
     echo -e "${lines[0]}"
     unset 'lines[0]'
 
+    if [[ "${#lines[@]}" -eq 0 ]]; then
+      unset IFS
+      return 0
+    fi
+
     for line in "${lines[@]}"; do
       echo -en "${prefix_text}"
 
@@ -226,5 +239,10 @@
         | sed 's/^[ \t]*//;s/[ \t]*$//'
     done
 
+    if "${do_append_newline}"; then
+      echo
+    fi
+
     unset IFS
+    return 0
   }
