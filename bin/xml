@@ -38,16 +38,13 @@ set -o xtrace
 
     local -n reference="${1}"
     local -ir min_index=0
-    local -i index="${min_index}"
 
-    if is_empty_string "${2}"; then
-      index="${2}"
-    fi
-
-    if [[ "${index}" -lt "${min_index}" ]] \
-      || ! is_positive_number "${index}"; then
+    if ! is_integer "${2}" \
+      || [[ "${2}" -lt -1 ]]; then
       return 1
     fi
+
+    local -i attribute_index="${2}"
 
     shift
     shift
@@ -56,18 +53,33 @@ set -o xtrace
       return 1
     fi
 
-    local -r get_attribute="$( \
-      echo -e "${@}" \
-        | grep "^[@]" \
-        | tail +${index} \
-        | head --lines 1
-    )"
+    local -a attribute_list=()
+    local -i index=1
 
-    if is_empty_string "${get_attribute}"; then
+    while true; do
+      attribute="$( \
+        echo "${@}" \
+          | cut --delimiter ',' --fields "${index}" \
+      )"
+
+      if is_empty_string "${attribute}"; then
+        break
+      fi
+
+      if [[ "${attribute}" =~ ^"@" ]]; then
+        attribute_list+=( "${attribute}" )
+      fi
+
+      (( index++ ))
+    done
+
+    attribute_at_index="${attribute_list["${attribute_index}"]}"
+
+    if is_empty_string "${attribute_at_index}"; then
       return 1
     fi
 
-    reference="${get_attribute}"
+    reference="${attribute_at_index}"
   }
 
   function get_bus_id_from_hardware_id
@@ -114,7 +126,7 @@ set -o xtrace
     fi
 
     if [[ "${index}" -lt "${min_index}" ]] \
-      || ! is_positive_number "${index}"; then
+      || ! is_positive_integer "${index}"; then
       return 1
     fi
 
@@ -186,17 +198,17 @@ set -o xtrace
 
     local -r hardware_index="${2}"
 
-    # if ! is_positive_number "${3}"; then
-    #   return 1
-    # fi
+    if ! is_positive_integer "${3}"; then
+      return 1
+    fi
 
     local -i driver_id="${3}"
-    local -r drivers_tag="${XML_KEYS_A[0]}"
-    local -r hardware_tag="${XML_KEYS_B[${drivers_tag}]}"
+    local -r devices_tag="${XML_KEYS_A[0]}"
+    local -r hardware_tag="${XML_KEYS_B[${devices_tag}]}"
     local -r key_c="${XML_KEYS_C[${hardware_tag}]}"
     local key_c_list=()
 
-    get_newline_list_from_comma_list "key_c_list" "${key_c}"
+    get_space_list_from_comma_list "key_c_list" "${key_c}"
 
     IFS=$'\n'
 
@@ -210,7 +222,7 @@ set -o xtrace
 
     local -r key_d="${XML_KEYS_D[${key_d}]}"
     local key_d_list=()
-    get_newline_list_from_comma_list "key_d_list" "${key_d}"
+    get_space_list_from_comma_list "key_d_list" "${key_d}"
 
     local driver_id
     get_attribute_at_index "driver_id" "${key_d_list[@]}"
@@ -219,16 +231,9 @@ set -o xtrace
 
     local -r driver_tag="driver"
 
-    # local -r driver_from_driver_index="$(
-    #   xmlstarlet sel --template --value-of \
-    #     "/xml/${drivers_tag}/${hardware_tag}[${hardware_id}=\"${hardware_index}\"]/${driver_tag}[${driver_id}=\"${driver_id}\"]" \
-    #     "${XML_FILE}" \
-    #       | head --lines 1
-    # )"
-
     local -r driver_from_driver_index="$(
       xmlstarlet sel --template --value-of \
-        "/xml/devices/hardware[@id=\"${hardware_index}\"]/driver[@id=\"${driver_id}\"]" \
+        "//xml/${devices_tag}/${hardware_tag}[${hardware_id}=\"${hardware_index}\"]/${driver_tag}[${driver_id}=\"${driver_id}\"]" \
         "${XML_FILE}" \
           | head --lines 1
     )"
@@ -276,11 +281,10 @@ set -o xtrace
     return 0
   }
 
-  function get_newline_list_from_comma_list
+  function get_space_list_from_comma_list
   {
     local -n reference="${1}"
     shift
-    local -a comma_list="${@}"
 
     if is_empty_string "${@}"; then
       return 1
@@ -291,19 +295,23 @@ set -o xtrace
 
     while true; do
       local value="$( \
-        echo "${comma_list}" \
+        echo "${@}" \
           | cut --delimiter "," --fields "${index}"
       )"
 
-      if [[ -z "${value}" ]]; then
+      if is_empty_string "${value}"; then
         break
       fi
 
-      newline_list+="${value}"
+      newline_list+=( "${value}" )
       (( index++ ))
     done
 
-    if [[ "${newline_list[@]}" -lt 1 ]]; then
+    IFS=$'\n'
+    newline_list="$( echo ${newline_list[@]} )"
+    unset IFS
+
+    if [[ "${#newline_list[@]}" -lt 1 ]]; then
       return 1
     fi
 
@@ -320,11 +328,31 @@ set -o xtrace
     return 0
   }
 
-  function is_positive_number
+  function is_integer
   {
     if is_empty_string "${1}" \
       || ! [[ "${1}" =~ ^[0-9]+$ ]] \
-      || ! [[ "${1}" -lt 0 ]]; then
+      && ! [[ "${1}" =~ ^-[0-9]+$ ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_negative_integer
+  {
+    if is_integer "${1}" \
+      || [[ "${1}" -ge 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_positive_integer
+  {
+    if is_integer "${1}" \
+      || [[ "${1}" -lt 0 ]]; then
       return 1
     fi
 
