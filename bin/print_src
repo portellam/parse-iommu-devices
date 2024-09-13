@@ -170,7 +170,15 @@
 
     shift
 
-    local -r do_append_newline="${1}"
+    local -r do_append_newline_for_one_line="${1}"
+
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    shift
+
+    local -r do_append_newline_for_many_lines="${1}"
 
     if ! is_boolean "${1}"; then
       return 1
@@ -229,6 +237,11 @@
 
     if [[ "${#lines[@]}" -eq 0 ]]; then
       unset IFS
+
+      if "${do_append_newline_for_one_line}"; then
+        echo
+      fi
+
       return 0
     fi
 
@@ -239,7 +252,7 @@
         | sed 's/^[ \t]*//;s/[ \t]*$//'
     done
 
-    if "${do_append_newline}"; then
+    if "${do_append_newline_for_many_lines}"; then
       echo
     fi
 

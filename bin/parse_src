@@ -877,10 +877,10 @@
     echo -e "Version ${SCRIPT_VERSION}."
     echo
     echo -e "  -h, --help                Print this help and exit."
-    echo
     echo -en "  -q, --quiet               "
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -892,6 +892,7 @@
 
     wrap_text \
       false \
+      false \
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -902,6 +903,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group ID(s);"
@@ -909,6 +911,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -920,6 +923,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Reverse match IOMMU group ID(s), overrides \"--group\";"
@@ -927,6 +931,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -936,6 +941,7 @@
     echo -en "  -H, --host                "
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -947,6 +953,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device name;"
@@ -954,6 +961,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -965,6 +973,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device name, overrides \"--name\";"
@@ -972,6 +981,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -983,6 +993,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device type;"
@@ -990,6 +1001,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -1001,6 +1013,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device type, overrides \"--type\";"
@@ -1008,6 +1021,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -1019,6 +1033,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) with device vendor;"
@@ -1026,6 +1041,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -1037,6 +1053,7 @@
     wrap_text \
       false \
       false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Match IOMMU group(s) without device vendor, overrides \"--vendor\";"
@@ -1044,6 +1061,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     wrap_text \
+      false \
       false \
       true \
       "${column_prefix_count}" \
@@ -1054,6 +1072,7 @@
 
     wrap_text \
       false \
+      false \
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
@@ -1062,6 +1081,7 @@
     echo -en "  -V, --vga-index=INDEX     "
 
     wrap_text \
+      false \
       false \
       false \
       "${column_prefix_count}" \
@@ -1074,14 +1094,14 @@
     wrap_text \
       false \
       false \
+      true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "INDEX is a comma delimited list of postive non-zero numbers."
 
-    echo
     echo -e "Examples:"
 
-    echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -qq -v 2"
+    echo -e "  ${SCRIPT_NAME} --ignore-name ether --pcie -qq -v 2" # do wrap_text for args here.
     echo -en "$( get_repeated_space 28 )"
 
     text="Quiet output except for drivers and "
@@ -1091,7 +1111,8 @@
 
     wrap_text \
       false \
-      true \
+      false \
+      false \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "${text}"
