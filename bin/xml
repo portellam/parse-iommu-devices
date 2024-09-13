@@ -152,13 +152,13 @@ set -o xtrace
     local -r key_b="${XML_KEYS_B["${key_a}"]}"
     local -r key_c="${XML_KEYS_C["${key_b}"]}"
 
-    local -r driver_from_driver_index="$(
-      xmlstarlet sel --template --value-of \
-        "//xml/${key_a}/${key_b}[${XML_ID_TAG}=\"${hardware_index}\"]/${key_c}[${XML_ID_TAG}=\"${driver_id}\"]" \
-        "${XML_FILE}" \
-          | head --lines 1
-    )"
+    local xml_path="//xml/${key_a}/${key_b}[${XML_ID_TAG}=\"${hardware_index}\"]"
+    xml_path+="/${key_c}[${XML_ID_TAG}=\"${driver_id}\"]"
 
+    local -r driver_from_driver_index="$(
+      xmlstarlet sel --template --value-of "${xml_path}" "${XML_FILE}" \
+        | head --lines 1
+    )"
 
     if is_empty_string "${driver_from_driver_index}"; then
       return 1
@@ -181,14 +181,11 @@ set -o xtrace
 
     local -r hardware_index="${2}"
     local driver_from_hardware_index=""
+    get_driver_from_hardware_id "driver_from_hardware_index" "${hardware_index}"
 
-    get_driver_from_hardware_id \
-      "${hardware_index}" \
-      "driver_from_hardware_index"
-
-    if ! is_empty_string "${driver_from_hardware_id}" \
-      || ! [[ "${driver_from_hardware_id}" =~ "stub" ]] \
-      || ! [[ "${driver_from_hardware_id}" =~ "vfio" ]]; then
+    if is_empty_string "${driver_from_hardware_index}" \
+      || [[ "${driver_from_hardware_index}" =~ "stub" ]] \
+      || [[ "${driver_from_hardware_index}" =~ "vfio" ]]; then
       local -ir driver_index="${3}"
 
       get_driver_from_driver_index \
