@@ -94,7 +94,7 @@ set -o xtrace
       return 1
     fi
 
-    local -r hardware_id="${2}"
+    local -r hardware_id="${2,,}"
 
     local -r bus_id_from_hardware_id="$( \
       lspci -n \
@@ -107,7 +107,7 @@ set -o xtrace
       return 1
     fi
 
-    reference="${bus_id_from_hardware_id}"
+    reference="${bus_id_from_hardware_id,,}"
     return 0
   }
 
@@ -180,7 +180,7 @@ set -o xtrace
       return 1
     fi
 
-    reference="${driver_from_hardware_id}"
+    reference="${driver_from_hardware_id,,}"
     return 0
   }
 
@@ -242,7 +242,7 @@ set -o xtrace
       return 1
     fi
 
-    reference="${driver_from_driver_index}"
+    reference="${driver_from_driver_index,,}"
   }
 
   function get_driver_from_hardware_index
@@ -277,45 +277,7 @@ set -o xtrace
       fi
     fi
 
-    reference="${driver_from_hardware_index}"
-    return 0
-  }
-
-  function get_space_list_from_comma_list
-  {
-    local -n reference="${1}"
-    shift
-
-    if is_empty_string "${@}"; then
-      return 1
-    fi
-
-    local -a newline_list=()
-    local index=1
-
-    while true; do
-      local value="$( \
-        echo "${@}" \
-          | cut --delimiter "," --fields "${index}"
-      )"
-
-      if is_empty_string "${value}"; then
-        break
-      fi
-
-      newline_list+=( "${value}" )
-      (( index++ ))
-    done
-
-    IFS=$'\n'
-    newline_list="$( echo ${newline_list[@]} )"
-    unset IFS
-
-    if [[ "${#newline_list[@]}" -lt 1 ]]; then
-      return 1
-    fi
-
-    reference="${newline_list[@]}"
+    reference="${driver_from_hardware_index,,}"
     return 0
   }
 
@@ -341,7 +303,7 @@ set -o xtrace
 
   function is_negative_integer
   {
-    if is_integer "${1}" \
+    if ! is_integer "${1}" \
       || [[ "${1}" -ge 0 ]]; then
       return 1
     fi
@@ -351,7 +313,7 @@ set -o xtrace
 
   function is_positive_integer
   {
-    if is_integer "${1}" \
+    if ! is_integer "${1}" \
       || [[ "${1}" -lt 0 ]]; then
       return 1
     fi
