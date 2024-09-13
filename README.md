@@ -14,6 +14,7 @@ and return the device drivers and hardware IDs as output.
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
     - [6.2. Executable](#62-executable)
+    - [6.3. XML file](#63-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
 - [9. Special Thanks](#9-special-thanks)
@@ -113,27 +114,51 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -q, --quiet               Quiet all output except for comma delimited lists of
-                            device drivers and hardware IDs.
-  -g, --group [OPTION]      Match IOMMU group ID(s). Comma delimited.
---host                      Match IOMMU groups with at least one (1) or more Host
+  -q, --quiet               Quiet most output except for IOMMU groups output, and
+                            lists of device drivers and hardware IDs.
+  -qq, --very-quiet         Quiet all output except for lists of device drivers
+                            and hardware IDs.
+  -g, --group=GROUPS        Match IOMMU group ID(s);
+                            GROUPS is a comma delimited list of numbers.
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);
+                            GROUPS is a comma delimited list of numbers.
+  -H, --host                Match IOMMU groups with at least one (1) or more Host
                             devices.
-  --ignore-name [OPTION]    Match IOMMU group(s) without device name.
-                            Comma delimited.
-  -n, --name [OPTION]       Match IOMMU group(s) with device name.
-                            Comma delimited.
---pcie                      Match IOMMU groups with at least one (1) or more PCI
-                            and/or PCIe bus devices.
-  -v, --vga-index [OPTION]  Match all IOMMU groups without VGA, and any with VGA
+  --ignore-name=NAME        Match IOMMU group(s) without device name, overrides
+                            --name;
+                            NAME is a comma delimited list of text.
+  --ignore-type=TYPE        Match IOMMU group(s) without device type, overrides
+                            --type;
+                            TYPE is a comma delimited list of text.
+  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor, overrides
+                            --vendor;
+                            VENDOR is a comma delimited list of text.
+  -n, --name=NAME           Match IOMMU group(s) with device name;
+                            NAME is a comma delimited list of text.
+  -t, --type=TYPE           Match IOMMU group(s) with device type;
+                            TYPE is a comma delimited list of text.
+  -v, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
+                            VENDOR is a comma delimited list of text.
+  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or more
+                            PCI/PCIe bus devices.
+  -V, --vga-index=INDEX     Match all IOMMU groups without VGA, and any with VGA
                             which match the index value(s) (not an IOMMU group
-                            ID). Comma delimited.
+                            ID);
+                            INDEX is a comma delimited list of numbers.
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie --quiet --vga-index 2
-    Quiet output except for drivers and hardware IDs (of IOMMU groups with PCI/e
-    devices), exclude IOMMU groups with VGA device(s) before and after the second
-    matched group, and exclude any wired ethernet devices (onboard or PCI/e).
+  parse-iommu-devices --ignore-name ether --pcie -qq -v 2
+                            Quiet output except for drivers and hardware IDs
+                            (of IOMMU groups with PCI/e devices), exclude IOMMU
+                            groups with VGA device(s) before and after the second
+                            matched group, and exclude any wired ethernet devices
+                            (Host and PCI/e).
 ```
+
+#### 6.3. XML file
+Lorem ispum.
+
+TODO: explain XML file use case, encourage sharing.
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
@@ -159,19 +184,6 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
-
-### TO DO
-- [ ] add back output of each group, devices and their information.
-  - make it conditional. If some are ignored or un-matched, show that they are.
-- [ ] reference and query database for original device drivers.
-  - Query manifest of hardware IDs and drivers. If any devices or groups are
-    ever binded to the VFIO driver, the feature should be able to grab the
-    original drivers (should the system's hardware configuration not change).
-- [ ] use XML file? **This will work**
-- [ ] use Internet database? Not sure if this is possible, but `lspci` mentions
-      something to this effect.
-- [x] acknowledged distinction and amended "internal" and "external" as "host"
-      "pci bus" devices. Revised usage example to aid newcomers.
 
 ### 9. Special Thanks
 - Peer Reviewers:
