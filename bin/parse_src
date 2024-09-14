@@ -187,6 +187,7 @@
       local -r hardware_id_output="$( \
         wrap_text \
           true \
+          false \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
@@ -199,6 +200,7 @@
       local name_output="$( \
         wrap_text \
           true \
+          false \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
@@ -214,6 +216,7 @@
       local -r type_output="$( \
         wrap_text \
           true \
+          false \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
@@ -223,6 +226,7 @@
       local -r vendor_output="$( \
         wrap_text \
           true \
+          false \
           true \
           "${prefix}" \
           "${COLUMN_SIZE}" \
