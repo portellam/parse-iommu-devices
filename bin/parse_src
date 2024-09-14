@@ -86,6 +86,8 @@
   declare -gi MIN_IOMMU_VALUE=0
   declare -g NULL_VALUE="N/A"
 
+  # TODO: replace dict with params, make it easier to reference in functions.
+
   declare -gA ARGUMENTS=(
     ["GET_LESS_OUTPUT"]=false
     ["GET_MINIMUM_OUTPUT"]=false
@@ -106,6 +108,8 @@
     ["REVERSE_MATCH_VENDOR"]=false
     ["TYPES_TO_MATCH"]=""
     ["TYPES_TO_REVERSE_MATCH"]=""
+    ["USE_XML"]=true
+    ["XML_FILE"]="${SCRIPT_NAME}${XML_EXTENSION}"
     ["VENDORS_TO_MATCH"]=""
     ["VENDORS_TO_REVERSE_MATCH"]=""
     ["VGA_GROUP_INDEX_TO_MATCH"]=""
@@ -135,7 +139,7 @@
   source \
     "${SOURCE_PATH}xml_src" \
     "${SOURCE_PATH}" \
-    "${SCRIPT_NAME}${XML_EXTENSION}"
+    "${ARGUMENTS["XML_FILE"]}"
 
 #
 # logic
@@ -615,7 +619,7 @@
           ARGUMENTS["VENDORS_TO_MATCH"]="${1}"
           ;;
 
-        "-V" | "--vga-index" )
+        "--vga-index" )
           ARGUMENTS["MATCH_VGA_GROUP_INDEX"]=true
           shift
 
@@ -1107,7 +1111,7 @@
       "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
-    echo -en "  -V, --vga-index=INDEX     "
+    echo -en "  --vga-index=INDEX         "
 
     wrap_text \
       false \
@@ -1140,7 +1144,7 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "--ignore-name ether --pcie -qq -v 2"
+      "--ignore-name ether --pcie -qq --vga-index 2"
 
     echo -en "$( get_repeated_space 28 )"
 
