@@ -114,69 +114,76 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-
-  -q, --quiet               Quiet most output except for IOMMU groups
-                            output, and lists of device drivers and
-                            hardware IDs.
-
-  -qq, --very-quiet         Quiet all output except for lists of device
+  -q, --quiet               Quiet most output except for IOMMU
+                            groups output, and lists of device
                             drivers and hardware IDs.
 
+  -qq, --very-quiet         Quiet all output except for lists of
+                            device drivers and hardware IDs.
+
   -g, --group=GROUPS        Match IOMMU group ID(s);
-                            GROUPS is a comma delimited list of positive
-                            numbers.
+                            GROUPS is a comma delimited list of
+                            positive numbers.
 
-  --ignore-group=GROUPS     Reverse match IOMMU group ID(s), overrides
-                            "--group";
-                            GROUPS is a comma delimited list of positive
-                            numbers.
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s),
+                            overrides "--group";
+                            GROUPS is a comma delimited list of
+                            positive numbers.
 
-  -H, --host                Match IOMMU groups with at least one (1) or
-                            more Host devices.
+  -H, --host                Match IOMMU groups with at least one
+                            (1) or more Host devices.
 
   -n, --name=NAME           Match IOMMU group(s) with device name;
                             NAME is a comma delimited list of text.
-
-  --ignore-name=NAME        Match IOMMU group(s) without device name,
-                            overrides "--name";
+  --ignore-name=NAME        Match IOMMU group(s) without device
+                            name, overrides "--name";
                             NAME is a comma delimited list of text.
-
   -t, --type=TYPE           Match IOMMU group(s) with device type;
                             TYPE is a comma delimited list of text.
-
-  --ignore-type=TYPE        Match IOMMU group(s) without device type,
-                            overrides "--type";
+  --ignore-type=TYPE        Match IOMMU group(s) without device
+                            type, overrides "--type";
                             TYPE is a comma delimited list of text.
+  -v, --vendor=VENDOR       Match IOMMU group(s) with device
+                            vendor;
+                            VENDOR is a comma delimited list of
+                            text.
 
-  -v, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
-                            VENDOR is a comma delimited list of text.
+  --ignore-vendor=VENDOR    Match IOMMU group(s) without device
+                            vendor, overrides "--vendor";
+                            VENDOR is a comma delimited list of
+                            text.
 
-  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor,
-                            overrides "--vendor";
-                            VENDOR is a comma delimited list of text.
+  -p, --pci, --pcie         Match IOMMU groups with at least one
+                            (1) or more PCI/PCIe bus devices.
 
-  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or
-                            more PCI/PCIe bus devices.
+  --vga-index=INDEX         Match all IOMMU groups without VGA,
+                            and any with VGA which match the index
+                            value(s) (not an IOMMU group ID);
+                            INDEX is a comma delimited list of
+                            postive non-zero numbers.
 
-      --vga-index=INDEX     Match all IOMMU groups without VGA, and any
-                            with VGA which match the index value(s) (not an
-                            IOMMU group ID);
-                            INDEX is a comma delimited list of postive
-                            non-zero numbers.
+  -x, --xml, --xml=FILE     Query an XML file for device drivers
+                            should none be found or any devices
+                            are binded to VFIO;
+                            FILE is the XML file name as text.
+                            Leave FILE empty to use default file
+                            name ("parse-iommu-devices.xml").
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie -qq -v 2
-                            Quiet output except for drivers and hardware
-                            IDs (of IOMMU groups with PCI/e devices),
-                            exclude IOMMU groups with VGA device(s) before
-                            and after the second matched group, and exclude
-                            any wired ethernet devices (Host and PCI/e).
+  parse-iommu-devices --ignore-name ether --pcie -qq --vga-index 2
+                            Quiet output except for drivers and
+                            hardware IDs (of IOMMU groups with
+                            PCI/e devices), exclude IOMMU groups
+                            with VGA device(s) before and after
+                            the second matched group, and exclude
+                            any wired ethernet devices (Host and
+                            PCI/e).
 ```
 
 #### 6.3. XML file
 Lorem ispum.
 
-TODO: explain XML file use case, encourage sharing.
+TODO: explain XML file use cases (backup, vfio, and sharing with the community).
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
