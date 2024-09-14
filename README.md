@@ -30,9 +30,9 @@ the relevant output. The output may then be used for kernel command line argumen
 For first-time use, the script must be run **without** a VFIO setup present.
 
 VFIO setup will cause selected devices to use the VFIO driver
-(`vfio-pci` or sometimes `pci-stub`).
+(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with at least one device binded to VFIO.
 
-For a solution to this, please see below for [XML file usage](#63-xml-file).
+For a solution to this issue, please see below for [XML file](#63-xml-file) usage.
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -179,7 +179,11 @@ Examples:
 ```
 
 #### 6.3. XML file
-Regardless of an existint VFIO setup, the script will output a complete list of **valid** drivers, if a known good XML file is present, with the exact device hardware IDs and valid drivers for the system.
+Regardless of an existing VFIO setup, the script will output a complete list of **valid** drivers, if a known good XML file is present, with the exact device hardware IDs and valid drivers for the system.
+
+It is recommended to backup this file (`/usr/local/bin/parse-iommu-devices.d/parse-iommu-devices.xml`).
+
+Please feel free to share your XML file with other VFIO users and enthusiasts.
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
