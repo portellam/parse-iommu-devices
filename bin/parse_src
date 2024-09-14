@@ -139,7 +139,8 @@
   source \
     "${SOURCE_PATH}xml_src" \
     "${SOURCE_PATH}" \
-    "${ARGUMENTS["XML_FILE"]}"
+    "${ARGUMENTS["XML_FILE"]}" \
+    "${ARGUMENTS["USE_XML"]}"
 
 #
 # logic
@@ -629,6 +630,15 @@
           fi
 
           ARGUMENTS["VGA_GROUP_INDEX_TO_MATCH"]="${1}"
+          ;;
+
+        "--x" | "--xml" )
+          ARGUMENTS["USE_XML"]=true
+          shift
+
+          if ! is_empty_string "${1}"; then
+            ARGUMENTS["XML_FILE"]="${1}"
+          fi
           ;;
 
         "" )
@@ -1131,6 +1141,28 @@
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "INDEX is a comma delimited list of postive non-zero numbers."
+
+    echo -en "  -x, --xml, --xml=FILE     "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Query an XML file for device drivers should none be found or any devices" \
+      "are binded to VFIO;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "FILE is the XML file name as text. Leave FILE empty to use default file"\
+      "name (\"${ARGUMENTS["XML_FILE"]}\")."
 
     echo -e "Examples:"
 

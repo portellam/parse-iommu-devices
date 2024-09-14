@@ -29,7 +29,7 @@
     exit 1
   fi
 
-  if is_boolean "${3}"; then
+  if ! is_boolean "${3}"; then
     exit 1
   fi
 

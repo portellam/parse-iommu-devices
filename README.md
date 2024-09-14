@@ -158,7 +158,7 @@ sudo bash installer.sh
   -p, --pci, --pcie         Match IOMMU groups with at least one (1) or
                             more PCI/PCIe bus devices.
 
-  -V, --vga-index=INDEX     Match all IOMMU groups without VGA, and any
+      --vga-index=INDEX     Match all IOMMU groups without VGA, and any
                             with VGA which match the index value(s) (not an
                             IOMMU group ID);
                             INDEX is a comma delimited list of postive
