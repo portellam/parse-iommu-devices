@@ -24,17 +24,15 @@ and return the device drivers and hardware IDs as output.
 If you wish to determine if your current machine's hardware specifications are
 able to support VFIO, then this script is for you. The script allows one to
 query exactly what hardware you wish to allocate for a VFIO setup, and returns
-the relevant output to deploy a VFIO setup.
+the relevant output. The output may then be used for kernel command line arguments, for example.
 
 #### Disclaimer
-This script must be run on a system without VFIO setup already. If not, the
-script output will not show a complete list of **valid** device drivers.
-This is due to the fact that a VFIO setup involves replacing the device drivers
-(example: NVIDIA GPUs use `nouveau` or `nvidia`) with the VFIO driver
-(`vfio-pci`).
+For first-time use, the script must be run **without** a VFIO setup present.
 
-Other outputs such as lists for IOMMU group IDs and hardware IDs are **not**
-affected by this.
+VFIO setup will cause selected devices to use the VFIO driver
+(`vfio-pci` or sometimes `pci-stub`).
+
+For a solution to this, please see below for [XML file usage](#63-xml-file).
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -181,9 +179,7 @@ Examples:
 ```
 
 #### 6.3. XML file
-Lorem ispum.
-
-TODO: explain XML file use cases (backup, vfio, and sharing with the community).
+Regardless of an existint VFIO setup, the script will output a complete list of **valid** drivers, if a known good XML file is present, with the exact device hardware IDs and valid drivers for the system.
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
