@@ -101,7 +101,7 @@ Linux.
 
 ### 6. Usage
 #### 6.1. Install
-Installer will copy required files to `/usr/bin/local/`.
+Installer will copy required files to `/usr/local/bin/`.
 
 ```bash
 sudo bash installer.sh
