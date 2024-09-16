@@ -35,8 +35,11 @@
 
   declare -g XML_FILE="${2}"
   declare -g DO_READ_XML_FILE="${3}"
-  declare -g XML_TAG="xml"
-  declare -g XML_ID_TAG="@id"
+  declare -g ROOT_KEY="xml"
+  declare -g KEY_A="devices"
+  declare -g KEY_B="hardware"
+  declare -g KEY_C="driver"
+  declare -g ATTRIBUTE="@id"
 
   declare -ag XML_KEYS_A=(
     "devices"
@@ -82,7 +85,7 @@
     return 0
   }
 
-  function get_key_at_index
+  function get_KEY_At_index
   {
     if is_empty_string "${1}"; then
       return 1
@@ -174,12 +177,12 @@
     fi
 
     local -i driver_id="${3}"
-    local -r key_a="${XML_KEYS_A[0]}"
-    local -r key_b="${XML_KEYS_B["${key_a}"]}"
-    local -r key_c="${XML_KEYS_C["${key_b}"]}"
+    local -r KEY_A="${XML_KEYS_A[0]}"
+    local -r KEY_B="${XML_KEYS_B["${KEY_A}"]}"
+    local -r KEY_C="${XML_KEYS_C["${KEY_B}"]}"
 
-    local xml_path="//${XML_TAG}/${key_a}/${key_b}[${XML_ID_TAG}=\"${hardware_index}\"]"
-    xml_path+="/${key_c}[${XML_ID_TAG}=\"${driver_id}\"]"
+    local xml_path="//${ROOT_KEY}/${ROOT_KEY}/${KEY_A}/${KEY_B}[${XML_ID_TAG}=\"${hardware_index}\"]"
+    xml_path+="/${KEY_C}[${XML_ID_TAG}=\"${driver_id}\"]"
 
     local -r driver_from_driver_index="$(
       xmlstarlet sel --template --value-of "${xml_path}" "${XML_FILE}" \
@@ -268,10 +271,22 @@
 
   function get_hardware_id_newline_list_from_xml
   {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r attribute_value_b="${1}"
+
+    if is_empty_string "${2}"; then
+      return 1
+    fi
+
+    local -r value_c="${2}"
+
     xmlstarlet \
       select \
       --template \
-      --copy-of "//${XML_TAG}/${XML_KEYS_A[0]}/${XML_KEYS_B["${XML_KEYS_A[0]}"]}" \
+      --copy-of "//${ROOT_KEY}/${XML_KEYS_A[0]}/${XML_KEYS_B["${XML_KEYS_A[0]}"]}" \
       --value-of "${XML_ID_TAG}" \
       -nl \
       "${XML_FILE}" \
@@ -281,36 +296,6 @@
         --delimiter "\"" \
         --fields 2
   }
-
-  function insert_hardware_id_to_xml
-  {
-    xmlstarlet \
-      insert \
-      --insert \
-      --type text \
-      -n "${XML_KEYS_B["${XML_KEYS_A[0]}"]}" \
-      --type attr \
-      -n "${XML_ID_TAG}" \
-      --value "${hardware_id}"
-  }
-
-  function insert_hardware_id_to_xml
-  {
-    xmlstarlet \
-      insert \
-      --insert \
-      --type text \
-      -n "${XML_KEYS_B["${XML_KEYS_A[0]}"]}" \
-      --type attr \
-      -n "${XML_ID_TAG}" \
-      --value "${hardware_id}"
-  }
-
-  declare -g
-  declare -g key_a="devices"
-  declare -g key_b="hardware"
-  declare -g key_c="driver"
-  declare -g attribute="@id"
 
   function append_key_b
   {
@@ -327,23 +312,60 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --subnode "/${key_a}" \
-        --type -n "/${key_b}" \
+      --subnode "/${KEY_A}" \
+        --type --nl "/${KEY_B}" \
           --value "" \
-          --insert "/${key_a}/${key_b}[last()]" \
-        --type -n "${key_c}" \
+          --insert "/${ROOT_KEY}/${KEY_A}/${KEY_B}[last()]" \
+        --type --nl "${KEY_C}" \
           --value "${attribute_value_b}" \
-          --append "/${key_a}/${key_b}[last()]" \
-            --insert "${attribute}" \
+          --append "/${ROOT_KEY}/${KEY_A}/${KEY_B}[last()]" \
+            --insert "${ATTRIBUTE}" \
             --value "${value_c}" \
       "${XML_FILE}"
   }
 
   function delete_key_b
   {
-      xmlstarlet edit \
-        --delete "/${key_a}/${key_b}[${attribute}='${attribute_value_b}']" \
-        "${XML_FILE}"
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r attribute_value_b="${1}"
+
+    xmlstarlet edit \
+      --delete "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${attribute_value_b}']" \
+      "${XML_FILE}"
+  }
+
+  function get_key_b_list
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r attribute_value_b="${1}"
+
+    xmlstarlet select \
+      --template \
+        --match "//${KEY_B}" \
+          --value-of "${ATTRIBUTE}" --nl \
+      "${XML_FILE}"
+  }
+
+  function get_key_c
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r attribute_value_b="${1}"
+
+    xmlstarlet select \
+      --template \
+        --match "//${KEY_B} [${ATTRIBUTE}=\"${attribute_value_b}\"]" \
+        --match "//${KEY_C}" \
+          --value-of "." --nl \
+      "${XML_FILE}"
   }
 
   function insert_key_c
@@ -361,9 +383,9 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${key_a}/${key_b}[${attribute}='${attribute_value_b}']" \
+      --update "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${attribute_value_b}']" \
         --insert @version \
-          --value "${value_c}" \
+          --value "${value_c}" --nl \
       "${XML_FILE}"
   }
 
@@ -382,7 +404,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${key_a}/${key_b}[${attribute}='${attribute_value_b}']/${key_c}" \
-          --value "${value_c}" \
+      --update "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${attribute_value_b}']/${KEY_C}" \
+          --value "${value_c}" --nl \
       "${XML_FILE}"
   }
