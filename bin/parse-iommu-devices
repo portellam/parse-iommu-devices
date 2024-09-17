@@ -34,9 +34,10 @@
   function main
   {
     set_tabspace_size
-    create_logfile
-    log "${0} ${@}"
+    # create_logfile
+    # log "${0} ${@}"
     parse_arguments "${@}"
+    modify_xml_hardware_ids
 
     if ! verify_groups; then
       return 1
