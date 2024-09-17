@@ -635,13 +635,23 @@ set -o xtrace
 
     local -a hardware_id_list=()
 
-    for line in "$( lspci -n )"; do
+    local -ir total_devices="$( \
+      lspci -n \
+        | wc --lines \
+    )"
+
+    local -i index=1
+    lspci -n | sed -n '2 p'
+
+    while [[ "${index}" -le "${total_devices}" ]]; do
       hardware_id="$( \
-        echo "${line}" \
-          | cut --delimiter ' ' --fields 3 \
+        lspci -n \
+          | sed -n "${index} p" \
+          | cut --delimiter ' ' --fields 3
       )"
 
       hardware_id_list+=( "${hardware_id}" )
+      (( index++ ))
     done
 
     if ! "${do_overwrite_xml}" \
@@ -656,7 +666,7 @@ set -o xtrace
   {
     if "${ARGUMENTS["WRITE_XML"]}" \
       && ! "${ARGUMENTS["READ_XML"]}" \
-      && ! modify_key_b_list true "${hardware_id_list[@]}"; then
+      && ! modify_key_b_list true ${hardware_id_list[@]}; then
       return 1
     fi
 
