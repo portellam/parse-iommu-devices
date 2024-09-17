@@ -37,9 +37,9 @@
     # create_logfile
     # log "${0} ${@}"
     parse_arguments "${@}"
-    modify_xml_hardware_ids
 
-    if ! verify_groups; then
+    if ! modify_xml_hardware_ids \
+      || ! verify_groups; then
       return 1
     fi
 
