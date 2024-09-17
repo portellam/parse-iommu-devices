@@ -136,7 +136,7 @@
     local -a current_key_b_list="$( get_key_b_list )"
 
     for key_b in ${key_b_list[@]}; do
-      if echo "${current_key_b_list[@]}" \
+      if ! echo "${current_key_b_list[@]}" \
         | grep --quiet "${key_b}"; then
         continue
       fi
@@ -173,7 +173,7 @@
     local -a current_key_c_list="$( get_key_c_list "${key_b}" )"
 
     for key_c in ${key_c_list[@]}; do
-      if echo "${current_key_c_list[@]}" \
+      if ! echo "${current_key_c_list[@]}" \
         | grep --quiet "${key_c}"; then
         continue
       fi
