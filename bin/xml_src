@@ -121,7 +121,7 @@
     shift
     local -ar key_b_list="${@}"
 
-    for key_b in "$( get_key_b_list )"; do
+    for key_b in $( get_key_b_list ); do
       if echo "${key_b_list[@]}" \
         | grep --quiet "${key_b}"; then
         continue
@@ -159,7 +159,7 @@
     shift
     local -ar key_c_list="${@}"
 
-    for key_c in "$( get_key_c_list "${key_b}" )"; do
+    for key_c in $( get_key_c_list "${key_b}" ); do
       if echo "${key_c_list[@]}" \
         | grep --quiet "${key_c}"; then
         continue
