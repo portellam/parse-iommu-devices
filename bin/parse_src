@@ -50,6 +50,8 @@
 # - [ ] test with vfio setup.
 #
 
+set -o xtrace
+
 #
 # params (1/2)
 #
@@ -588,11 +590,52 @@
     return 0
   }
 
+  function does_file_exist
+  {
+    if [[ ! -e "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_file_not_empty
+  {
+    if ! [[ -s "${1}" ]] \
+      || [[ -z $( grep '[^[:space:]]' "${1}" ) ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
   function modify_xml_hardware_ids
   {
+    local do_overwrite_xml=false
+
+    if ! does_file_exist "${XML_FILE}"; then
+      do_overwrite_xml=true
+
+      if ! touch "${XML_FILE}" &> /dev/null; then
+        return 1
+      fi
+    fi
+
+    if "${do_overwrite_file}" \
+      || ! is_file_not_empty "${XML_FILE}"; then
+      echo -e "<xml version=\"1.0\" UTF=\"8.0\">" >> "${XML_FILE}"
+      echo -e "  <devices>" >> "${XML_FILE}"
+      echo -e "  </devices>" >> "${XML_FILE}"
+      echo -e "</xml>" >> "${XML_FILE}"
+
+      if ! write_hardware_ids_to_xml; then
+        return 1
+      fi
+    fi
+
     local -a hardware_id_list=()
 
-    for line in $( lspci -n ); do
+    for line in "$( lspci -n )"; do
       hardware_id="$( \
         echo "${line}" \
           | cut --delimiter ' ' --fields 3 \
@@ -601,6 +644,16 @@
       hardware_id_list+=( "${hardware_id}" )
     done
 
+    if ! "${do_overwrite_xml}" \
+      && ! write_hardware_ids_to_xml; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function write_hardware_ids_to_xml
+  {
     if "${ARGUMENTS["WRITE_XML"]}" \
       && ! "${ARGUMENTS["READ_XML"]}" \
       && ! modify_key_b_list true "${hardware_id_list[@]}"; then
