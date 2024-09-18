@@ -38,15 +38,6 @@
 #
 # logic
 #
-  function write_xml_template_to_file
-  {
-    echo -e \
-      "<?xml version=\"1.0\"?>\n" \
-      "<devices>\n" \
-      "</devices>" \
-      > "${1}"
-  }
-
   function append_xml_hardware_id
   {
     if is_empty_string "${1}"; then
@@ -268,4 +259,13 @@
       --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]/${KEY_C}" \
           --value "${value_c}" --nl \
       "${XML_FILE}"
+  }
+
+  function write_xml_template_to_file
+  {
+    echo -e \
+      "<?xml version=\"1.0\"?>\n" \
+      "<devices>\n" \
+      "</devices>" \
+      > "${1}"
   }
