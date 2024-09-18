@@ -554,7 +554,7 @@
 
       if is_positive_integer "${driver_index}"; then
         driver_from_hardware_index="$( \
-          get_key_c_at_index \
+          get_xml_driver \
             "${hardware_index}" \
             "${driver_index}"
         )"
@@ -583,7 +583,7 @@
   {
     if "${ARGUMENTS["WRITE_XML"]}" \
       && ! "${ARGUMENTS["READ_XML"]}" \
-      && ! modify_key_c_list "${1}" "${2}"; then
+      && ! set_xml_driver_list "${1}" "${2}"; then
       return 1
     fi
 
@@ -667,7 +667,7 @@
   {
     if "${ARGUMENTS["WRITE_XML"]}" \
       && ! "${ARGUMENTS["READ_XML"]}" \
-      && ! modify_key_b_list \
+      && ! set_xml_hardware_id_list \
         true \
         ${hardware_id_list[@]}; then
       return 1

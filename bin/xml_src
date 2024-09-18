@@ -47,7 +47,7 @@
       > "${1}"
   }
 
-  function append_key_b
+  function append_xml_hardware_id
   {
     if is_empty_string "${1}"; then
       return 1
@@ -74,7 +74,7 @@
       "${XML_FILE}"
   }
 
-  function delete_key_b
+  function unset_xml_hardware_id
   {
     if is_empty_string "${1}"; then
       return 1
@@ -87,7 +87,7 @@
       "${XML_FILE}"
   }
 
-  function delete_key_c
+  function unset_xml_driver
   {
     if is_empty_string "${1}"; then
       return 1
@@ -107,7 +107,7 @@
       "${XML_FILE}"
   }
 
-  function modify_key_b_list
+  function set_xml_hardware_id_list
   {
     if ! is_boolean "${1}"; then
       return 1
@@ -122,25 +122,25 @@
 
     local -ar key_b_list=( "${@}" )
 
-    for key_b in $( get_key_b_list ); do
+    for key_b in $( get_xml_hardware_id_list ); do
       if [[ "${key_b_list[*]}" =~ "${key_b}" ]]; then
         continue
       fi
 
       if "${do_cleanup_xml}" \
-        && ! append_key_b "${key_b}"; then
+        && ! append_xml_hardware_id "${key_b}"; then
         return 1
       fi
     done
 
-    local -a current_key_b_list="$( get_key_b_list )"
+    local -a current_key_b_list="$( get_xml_hardware_id_list )"
 
     for key_b in ${key_b_list[@]}; do
       if ! [[ "${current_key_b_list[*]}" =~ "${key_b}" ]]; then
         continue
       fi
 
-      if ! delete_key_b "${key_b}"; then
+      if ! unset_xml_hardware_id "${key_b}"; then
         return 1
       fi
     done
@@ -148,7 +148,7 @@
     return 0
   }
 
-  function modify_key_c_list
+  function set_xml_driver_list
   {
     if is_empty_string "${1}"; then
       return 1
@@ -158,24 +158,24 @@
     shift
     local -ar key_c_list="${@}"
 
-    for key_c in $( get_key_c_list "${key_b}" ); do
+    for key_c in $( get_xml_driver_list "${key_b}" ); do
       if [[ "${key_c_list[*]}" =~ "${key_c}" ]]; then
         continue
       fi
 
-      if ! insert_key_c "${key_c}"; then
+      if ! insert_xml_driver "${key_c}"; then
         return 1
       fi
     done
 
-    local -a current_key_c_list="$( get_key_c_list "${key_b}" )"
+    local -a current_key_c_list="$( get_xml_driver_list "${key_b}" )"
 
     for key_c in ${key_c_list[@]}; do
       if ! [[ "${current_key_c_list[*]}" =~ "${key_c}" ]]; then
         continue
       fi
 
-      if ! delete_key_c "${key_c}"; then
+      if ! unset_xml_driver "${key_c}"; then
         return 1
       fi
     done
@@ -183,7 +183,7 @@
     return 0
   }
 
-  function get_key_b_list
+  function get_xml_hardware_id_list
   {
     xmlstarlet select \
       --template \
@@ -193,7 +193,7 @@
       "${XML_FILE}"
   }
 
-  function get_key_c_list
+  function get_xml_driver_list
   {
     if is_empty_string "${1}"; then
       return 1
@@ -209,7 +209,7 @@
       "${XML_FILE}"
   }
 
-  function get_key_c_at_index
+  function get_xml_driver
   {
     if ! is_positive_integer "${2}"; then
       return 1
@@ -218,7 +218,7 @@
     local -i index="${2}"
     local -i count=0
 
-    for key_c in $( get_key_c_list "${1}" ); do
+    for key_c in $( get_xml_driver_list "${1}" ); do
       if [[ "${count}" -eq "${index}" ]]; then
         break
       fi
@@ -229,7 +229,7 @@
     echo "${key_c}"
   }
 
-  function insert_key_c
+  function insert_xml_driver
   {
     if is_empty_string "${1}"; then
       return 1
@@ -250,7 +250,7 @@
       "${XML_FILE}"
   }
 
-  function update_key_c
+  function update_xml_driver
   {
     if is_empty_string "${1}"; then
       return 1
