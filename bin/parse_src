@@ -643,7 +643,6 @@
     )"
 
     local -i index=1
-    lspci -n | sed -n '2 p'
 
     while [[ "${index}" -le "${total_devices}" ]]; do
       hardware_id="$( \
@@ -668,7 +667,9 @@
   {
     if "${ARGUMENTS["WRITE_XML"]}" \
       && ! "${ARGUMENTS["READ_XML"]}" \
-      && ! modify_key_b_list true ${hardware_id_list[@]}; then
+      && ! modify_key_b_list \
+        true \
+        ${hardware_id_list[@]}; then
       return 1
     fi
 
