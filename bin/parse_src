@@ -623,12 +623,7 @@
 
     if "${do_overwrite_file}" \
       || ! is_file_not_empty "${XML_FILE}"; then
-      echo -e \
-        "<xml version=\"1.0\" UTF=\"8.0\">" \
-        "\n  <devices>" \
-        "\n  </devices>" \
-        "\n</xml>" \
-        >> "${XML_FILE}"
+      write_xml_template_to_file "${XML_FILE}"
 
       if ! write_hardware_ids_to_xml; then
         return 1
