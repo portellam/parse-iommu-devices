@@ -44,7 +44,7 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -58,7 +58,7 @@
           --value "" \
           --insert "/${KEY_A}/${KEY_B}[last()]" \
         --type --nl "${KEY_C}" \
-          --value "${key_b_attribute}" \
+          --value "${key_c_attribute}" \
           --append "/${KEY_A}/${KEY_B}[last()]" \
             --insert "${ATTRIBUTE}" \
             --value "${value_c}" \
@@ -71,10 +71,10 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     xmlstarlet edit \
-      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]" \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]" \
       "${XML_FILE}"
   }
 
@@ -84,7 +84,7 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -93,7 +93,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${key_b_attribute}']/${KEY_C}" \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${key_c_attribute}']/${KEY_C}" \
           --value "${value_c}" --nl \
       "${XML_FILE}"
   }
@@ -104,34 +104,34 @@
       return 1
     fi
 
-    local do_cleanup_xml="${1}"
+    local do_delete_any_unused_hardware_id="${1}"
     shift
 
     if [[ -z "${1}" ]]; then
       return 1
     fi
 
-    local -ar key_b_list=( "${@}" )
+    local -ar hardware_id_list=( "${@}" )
 
-    for key_b in $( get_xml_hardware_id_list ); do
-      if [[ "${key_b_list[*]}" =~ "${key_b}" ]]; then
+    for hardware_id in $( get_xml_hardware_id_list ); do
+      if [[ "${hardware_id_list[*]}" =~ "${hardware_id}" ]]; then
         continue
       fi
 
-      if "${do_cleanup_xml}" \
-        && ! append_xml_hardware_id "${key_b}"; then
+      if "${do_delete_any_unused_hardware_id}" \
+        && ! append_xml_hardware_id "${hardware_id}"; then
         return 1
       fi
     done
 
-    local -a current_key_b_list="$( get_xml_hardware_id_list )"
+    local -a xml_hardware_id_list="$( get_xml_hardware_id_list )"
 
-    for key_b in ${key_b_list[@]}; do
-      if ! [[ "${current_key_b_list[*]}" =~ "${key_b}" ]]; then
+    for hardware_id in ${hardware_id_list[@]}; do
+      if ! [[ "${xml_hardware_id_list[*]}" =~ "${hardware_id}" ]]; then
         continue
       fi
 
-      if ! unset_xml_hardware_id "${key_b}"; then
+      if ! unset_xml_hardware_id "${hardware_id}"; then
         return 1
       fi
     done
@@ -145,28 +145,28 @@
       return 1
     fi
 
-    local key_b="${1}"
+    local hardware_id="${1}"
     shift
-    local -ar key_c_list="${@}"
+    local -ar driver_list="${@}"
 
-    for key_c in $( get_xml_driver_list "${key_b}" ); do
-      if [[ "${key_c_list[*]}" =~ "${key_c}" ]]; then
+    for driver in $( get_xml_driver_list "${hardware_id}" ); do
+      if [[ "${driver_list[*]}" =~ "${driver}" ]]; then
         continue
       fi
 
-      if ! insert_xml_driver "${key_c}"; then
+      if ! insert_xml_driver "${driver}"; then
         return 1
       fi
     done
 
-    local -a current_key_c_list="$( get_xml_driver_list "${key_b}" )"
+    local -a xml_driver_list="$( get_xml_driver_list "${hardware_id}" )"
 
-    for key_c in ${key_c_list[@]}; do
-      if ! [[ "${current_key_c_list[*]}" =~ "${key_c}" ]]; then
+    for driver in ${driver_list[@]}; do
+      if ! [[ "${xml_driver_list[*]}" =~ "${driver}" ]]; then
         continue
       fi
 
-      if ! unset_xml_driver "${key_c}"; then
+      if ! unset_xml_driver "${driver}"; then
         return 1
       fi
     done
@@ -190,11 +190,11 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     xmlstarlet select \
       --template \
-        --match "/${KEY_B} [${ATTRIBUTE}=\"${key_b_attribute}\"]" \
+        --match "/${KEY_B} [${ATTRIBUTE}=\"${key_c_attribute}\"]" \
         --match "/${KEY_C}" \
           --value-of "." --nl \
       "${XML_FILE}"
@@ -209,7 +209,7 @@
     local -i index="${2}"
     local -i count=0
 
-    for key_c in $( get_xml_driver_list "${1}" ); do
+    for driver in $( get_xml_driver_list "${1}" ); do
       if [[ "${count}" -eq "${index}" ]]; then
         break
       fi
@@ -217,7 +217,7 @@
       (( index++ ))
     done
 
-    echo "${key_c}"
+    echo "${driver}"
   }
 
   function insert_xml_driver
@@ -226,7 +226,7 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -235,7 +235,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]" \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]" \
         --insert @version \
           --value "${value_c}" --nl \
       "${XML_FILE}"
@@ -247,7 +247,7 @@
       return 1
     fi
 
-    local -r key_b_attribute="${1}"
+    local -r key_c_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -256,7 +256,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]/${KEY_C}" \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]/${KEY_C}" \
           --value "${value_c}" --nl \
       "${XML_FILE}"
   }
