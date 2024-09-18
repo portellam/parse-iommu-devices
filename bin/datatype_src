@@ -10,6 +10,65 @@
 #
 # logic
 #
+  function append_value
+  {
+    if ! is_enum "${1}" \
+      || ! is_integer "${2}" \
+      && ( \
+        ! is_positive_integer "${2}" \
+        || [[ "${2}" -eq -1 ]] \
+      ) \
+      || ! is_string "${3}"; then
+      return 2
+    fi
+
+    local -r reference_append_value="${1}"
+
+    if is_array "reference_append_value"; then
+      reference_append_value+=( "${3}" )
+
+      if [[ "${?}" -ne 0 ]]; then
+        return 1
+      fi
+
+      return 0
+    fi
+
+    if is_dict "reference_append_value"; then
+      reference_append_value["${2}"]="${3}"
+
+      if [[ "${?}" -ne 0 ]]; then
+        return 1
+      fi
+
+      return 0
+    fi
+
+    return 2
+  }
+
+  function insert_value
+  {
+    if ! is_enum "${1}" \
+      || ! is_integer "${2}" \
+      && ( \
+        ! is_positive_integer "${2}" \
+        || [[ "${2}" -eq -1 ]] \
+      ) \
+      || ! is_string "${3}"; then
+      return 2
+    fi
+
+    local -r reference_insert_value="${1}"
+    reference_insert_value["${2}"]="${3}"
+
+    if [[ "${?}" -ne 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
   function is_array
   {
     if ! is_string "${1}"; then
@@ -270,6 +329,27 @@
     fi
 
     if [[ "${1}" == "${2}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function remove_value
+  {
+    if ! is_enum "${1}" \
+      || ! is_integer "${2}" \
+      && ( \
+        ! is_positive_integer "${2}" \
+        || [[ "${2}" -eq -1 ]] \
+      ); then
+      return 2
+    fi
+
+    local -r reference_remove_value="${1}"
+    unset reference_remove_value["${2}"]
+
+    if [[ "${?}" -ne 0 ]]; then
       return 1
     fi
 
