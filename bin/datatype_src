@@ -27,6 +27,27 @@
     esac
   }
 
+  function is_array_empty
+  {
+    if ! is_array "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_dict_empty="${1}"
+
+    if [[ "${#is_array[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for value in "${is_array[@]}"; do
+      if ! is_empty_string "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
   function is_boolean
   {
     case "${1}" in
@@ -103,6 +124,51 @@
         ;;
     esac
   }
+
+  function is_dict_empty
+  {
+    if ! is_dict_empty "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_dict_empty="${1}"
+
+    if [[ "${#reference_is_dict_empty[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for key in "${!reference_is_dict_empty[@]}"; do
+      local value="${reference_is_dict_empty["${key}"]}"
+
+      if ! is_empty_variable "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function is_enum_empty
+  {
+    if ! is_enum "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_enum_empty="${1}"
+
+    if [[ "${#reference_is_enum_empty[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for value in "${reference_is_enum_empty[@]}"; do
+      if is_string "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
 
   function is_file
   {
