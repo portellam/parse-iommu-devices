@@ -30,34 +30,30 @@
   fi
 
   declare -g XML_FILE="${2}"
-  declare -g ROOT_KEY="xml"
   declare -g KEY_A="devices"
   declare -g KEY_B="hardware"
   declare -g KEY_C="driver"
   declare -g ATTRIBUTE="@id"
 
-  declare -ag XML_KEYS_A=(
-    "devices"
-  )
-
-  declare -Ag XML_KEYS_B=(
-    [${XML_KEYS_A[0]}]="hardware"
-  )
-
-  declare -Ag XML_KEYS_C=(
-    [${XML_KEYS_B[${XML_KEYS_A[0]}]}]="driver"
-  )
-
 #
 # logic
 #
+  function write_xml_template_to_file
+  {
+    echo -e \
+      "<?xml version=\"1.0\"?>\n" \
+      "<devices>\n" \
+      "</devices>" \
+      > "${1}"
+  }
+
   function append_key_b
   {
     if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -69,10 +65,10 @@
       --subnode "/${KEY_A}" \
         --type --nl "/${KEY_B}" \
           --value "" \
-          --insert "/${ROOT_KEY}/${KEY_A}/${KEY_B}[last()]" \
+          --insert "/${KEY_A}/${KEY_B}[last()]" \
         --type --nl "${KEY_C}" \
-          --value "${attribute_value_b}" \
-          --append "/${ROOT_KEY}/${KEY_A}/${KEY_B}[last()]" \
+          --value "${key_b_attribute}" \
+          --append "/${KEY_A}/${KEY_B}[last()]" \
             --insert "${ATTRIBUTE}" \
             --value "${value_c}" \
       "${XML_FILE}"
@@ -84,10 +80,10 @@
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     xmlstarlet edit \
-      --delete "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${attribute_value_b}\"]" \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]" \
       "${XML_FILE}"
   }
 
@@ -97,7 +93,7 @@
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -106,7 +102,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --delete "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${attribute_value_b}']/${KEY_C}" \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${key_b_attribute}']/${KEY_C}" \
           --value "${value_c}" --nl \
       "${XML_FILE}"
   }
@@ -119,11 +115,15 @@
 
     local do_cleanup_xml="${1}"
     shift
-    local -ar key_b_list="${@}"
+
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    local -ar key_b_list=( "${@}" )
 
     for key_b in $( get_key_b_list ); do
-      if echo "${key_b_list[@]}" \
-        | grep --quiet "${key_b}"; then
+      if [[ "${key_b_list[*]}" =~ "${key_b}" ]]; then
         continue
       fi
 
@@ -136,8 +136,7 @@
     local -a current_key_b_list="$( get_key_b_list )"
 
     for key_b in ${key_b_list[@]}; do
-      if ! echo "${current_key_b_list[@]}" \
-        | grep --quiet "${key_b}"; then
+      if ! [[ "${current_key_b_list[*]}" =~ "${key_b}" ]]; then
         continue
       fi
 
@@ -160,8 +159,7 @@
     local -ar key_c_list="${@}"
 
     for key_c in $( get_key_c_list "${key_b}" ); do
-      if echo "${key_c_list[@]}" \
-        | grep --quiet "${key_c}"; then
+      if [[ "${key_c_list[*]}" =~ "${key_c}" ]]; then
         continue
       fi
 
@@ -173,8 +171,7 @@
     local -a current_key_c_list="$( get_key_c_list "${key_b}" )"
 
     for key_c in ${key_c_list[@]}; do
-      if ! echo "${current_key_c_list[@]}" \
-        | grep --quiet "${key_c}"; then
+      if ! [[ "${current_key_c_list[*]}" =~ "${key_c}" ]]; then
         continue
       fi
 
@@ -188,16 +185,11 @@
 
   function get_key_b_list
   {
-    if is_empty_string "${1}"; then
-      return 1
-    fi
-
-    local -r attribute_value_b="${1}"
-
     xmlstarlet select \
       --template \
-        --match "/${KEY_B}" \
-          --value-of "${ATTRIBUTE}" --nl \
+        --match "//${KEY_A}/${KEY_B}" \
+        --match "${ATTRIBUTE}" \
+          --value-of "." --nl \
       "${XML_FILE}"
   }
 
@@ -207,11 +199,11 @@
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     xmlstarlet select \
       --template \
-        --match "/${KEY_B} [${ATTRIBUTE}=\"${attribute_value_b}\"]" \
+        --match "/${KEY_B} [${ATTRIBUTE}=\"${key_b_attribute}\"]" \
         --match "/${KEY_C}" \
           --value-of "." --nl \
       "${XML_FILE}"
@@ -243,7 +235,7 @@
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -252,7 +244,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${attribute_value_b}\"]" \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]" \
         --insert @version \
           --value "${value_c}" --nl \
       "${XML_FILE}"
@@ -264,7 +256,7 @@
       return 1
     fi
 
-    local -r attribute_value_b="${1}"
+    local -r key_b_attribute="${1}"
 
     if is_empty_string "${2}"; then
       return 1
@@ -273,7 +265,7 @@
     local -r value_c="${2}"
 
     xmlstarlet edit \
-      --update "/${ROOT_KEY}/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${attribute_value_b}\"]/${KEY_C}" \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_b_attribute}\"]/${KEY_C}" \
           --value "${value_c}" --nl \
       "${XML_FILE}"
   }
