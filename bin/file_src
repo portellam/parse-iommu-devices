@@ -1,0 +1,48 @@
+#!/bin/false
+
+#
+# Filename:       datatype_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+# Version:        1.0.0
+#
+
+#
+# sources
+#
+  source \
+    "${SOURCE_PATH}datatype_src"
+
+#
+# logic
+#
+  function is_empty_file
+  {
+    if ! is_file "${1}" \
+      || [[ ! -s "${1}" ]] \
+      || [[ -z $( grep '[^[:space:]]' "${1}" ) ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_file
+  {
+    if ! is_string "${1}" \
+      || [[ ! -e "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_readonly_file
+  {
+    if ! is_file "${1}" \
+      || [[ ! -w "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }

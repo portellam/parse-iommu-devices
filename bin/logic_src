@@ -1,0 +1,131 @@
+#!/bin/false
+
+#
+# Filename:       datatype_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+# Version:        1.0.0
+#
+
+#
+# sources
+#
+  source \
+    "${SOURCE_PATH}datatype_src"
+
+#
+# logic
+#
+  # are both true
+  function is_and
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" != "${2}" ]]; then
+      return 1
+    fi
+
+    if ! "${1}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  # is any true
+  function is_or
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if ! "${1}" \
+      && ! "${2}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  # is not both true
+  function is_nand
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" == "${2}" ]] \
+      && "${1}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  # is both false
+  function is_nor
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" != "${2}" ]]; then
+      return 1
+    fi
+
+    if "${1}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  # return opposite
+  function is_not
+  {
+    if ! is_bool "${1}"; then
+      return 2
+    fi
+
+    if ! "${1}"; then
+      return 0
+    else
+      return 1
+    fi
+  }
+
+  # is either true, but not both
+  function is_xor
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" == "${2}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  # are both equal
+  function is_xnor
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" != "${2}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }

@@ -142,16 +142,6 @@
     return 0
   }
 
-  function is_empty_file
-  {
-    if ! is_file "${1}" \
-      || [[ -z $( grep '[^[:space:]]' "${1}" ) ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
   function is_empty_variable
   {
     if ! is_variable "${1}"; then
@@ -228,16 +218,6 @@
     return 0
   }
 
-
-  function is_file
-  {
-    if [[ ! -s "${1}" ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
   function is_integer
   {
     if is_empty_string "${1}" \
@@ -282,7 +262,7 @@
     return 0
   }
 
-  function is_readonly
+  function is_readonly_variable
   {
     if ! is_string "${1}"; then
       return 2
@@ -321,24 +301,11 @@
     esac
   }
 
-  function is_xor
-  {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
-      return 2
-    fi
-
-    if [[ "${1}" == "${2}" ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
   function remove_value
   {
     if ! is_enum "${1}" \
-      || ! is_integer "${2}" \
+      || is_array "${1}" \
+      && ! is_integer "${2}" \
       && ( \
         ! is_positive_integer "${2}" \
         || [[ "${2}" -eq -1 ]] \
