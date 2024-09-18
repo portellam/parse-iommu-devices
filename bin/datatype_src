@@ -9,6 +9,23 @@
 #
 # logic
 #
+  function is_array
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    case "$( declare -p ${1} 2>/dev/null )" in
+      *"-a"* )
+        return 0
+        ;;
+
+      * )
+        return 1
+        ;;
+    esac
+  }
+
   function is_boolean
   {
     case "${1}" in
@@ -22,9 +39,73 @@
     esac
   }
 
+  function is_dict
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) == "declare -A"* ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
   function is_empty_string
   {
     if [[ ! -z "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_empty_file
+  {
+    if ! is_file "${1}" \
+      || [[ -z $( grep '[^[:space:]]' "${1}" ) ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_empty_variable
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    local -I is_empty_variable_inherited="${1}"
+
+    if ! is_string "${is_empty_variable_inherited}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_enum
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    case "$( declare -p ${1} 2>/dev/null )" in
+      *"-a"* | *"-A"* )
+        return 0
+        ;;
+
+      * )
+        return 1
+        ;;
+    esac
+  }
+
+  function is_file
+  {
+    if [[ ! -s "${1}" ]]; then
       return 1
     fi
 
@@ -56,6 +137,72 @@
   {
     if ! is_integer "${1}" \
       || [[ "${1}" -lt 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_reference
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    if [[ $( declare -p "${1}" 2>/dev/null ) != *"-n"* ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_readonly
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) == "declare -r"* ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_string
+  {
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_variable
+  {
+    case "$( declare -p "${1}" 2>/dev/null )" in
+      *"--"* | *"-"* )
+        return 0
+        ;;
+
+      "" )
+        return 2
+        ;;
+
+      *"not found"* )
+        return 1
+        ;;
+    esac
+  }
+
+  function is_xor
+  {
+    if ! is_bool "${1}" \
+      || ! is_bool "${2}"; then
+      return 2
+    fi
+
+    if [[ "${1}" == "${2}" ]]; then
       return 1
     fi
 
