@@ -8,6 +8,15 @@
 #
 
 #
+# TODO:
+# - [ ] get driver from XML.
+# - [ ] set (append, delete, insert) to XML:
+#   - [ ] hardware id (optionally delete).
+#   - [ ] driver.
+# - [ ] passthrough XML file name.
+#
+
+#
 # params
 #
   if [[ -z "${1}" ]]; then
@@ -20,6 +29,10 @@
 #
   source \
     "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
+
+  source \
+    "${SOURCE_PATH}xml_src" \
     "${SOURCE_PATH}"
 
 #
