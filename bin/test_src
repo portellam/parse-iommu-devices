@@ -1,5 +1,8 @@
 #!/bin/bash
 
+source datatype_src
+# set -o xtrace
+
 declare -a BUS_ID_LIST=()
 
 declare -A \
@@ -117,10 +120,6 @@ function set_this_hardware_id_dictionaries
 
 function set_many_iommu_group_id_dictionaries
 {
-  if [[ "${MAX_IOMMU_GROUP_ID}" -eq 0 ]]; then
-    return 1
-  fi
-
   for iommu_group_id in $( \
     seq \
       0 \
@@ -153,4 +152,55 @@ function set_this_iommu_group_id_dictionaries
   done
 }
 
+function print_var
+{
+  local -n ref="${1}"
+  echo -e "${1}"
+  echo -e "${ref}"
+  echo
+}
+
+function print_dict
+{
+  local -n ref="${1}"
+  echo -e "${1}"
+
+  for key in "${!ref[@]}"; do
+    echo -e "'${key}' '${ref[$key]}'"
+  done
+
+  echo
+}
+
+function print_list
+{
+  local -n ref="${1}"
+  echo -e "${1}"
+
+  for value in "${ref[@]}"; do
+    echo -e "'${value}'"
+  done
+
+  echo
+}
+
+#
+# NOTES:
+# - current implementation takes ~6 seconds to parse all bus id's information.
+# - iommu groups take < 1 second.
+#
+
+uptime
 set_many_iommu_group_id_dictionaries
+uptime
+set_many_hardware_id_dictionaries
+uptime
+
+print_var MAX_IOMMU_GROUP_ID
+print_list BUS_ID_LIST
+# print_dict IOMMU_GROUP_ID_AND_BUS_ID
+# print_dict BUS_ID_AND_HARDWARE_ID
+# print_dict HARDWARE_ID_AND_DRIVER
+# print_dict HARDWARE_ID_AND_NAME
+# print_dict HARDWARE_ID_AND_TYPE
+# print_dict HARDWARE_ID_AND_VENDOR
