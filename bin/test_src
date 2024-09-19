@@ -1,7 +1,14 @@
 #!/bin/false
 
 #
-# params (1/2)
+# Filename:       test_src
+# Description:    Populate variables with IOMMU groups' devices information.
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+#
+
+#
+# params
 #
   if [[ -z "${1}" ]]; then
     exit 1
@@ -9,7 +16,7 @@
   declare -g SOURCE_PATH="${1}"
 
 #
-# sources (1/2)
+# sources
 #
   source \
     "${SOURCE_PATH}datatype_src" \
