@@ -3,6 +3,16 @@
 source datatype_src
 # set -o xtrace
 
+declare -a LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
+  lspci \
+    -kn
+)"
+
+declare -a LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
+  lspci \
+    -m
+)"
+
 declare -a BUS_ID_LIST=()
 
 declare -A \
@@ -33,10 +43,16 @@ function get_driver
   fi
 
   local driver="$( \
-    lspci -kns "${1}" \
-      | grep driver \
-      | awk 'END {print $5}'
+    lspci \
+      -kns \
+        "${1}" \
+    | grep \
+      driver \
+    | awk \
+      'END {print $5}'
   )"
+
+  echo "${driver}"
 
   if is_valid_driver "${driver}"; then
     echo "${driver}"
@@ -79,36 +95,139 @@ function set_many_hardware_id_dictionaries
   fi
 }
 
+# given my machine, it takes ~7 seconds to populate all dictionaries.
+# with third implementation, lscpi is only parsed twice, as opposed to everytime.
 function set_this_hardware_id_dictionaries
 {
   if ! is_string "${1}"; then
     return 1
   fi
 
-  local -r hardware_id="$( \
-    lspci -ns "${1}" \
-      | awk 'END {print $3}' \
-  )"
+  ### 3
 
+  # commenting out driver saves ~1 second.
   local driver="$( \
     get_driver \
       "${1}"
   )"
 
+  local -r hardware_id="$( \
+    echo \
+      -e \
+      "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
+    | \
+      grep \
+        "${1}" \
+    | awk \
+      'END {print $3}'
+  )"
+
+  local -r line="$( \
+    echo \
+      -e \
+      "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
+    | \
+      grep \
+        "${1}"
+  )"
+
   local -r name="$( \
-    lspci -ms "${1}" \
-      | cut --delimiter '"' --fields 6 \
+    echo \
+      "${line}" \
+    | cut \
+      --delimiter \
+        '"' \
+      --fields \
+        6 \
   )"
 
   local -r type="$( \
-    lspci -ms "${1}" \
-      | cut --delimiter '"' --fields 2 \
+    echo \
+      "${line}" \
+    | cut \
+      --delimiter \
+        '"' \
+      --fields \
+        2 \
   )"
 
   local -r vendor="$( \
-    lspci -ms "${1}" \
-      | cut --delimiter '"' --fields 4 \
+    echo \
+      "${line}" \
+    | cut \
+      --delimiter \
+        '"' \
+      --fields \
+        4 \
   )"
+
+  ### 2
+
+  # local -r hardware_id="$( \
+  #   lspci \
+  #     -ns \
+  #       "${1}" \
+  #   | awk \
+  #     'END {print $3}' \
+  # )"
+
+  # local driver="$( \
+  #   get_driver \
+  #     "${1}"
+  # )"
+
+  # local -r line="$( \
+  #   lspci \
+  #     -ms \
+  #       "${1}"
+  # )"
+
+  # local -r name="$( \
+  #   echo \
+  #     "${line}" \
+  #   | cut \
+  #     --delimiter \
+  #       '"' \
+  #     --fields \
+  #       6 \
+  # )"
+
+  # local -r type="$( \
+  #   echo \
+  #     "${line}" \
+  #   | cut \
+  #     --delimiter \
+  #       '"' \
+  #     --fields \
+  #       2 \
+  # )"
+
+  # local -r vendor="$( \
+  #   echo \
+  #     "${line}" \
+  #   | cut \
+  #     --delimiter \
+  #       '"' \
+  #     --fields \
+  #       4 \
+  # )"
+
+  ### 1
+
+  # local -r name="$( \
+  #   lspci -ms "${1}" \
+  #     | cut --delimiter '"' --fields 6 \
+  # )"
+
+  # local -r type="$( \
+  #   lspci -ms "${1}" \
+  #     | cut --delimiter '"' --fields 2 \
+  # )"
+
+  # local -r vendor="$( \
+  #   lspci -ms "${1}" \
+  #     | cut --delimiter '"' --fields 4 \
+  # )"
 
   BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
   HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"
