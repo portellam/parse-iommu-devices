@@ -1,326 +1,318 @@
-#!/bin/bash
+#!/bin/false
 
-source datatype_src
-# set -o xtrace
-
-declare -a LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
-  lspci \
-    -kn
-)"
-
-declare -a LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
-  lspci \
-    -m
-)"
-
-declare -a BUS_ID_LIST=()
-
-declare -A \
-  BUS_ID_AND_HARDWARE_ID \
-  HARDWARE_ID_AND_DRIVER \
-  HARDWARE_ID_AND_NAME \
-  HARDWARE_ID_AND_TYPE \
-  HARDWARE_ID_AND_VENDOR \
-  IOMMU_GROUP_ID_AND_BUS_ID
-
-declare -ir MAX_IOMMU_GROUP_ID="$( \
-  ls \
-    /sys/kernel/iommu_groups/ \
-  | sort \
-    --reverse \
-    --version-sort \
-  | head \
-    --lines \
-      1 \
-)"
-
-declare -r NULL_VALUE="N/A"
-
-function get_driver
-{
-  if ! is_string "${1}"; then
-    return 1
+#
+# params (1/2)
+#
+  if [[ -z "${1}" ]]; then
+    exit 1
   fi
+  declare -g SOURCE_PATH="${1}"
 
-  local driver="$( \
-    lspci \
-      -kns \
-        "${1}" \
-    | grep \
-      driver \
-    | awk \
-      'END {print $5}'
-  )"
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
 
-  if is_valid_driver "${driver}"; then
-    echo "${driver}"
+#
+# logic
+#
+  function has_test_src_run_once
+  {
+    if "${TEST_SRC_RUN_ONCE}" &> /dev/null; then
+      return 0
+    fi
+
+    declare -gr TEST_SRC_RUN_ONCE=true
+
+    declare -ar LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
+      lspci \
+        -kn
+    )"
+
+    declare -ar LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
+      lspci \
+        -m
+    )"
+
+    declare -a BUS_ID_LIST=()
+
+    declare -A \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_VENDOR \
+      IOMMU_GROUP_ID_AND_BUS_ID
+
+    declare -ir MAX_IOMMU_GROUP_ID="$( \
+      ls \
+        /sys/kernel/iommu_groups/ \
+      | sort \
+        --reverse \
+        --version-sort \
+      | head \
+        --lines \
+          1 \
+    )"
+
+    declare -r NULL_VALUE="N/A"
+
+    if ! set_many_iommu_group_id_dictionaries \
+      || ! set_many_hardware_id_dictionaries; then
+      return 1
+    fi
+
+    readonly \
+      BUS_ID_LIST \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_VENDOR \
+      IOMMU_GROUP_ID_AND_BUS_ID
+
     return 0
-  fi
+  }
 
-  # get driver from xml
+  function get_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
 
-  if ! is_valid_driver "${driver}"; then
-    driver="${NULL_VALUE}"
-  fi
+    local driver="$( \
+      lspci \
+        -kns \
+          "${1}" \
+      | grep \
+        driver \
+      | awk \
+        'END {print $5}'
+    )"
 
-  echo "${driver}"
-}
+    if is_valid_driver "${driver}"; then
+      echo "${driver}"
+      return 0
+    fi
 
-function is_valid_driver
-{
-  if ! is_string "${1}" \
-    || [[ "${1}" =~ "stub" ]] \
-    || [[ "${1}" =~ "vfio" ]]; then
-    return 1
-  fi
+    # get driver from xml
 
-  return 0
-}
+    if ! is_valid_driver "${driver}"; then
+      driver="${NULL_VALUE}"
+    fi
 
-function set_many_hardware_id_dictionaries
-{
-  if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]]; then
-    return 1
-  fi
+    echo "${driver}"
+  }
 
-  for bus_id in "${BUS_ID_LIST[@]}"; do
-    echo -e "Parsing information for bus device ${bus_id}."
+  function is_valid_driver
+  {
+    if ! is_string "${1}" \
+      || [[ "${1}" =~ "stub" ]] \
+      || [[ "${1}" =~ "vfio" ]]; then
+      return 1
+    fi
 
-    set_this_hardware_id_dictionaries \
-      "${bus_id}"
-  done
+    return 0
+  }
 
-  if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
-    return 1
-  fi
-}
+  function set_many_hardware_id_dictionaries
+  {
+    if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]]; then
+      return 1
+    fi
 
-# given my machine, it takes ~7 seconds to populate all dictionaries.
-# with third implementation, lscpi is only parsed twice, as opposed to everytime.
-function set_this_hardware_id_dictionaries
-{
-  if ! is_string "${1}"; then
-    return 1
-  fi
+    for bus_id in "${BUS_ID_LIST[@]}"; do
+      echo -e "Parsing information for bus device ${bus_id}."
 
-  ### 3
+      set_this_hardware_id_dictionaries \
+        "${bus_id}"
+    done
 
-  # commenting out driver saves ~1 second.
-  local driver="$( \
-    get_driver \
-      "${1}"
-  )"
+    if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
+      return 1
+    fi
+  }
 
-  local -r hardware_id="$( \
-    echo \
-      -e \
-      "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
-    | \
-      grep \
-        "${1}" \
-    | awk \
-      'END {print $3}'
-  )"
+  # given my machine, it takes ~7 seconds to populate all dictionaries.
+  # with third implementation, lscpi is only parsed twice, as opposed to everytime.
+  function set_this_hardware_id_dictionaries
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
 
-  local -r line="$( \
-    echo \
-      -e \
-      "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
-    | \
-      grep \
+    ### 3
+
+    # commenting out driver saves ~1 second.
+    local driver="$( \
+      get_driver \
         "${1}"
-  )"
+    )"
 
-  local -r name="$( \
-    echo \
-      "${line}" \
-    | cut \
-      --delimiter \
-        '"' \
-      --fields \
-        6 \
-  )"
+    local -r hardware_id="$( \
+      echo \
+        -e \
+        "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
+      | \
+        grep \
+          "${1}" \
+      | awk \
+        'END {print $3}'
+    )"
 
-  local -r type="$( \
-    echo \
-      "${line}" \
-    | cut \
-      --delimiter \
-        '"' \
-      --fields \
-        2 \
-  )"
+    local -r line="$( \
+      echo \
+        -e \
+        "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
+      | \
+        grep \
+          "${1}"
+    )"
 
-  local -r vendor="$( \
-    echo \
-      "${line}" \
-    | cut \
-      --delimiter \
-        '"' \
-      --fields \
-        4 \
-  )"
+    local -r name="$( \
+      echo \
+        "${line}" \
+      | cut \
+        --delimiter \
+          '"' \
+        --fields \
+          6 \
+    )"
 
-  ### 2
+    local -r type="$( \
+      echo \
+        "${line}" \
+      | cut \
+        --delimiter \
+          '"' \
+        --fields \
+          2 \
+    )"
 
-  # local -r hardware_id="$( \
-  #   lspci \
-  #     -ns \
-  #       "${1}" \
-  #   | awk \
-  #     'END {print $3}' \
-  # )"
+    local -r vendor="$( \
+      echo \
+        "${line}" \
+      | cut \
+        --delimiter \
+          '"' \
+        --fields \
+          4 \
+    )"
 
-  # local driver="$( \
-  #   get_driver \
-  #     "${1}"
-  # )"
+    ### 2
 
-  # local -r line="$( \
-  #   lspci \
-  #     -ms \
-  #       "${1}"
-  # )"
+    # local -r hardware_id="$( \
+    #   lspci \
+    #     -ns \
+    #       "${1}" \
+    #   | awk \
+    #     'END {print $3}' \
+    # )"
 
-  # local -r name="$( \
-  #   echo \
-  #     "${line}" \
-  #   | cut \
-  #     --delimiter \
-  #       '"' \
-  #     --fields \
-  #       6 \
-  # )"
+    # local driver="$( \
+    #   get_driver \
+    #     "${1}"
+    # )"
 
-  # local -r type="$( \
-  #   echo \
-  #     "${line}" \
-  #   | cut \
-  #     --delimiter \
-  #       '"' \
-  #     --fields \
-  #       2 \
-  # )"
+    # local -r line="$( \
+    #   lspci \
+    #     -ms \
+    #       "${1}"
+    # )"
 
-  # local -r vendor="$( \
-  #   echo \
-  #     "${line}" \
-  #   | cut \
-  #     --delimiter \
-  #       '"' \
-  #     --fields \
-  #       4 \
-  # )"
+    # local -r name="$( \
+    #   echo \
+    #     "${line}" \
+    #   | cut \
+    #     --delimiter \
+    #       '"' \
+    #     --fields \
+    #       6 \
+    # )"
 
-  ### 1
+    # local -r type="$( \
+    #   echo \
+    #     "${line}" \
+    #   | cut \
+    #     --delimiter \
+    #       '"' \
+    #     --fields \
+    #       2 \
+    # )"
 
-  # local -r name="$( \
-  #   lspci -ms "${1}" \
-  #     | cut --delimiter '"' --fields 6 \
-  # )"
+    # local -r vendor="$( \
+    #   echo \
+    #     "${line}" \
+    #   | cut \
+    #     --delimiter \
+    #       '"' \
+    #     --fields \
+    #       4 \
+    # )"
 
-  # local -r type="$( \
-  #   lspci -ms "${1}" \
-  #     | cut --delimiter '"' --fields 2 \
-  # )"
+    ### 1
 
-  # local -r vendor="$( \
-  #   lspci -ms "${1}" \
-  #     | cut --delimiter '"' --fields 4 \
-  # )"
+    # local -r name="$( \
+    #   lspci -ms "${1}" \
+    #     | cut --delimiter '"' --fields 6 \
+    # )"
 
-  BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
-  HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"
-  HARDWARE_ID_AND_NAME["${hardware_id}"]="${name}"
-  HARDWARE_ID_AND_TYPE["${hardware_id}"]="${type}"
-  HARDWARE_ID_AND_VENDOR["${hardware_id}"]="${vendor}"
-  return 0
-}
+    # local -r type="$( \
+    #   lspci -ms "${1}" \
+    #     | cut --delimiter '"' --fields 2 \
+    # )"
 
-function set_many_iommu_group_id_dictionaries
-{
-  for iommu_group_id in $( \
-    seq \
-      0 \
-      "${MAX_IOMMU_GROUP_ID}" \
-  ); do
-    echo -e "Parsing devices for IOMMU group ${iommu_group_id}."
-    set_this_iommu_group_id_dictionaries \
-      "${iommu_group_id}"
-  done
+    # local -r vendor="$( \
+    #   lspci -ms "${1}" \
+    #     | cut --delimiter '"' --fields 4 \
+    # )"
 
-  if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
-    || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then
-    return 1
-  fi
+    BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
+    HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"
+    HARDWARE_ID_AND_NAME["${hardware_id}"]="${name}"
+    HARDWARE_ID_AND_TYPE["${hardware_id}"]="${type}"
+    HARDWARE_ID_AND_VENDOR["${hardware_id}"]="${vendor}"
+    return 0
+  }
 
-  return 0
-}
+  function set_many_iommu_group_id_dictionaries
+  {
+    for iommu_group_id in $( \
+      seq \
+        0 \
+        "${MAX_IOMMU_GROUP_ID}" \
+    ); do
+      echo -e "Parsing devices for IOMMU group ${iommu_group_id}."
+      set_this_iommu_group_id_dictionaries \
+        "${iommu_group_id}"
+    done
 
-function set_this_iommu_group_id_dictionaries
-{
-  for bus_id in $( \
-    ls \
-      "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
-    | sort \
-      --version-sort \
-  ); do
-    bus_id="${bus_id:5}"
+    if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
+      || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then
+      return 1
+    fi
 
-    BUS_ID_LIST+=( "${bus_id}" )
-    IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${bus_id}"
-  done
-}
+    return 0
+  }
 
-function print_var
-{
-  local -n ref="${1}"
-  echo -e "${1}"
-  echo -e "${ref}"
-  echo
-}
+  function set_this_iommu_group_id_dictionaries
+  {
+    for bus_id in $( \
+      ls \
+        "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
+      | sort \
+        --version-sort \
+    ); do
+      bus_id="${bus_id:5}"
 
-function print_dict
-{
-  local -n ref="${1}"
-  echo -e "${1}"
-
-  for key in "${!ref[@]}"; do
-    echo -e "'${key}' '${ref[$key]}'"
-  done
-
-  echo
-}
-
-function print_list
-{
-  local -n ref="${1}"
-  echo -e "${1}"
-
-  for value in "${ref[@]}"; do
-    echo -e "'${value}'"
-  done
-
-  echo
-}
+      BUS_ID_LIST+=( "${bus_id}" )
+      IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${bus_id}"
+    done
+  }
 
 #
-# NOTES:
-# - current implementation takes ~6 seconds to parse all bus id's information.
-# - iommu groups take < 1 second.
+# main
 #
-
-# uptime
-set_many_iommu_group_id_dictionaries
-# uptime
-set_many_hardware_id_dictionaries
-# uptime
-
-print_var MAX_IOMMU_GROUP_ID
-print_list BUS_ID_LIST
-print_dict IOMMU_GROUP_ID_AND_BUS_ID
-print_dict BUS_ID_AND_HARDWARE_ID
-print_dict HARDWARE_ID_AND_DRIVER
-print_dict HARDWARE_ID_AND_NAME
-print_dict HARDWARE_ID_AND_TYPE
-print_dict HARDWARE_ID_AND_VENDOR
+  has_test_src_run_once
