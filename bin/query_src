@@ -1,7 +1,7 @@
 #!/bin/false
 
 #
-# Filename:       test_src
+# Filename:       query_src
 # Description:    Populate variables with IOMMU groups' devices information.
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
