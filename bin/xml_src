@@ -9,10 +9,6 @@
 #
 # params (1/2)
 #
-  if [[ -z "${1}" ]]; then
-    exit 1
-  fi
-
   declare -g SOURCE_PATH="${1}"
 
 #
@@ -25,10 +21,6 @@
 #
 # params (2/2)
 #
-  if is_empty_string "${2}"; then
-    exit 1
-  fi
-
   declare -g XML_FILE="${2}"
   declare -g KEY_A="devices"
   declare -g KEY_B="hardware"
@@ -38,63 +30,157 @@
 #
 # logic
 #
-  function append_xml_hardware_id
+  function append_driver
   {
     if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r key_c_attribute="${1}"
+    local -r hardware_id="${1}"
 
     if is_empty_string "${2}"; then
       return 1
     fi
 
-    local -r value_c="${2}"
+    local -r driver="${2}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "/${KEY_B}" \
+    #       --value "" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]" \
+    #     --type --nl "${KEY_C}" \
+    #       --value "${hardware_id}" \
+    #       --append "/${KEY_A}/${KEY_B}[last()]" \
+    #         --insert "${ATTRIBUTE}" \
+    #         --value "${driver}" \
+    #   "${XML_FILE}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "${KEY_B}" \
+    #       --value "" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]" \
+    #         --type --nl "${ATTRIBUTE:1}" \
+    #           --value "${1}" \
+    #   --subnode "/${KEY_A}/${KEY_B}[last()]" \
+    #     --type --nl "${KEY_C}" \
+    #       --value "${2}" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]/${KEY_C}[last()]" \
+    #         --type --nl "${ATTRIBUTE:1}" \
+    #         --value "${2}" \
+    #   "${XML_FILE}"
+
+    local -ar driver_list="$( \
+      get_xml_driver_list \
+        "${hardware_id}"
+    )"
+
+    local -ir index="${#driver_list[@]}"
+
+    xmlstarlet edit \
+      --subnode "/${KEY_A}/${KEY_B}[${ATTRIBUTE:1}='${1}']" \
+        --type --nl "${KEY_C}" \
+          --value "${driver}" \
+          --insert "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${hardware_id}']/${KEY_C}[last()]" \
+            --type --nl "${ATTRIBUTE:1}" \
+              --value "${index}" \
+      "${XML_FILE}"
+
+    exit 1
+  }
+
+  function append_hardware_id
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "/${KEY_B}" \
+    #       --value "" \
+    #       --append "/${KEY_A}/${KEY_B}[last()]" \
+    #   "${XML_FILE}"
 
     xmlstarlet edit \
       --subnode "/${KEY_A}" \
-        --type --nl "/${KEY_B}" \
+        --type --nl "${KEY_B}" \
           --value "" \
           --insert "/${KEY_A}/${KEY_B}[last()]" \
-        --type --nl "${KEY_C}" \
-          --value "${key_c_attribute}" \
-          --append "/${KEY_A}/${KEY_B}[last()]" \
-            --insert "${ATTRIBUTE}" \
-            --value "${value_c}" \
+            --type --nl "${ATTRIBUTE:1}" \
+              --value "${1}" \
+      "${XML_FILE}"
+
+    exit 1
+  }
+
+  function get_xml_hardware_id_list
+  {
+    xmlstarlet select \
+      --template \
+        --match "//${KEY_A}/${KEY_B}" \
+        --match "${ATTRIBUTE}" \
+          --value-of "." --nl \
       "${XML_FILE}"
   }
 
-  function unset_xml_hardware_id
+  function get_xml_driver_list
   {
     if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r key_c_attribute="${1}"
+    local -r hardware_id="${1}"
 
-    xmlstarlet edit \
-      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]" \
+    xmlstarlet select \
+      --template \
+        --match "/${KEY_B} [${ATTRIBUTE}=\"${hardware_id}\"]" \
+        --match "/${KEY_C}" \
+          --value-of "." --nl \
       "${XML_FILE}"
   }
 
-  function unset_xml_driver
+  function get_xml_driver
+  {
+    if ! is_positive_integer "${2}"; then
+      return 1
+    fi
+
+    local -i index="${2}"
+    local -i count=0
+
+    for driver in $( get_xml_driver_list "${1}" ); do
+      if [[ "${count}" -eq "${index}" ]]; then
+        break
+      fi
+
+      (( index++ ))
+    done
+
+    echo "${driver}"
+  }
+
+  function insert_xml_driver
   {
     if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r key_c_attribute="${1}"
+    local -r hardware_id="${1}"
 
     if is_empty_string "${2}"; then
       return 1
     fi
 
-    local -r value_c="${2}"
+    local -r driver="${2}"
 
     xmlstarlet edit \
-      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${key_c_attribute}']/${KEY_C}" \
-          --value "${value_c}" --nl \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]" \
+        --insert @version \
+          --value "${driver}" --nl \
       "${XML_FILE}"
   }
 
@@ -107,19 +193,24 @@
     local do_delete_any_unused_hardware_id="${1}"
     shift
 
+    echo "Hello world"
+
     if [[ -z "${1}" ]]; then
       return 1
     fi
 
     local -ar hardware_id_list=( "${@}" )
+    echo -e "${hardware_id_list[*]}"
 
     for hardware_id in $( get_xml_hardware_id_list ); do
+      echo -e "${hardware_id}"
+
       if [[ "${hardware_id_list[*]}" =~ "${hardware_id}" ]]; then
         continue
       fi
 
       if "${do_delete_any_unused_hardware_id}" \
-        && ! append_xml_hardware_id "${hardware_id}"; then
+        && ! unset_xml_hardware_id "${hardware_id}"; then
         return 1
       fi
     done
@@ -131,7 +222,7 @@
         continue
       fi
 
-      if ! unset_xml_hardware_id "${hardware_id}"; then
+      if ! append_hardware_id "${hardware_id}"; then
         return 1
       fi
     done
@@ -166,7 +257,7 @@
         continue
       fi
 
-      if ! unset_xml_driver "${driver}"; then
+      if ! append_driver "${driver}"; then
         return 1
       fi
     done
@@ -174,70 +265,36 @@
     return 0
   }
 
-  function get_xml_hardware_id_list
-  {
-    xmlstarlet select \
-      --template \
-        --match "//${KEY_A}/${KEY_B}" \
-        --match "${ATTRIBUTE}" \
-          --value-of "." --nl \
-      "${XML_FILE}"
-  }
-
-  function get_xml_driver_list
+  function unset_xml_driver
   {
     if is_empty_string "${1}"; then
       return 1
     fi
 
-    local -r key_c_attribute="${1}"
-
-    xmlstarlet select \
-      --template \
-        --match "/${KEY_B} [${ATTRIBUTE}=\"${key_c_attribute}\"]" \
-        --match "/${KEY_C}" \
-          --value-of "." --nl \
-      "${XML_FILE}"
-  }
-
-  function get_xml_driver
-  {
-    if ! is_positive_integer "${2}"; then
-      return 1
-    fi
-
-    local -i index="${2}"
-    local -i count=0
-
-    for driver in $( get_xml_driver_list "${1}" ); do
-      if [[ "${count}" -eq "${index}" ]]; then
-        break
-      fi
-
-      (( index++ ))
-    done
-
-    echo "${driver}"
-  }
-
-  function insert_xml_driver
-  {
-    if is_empty_string "${1}"; then
-      return 1
-    fi
-
-    local -r key_c_attribute="${1}"
+    local -r hardware_id="${1}"
 
     if is_empty_string "${2}"; then
       return 1
     fi
 
-    local -r value_c="${2}"
+    local -r driver="${2}"
 
     xmlstarlet edit \
-      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]" \
-        --insert @version \
-          --value "${value_c}" --nl \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${hardware_id}']/${KEY_C}" \
+          --value "${driver}" --nl \
+      "${XML_FILE}"
+  }
+
+  function unset_xml_hardware_id
+  {
+    if is_empty_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    xmlstarlet edit \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]" \
       "${XML_FILE}"
   }
 
@@ -247,25 +304,31 @@
       return 1
     fi
 
-    local -r key_c_attribute="${1}"
+    local -r hardware_id="${1}"
 
     if is_empty_string "${2}"; then
       return 1
     fi
 
-    local -r value_c="${2}"
+    local -r driver="${2}"
 
     xmlstarlet edit \
-      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${key_c_attribute}\"]/${KEY_C}" \
-          --value "${value_c}" --nl \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]/${KEY_C}" \
+          --value "${driver}" --nl \
+      "${XML_FILE}"
+  }
+
+  function validate_xml
+  {
+    xmlstarlet validate \
+      --quiet \
+      --well-formed \
       "${XML_FILE}"
   }
 
   function write_xml_template_to_file
   {
     echo -e \
-      "<?xml version=\"1.0\"?>\n" \
-      "<devices>\n" \
-      "</devices>" \
-      > "${1}"
+      "<?xml version=\"1.0\"?>\n<${KEY_A}>\n</${KEY_A}>" \
+      > "${XML_FILE}"
   }
