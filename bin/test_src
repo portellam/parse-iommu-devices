@@ -52,8 +52,6 @@ function get_driver
       'END {print $5}'
   )"
 
-  echo "${driver}"
-
   if is_valid_driver "${driver}"; then
     echo "${driver}"
     return 0
@@ -71,8 +69,8 @@ function get_driver
 function is_valid_driver
 {
   if ! is_string "${1}" \
-    || ! [[ "${1}" =~ "stub" ]] \
-    || ! [[ "${1}" =~ "vfio" ]]; then
+    || [[ "${1}" =~ "stub" ]] \
+    || [[ "${1}" =~ "vfio" ]]; then
     return 1
   fi
 
@@ -86,6 +84,8 @@ function set_many_hardware_id_dictionaries
   fi
 
   for bus_id in "${BUS_ID_LIST[@]}"; do
+    echo -e "Parsing information for bus device ${bus_id}."
+
     set_this_hardware_id_dictionaries \
       "${bus_id}"
   done
@@ -244,6 +244,7 @@ function set_many_iommu_group_id_dictionaries
       0 \
       "${MAX_IOMMU_GROUP_ID}" \
   ); do
+    echo -e "Parsing devices for IOMMU group ${iommu_group_id}."
     set_this_iommu_group_id_dictionaries \
       "${iommu_group_id}"
   done
@@ -309,17 +310,17 @@ function print_list
 # - iommu groups take < 1 second.
 #
 
-uptime
+# uptime
 set_many_iommu_group_id_dictionaries
-uptime
+# uptime
 set_many_hardware_id_dictionaries
-uptime
+# uptime
 
 print_var MAX_IOMMU_GROUP_ID
 print_list BUS_ID_LIST
-# print_dict IOMMU_GROUP_ID_AND_BUS_ID
-# print_dict BUS_ID_AND_HARDWARE_ID
-# print_dict HARDWARE_ID_AND_DRIVER
-# print_dict HARDWARE_ID_AND_NAME
-# print_dict HARDWARE_ID_AND_TYPE
-# print_dict HARDWARE_ID_AND_VENDOR
+print_dict IOMMU_GROUP_ID_AND_BUS_ID
+print_dict BUS_ID_AND_HARDWARE_ID
+print_dict HARDWARE_ID_AND_DRIVER
+print_dict HARDWARE_ID_AND_NAME
+print_dict HARDWARE_ID_AND_TYPE
+print_dict HARDWARE_ID_AND_VENDOR
