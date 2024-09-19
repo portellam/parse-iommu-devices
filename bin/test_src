@@ -1,0 +1,156 @@
+#!/bin/bash
+
+declare -a BUS_ID_LIST=()
+
+declare -A \
+  BUS_ID_AND_HARDWARE_ID \
+  HARDWARE_ID_AND_DRIVER \
+  HARDWARE_ID_AND_NAME \
+  HARDWARE_ID_AND_TYPE \
+  HARDWARE_ID_AND_VENDOR \
+  IOMMU_GROUP_ID_AND_BUS_ID
+
+declare -ir MAX_IOMMU_GROUP_ID="$( \
+  ls \
+    /sys/kernel/iommu_groups/ \
+  | sort \
+    --reverse \
+    --version-sort \
+  | head \
+    --lines \
+      1 \
+)"
+
+declare -r NULL_VALUE="N/A"
+
+function get_driver
+{
+  if ! is_string "${1}"; then
+    return 1
+  fi
+
+  local driver="$( \
+    lspci -kns "${1}" \
+      | grep driver \
+      | awk 'END {print $5}'
+  )"
+
+  if is_valid_driver "${driver}"; then
+    echo "${driver}"
+    return 0
+  fi
+
+  # get driver from xml
+
+  if ! is_valid_driver "${driver}"; then
+    driver="${NULL_VALUE}"
+  fi
+
+  echo "${driver}"
+}
+
+function is_valid_driver
+{
+  if ! is_string "${1}" \
+    || ! [[ "${1}" =~ "stub" ]] \
+    || ! [[ "${1}" =~ "vfio" ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+function set_many_hardware_id_dictionaries
+{
+  if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]]; then
+    return 1
+  fi
+
+  for bus_id in "${BUS_ID_LIST[@]}"; do
+    set_this_hardware_id_dictionaries \
+      "${bus_id}"
+  done
+
+  if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
+    return 1
+  fi
+}
+
+function set_this_hardware_id_dictionaries
+{
+  if ! is_string "${1}"; then
+    return 1
+  fi
+
+  local -r hardware_id="$( \
+    lspci -ns "${1}" \
+      | awk 'END {print $3}' \
+  )"
+
+  local driver="$( \
+    get_driver \
+      "${1}"
+  )"
+
+  local -r name="$( \
+    lspci -ms "${1}" \
+      | cut --delimiter '"' --fields 6 \
+  )"
+
+  local -r type="$( \
+    lspci -ms "${1}" \
+      | cut --delimiter '"' --fields 2 \
+  )"
+
+  local -r vendor="$( \
+    lspci -ms "${1}" \
+      | cut --delimiter '"' --fields 4 \
+  )"
+
+  BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
+  HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"
+  HARDWARE_ID_AND_NAME["${hardware_id}"]="${name}"
+  HARDWARE_ID_AND_TYPE["${hardware_id}"]="${type}"
+  HARDWARE_ID_AND_VENDOR["${hardware_id}"]="${vendor}"
+  return 0
+}
+
+function set_many_iommu_group_id_dictionaries
+{
+  if [[ "${MAX_IOMMU_GROUP_ID}" -eq 0 ]]; then
+    return 1
+  fi
+
+  for iommu_group_id in $( \
+    seq \
+      0 \
+      "${MAX_IOMMU_GROUP_ID}" \
+  ); do
+    set_this_iommu_group_id_dictionaries \
+      "${iommu_group_id}"
+  done
+
+  if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
+    || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+function set_this_iommu_group_id_dictionaries
+{
+  for bus_id in $( \
+    ls \
+      "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
+    | sort \
+      --version-sort \
+  ); do
+    bus_id="${bus_id:5}"
+
+    BUS_ID_LIST+=( "${bus_id}" )
+    IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${bus_id}"
+  done
+}
+
+set_many_iommu_group_id_dictionaries
