@@ -21,10 +21,6 @@
   source \
     "${SOURCE_PATH}file_src"
 
-  source \
-    "${SOURCE_PATH}query_src" \
-    "${SOURCE_PATH}"
-
 #
 # params (2/2)
 #
