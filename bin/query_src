@@ -419,6 +419,8 @@
 
   function set_this_iommu_group_id_dictionaries
   {
+    local temp_list=""
+
     for bus_id in $( \
       ls \
         "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
@@ -428,8 +430,10 @@
       bus_id="${bus_id:5}"
 
       BUS_ID_LIST+=( "${bus_id}" )
-      IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${bus_id}"
+      temp_list+="${bus_id},"
     done
+
+    IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${temp_list::-1}"
   }
 
 #
