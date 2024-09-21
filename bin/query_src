@@ -148,7 +148,7 @@
       return 0
     fi
 
-    # get driver from xml
+    driver="$( get_first_good_driver "${driver}" )"
 
     if ! is_valid_driver "${driver}"; then
       driver="${NULL_VALUE}"

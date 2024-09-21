@@ -46,10 +46,9 @@
 
     local -r message="Parsing hardware devices..."
 
-    local -a group_output=()
     print_and_log_output "${message}"
 
-    if ! parse_many_groups; then
+    if ! parse_src_main; then
       print_and_log_output "${message} Failed."
       return 1
     fi

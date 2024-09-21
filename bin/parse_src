@@ -119,86 +119,80 @@
 #
 # logic
 #
-  function append_output_to_temp_lists
+  function append_device_info_to_output
   {
-    if ! get_minimum_output; then
-      if [[ -z "${driver}" ]]; then
-        driver="${NULL_VALUE}"
-      fi
-
-      local -r tab_prefix="\t\t"
-      local -r prefix="${tab_prefix}              "
-
-      local -r hardware_id_output="$( \
-        wrap_text \
-          true \
-          false \
-          true \
-          "${prefix}" \
-          "${COLUMN_SIZE}" \
-          "${tab_prefix}Hardware ID:  ${hardware_id}"
-      )"
-
-      local -r name_input="${tab_prefix}Name:         ${name}"
-
-      # FIXME: some names do not appear. Why?
-      local name_output="$( \
-        wrap_text \
-          true \
-          false \
-          true \
-          "${prefix}" \
-          "${COLUMN_SIZE}" \
-          "${name_input}"
-      )"
-
-      if [[ -z "${name_output}" ]]; then
-        name_output="${name_input}"
-      fi
-
-      readonly name_output
-
-      local -r type_output="$( \
-        wrap_text \
-          true \
-          false \
-          true \
-          "${prefix}" \
-          "${COLUMN_SIZE}" \
-          "${tab_prefix}Type:         ${type}"
-      )"
-
-      local -r vendor_output="$( \
-        wrap_text \
-          true \
-          false \
-          true \
-          "${prefix}" \
-          "${COLUMN_SIZE}" \
-          "${tab_prefix}Vendor:       ${vendor}"
-      )"
-
-      group_temp_output+=(
-        "\t${device_index}:"
-        "${tab_prefix}Slot ID:      ${bus_id}"
-        "${vendor_output}"
-        "${name_output}"
-        "${type_output}"
-        "${tab_prefix}Driver:       ${driver}"
-        "${hardware_id_output}"
-        ""
-      )
+    if get_minimum_output; then
+      return 0
     fi
 
-    if [[ "${driver}" != "${NULL_VALUE}" ]] \
-      && ! [[ ",${driver_list,,}," =~ ",${driver,,}," ]]; then
-      driver_list+="${driver},"
+    if [[ -z "${driver}" ]]; then
+      driver="${NULL_VALUE}"
     fi
 
-    if [[ "${hardware_id}" != "${NULL_VALUE}" ]] \
-      && [[ ",${hardware_id_list,,}," != *",${hardware_id},"* ]]; then
-      hardware_id_list+="${hardware_id},"
+    local -r tab_prefix="\t\t"
+    local -r prefix="${tab_prefix}              "
+
+    local -r hardware_id_output="$( \
+      wrap_text \
+        true \
+        false \
+        true \
+        "${prefix}" \
+        "${COLUMN_SIZE}" \
+        "${tab_prefix}Hardware ID:  ${hardware_id}"
+    )"
+
+    local -r name_input="${tab_prefix}Name:         ${name}"
+
+    # FIXME: some names do not appear. Why?
+    local +r name_output="$( \
+      wrap_text \
+        true \
+        false \
+        true \
+        "${prefix}" \
+        "${COLUMN_SIZE}" \
+        "${name_input}"
+    )"
+
+    if [[ -z "${name_output}" ]]; then
+      name_output="${name_input}"
     fi
+
+    local -r name_output
+
+    local -r type_output="$( \
+      wrap_text \
+        true \
+        false \
+        true \
+        "${prefix}" \
+        "${COLUMN_SIZE}" \
+        "${tab_prefix}Type:         ${type}"
+    )"
+
+    local -r vendor_output="$( \
+      wrap_text \
+        true \
+        false \
+        true \
+        "${prefix}" \
+        "${COLUMN_SIZE}" \
+        "${tab_prefix}Vendor:       ${vendor}"
+    )"
+
+    group_output+=(
+      "\t${device_index}:"
+      "${tab_prefix}Slot ID:      ${bus_id}"
+      "${vendor_output}"
+      "${name_output}"
+      "${type_output}"
+      "${tab_prefix}Driver:       ${driver}"
+      "${hardware_id_output}"
+      ""
+    )
+
+    return 0
   }
 
   function create_logfile
@@ -213,17 +207,23 @@
     fi
   }
 
-  function is_driver_installed
+  function get_driver_list
   {
-    lsmod \
-      | grep --quiet --word-regexp "${1}"
-  }
-
-  function is_output_not_empty
-  {
-    if [[ "${#group_output[@]}" -lt 1 ]]; then
+    if ! is_string "${1}"; then
       return 1
     fi
+
+    local -ar get_driver_list="${HARDWARE_ID_AND_DRIVER["${1}"]//,\\n}"
+
+    for key in "${!get_driver_list[@]}"; do
+      driver="${get_driver_list["${key}"]}"
+
+      if [[ "${driver}" != "${NULL_VALUE}" ]]; then
+        continue
+      fi
+
+      echo "${driver}"
+    done
   }
 
   function is_matched
@@ -302,9 +302,16 @@
 
   function modify_xml_drivers
   {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+    local -ar modify_xml_drivers_list="$( get_driver_list "${hardware_id}" )"
+
     if "${INPUTS["WRITE_XML"]}" \
       && ! "${INPUTS["READ_XML"]}" \
-      && ! set_xml_driver_list "${1}" "${2}"; then
+      && ! set_xml_driver_list "${hardware_id}" "${modify_xml_drivers_list}"; then
       return 1
     fi
 
@@ -359,10 +366,22 @@
     return 0
   }
 
+  function parse_src_main
+  {
+    local -a group_output=()
+    verify_all_devices_matches
+
+    if ! print_groups_output; then
+      return 1
+    fi
+
+    return 0
+  }
+
   function print_groups_output
   {
     if ! get_less_output; then
-      if ! is_output_not_empty; then
+      if is_enum_empty "group_output"; then
         print_and_log_output "Error: No IOMMU groups found."
         return 1
       fi
@@ -439,6 +458,68 @@
     OUTPUTS["FOUND_GROUP_ID_LIST"]="${OUTPUTS["FOUND_GROUP_ID_LIST"]::-1}"
     OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]::-1}"
     OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]::-1}"
+  }
+
+  function verify_many_devices_matches
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    has_host=false
+    has_pci=false
+    has_name=false
+    has_name_reverse_match=false
+    has_type=false
+    has_type_reverse_match=false
+    has_vendor=false
+    has_vendor_reverse_match=false
+    has_vfio=false
+    has_vga=false
+    is_selected=false
+
+    local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+
+    bus_id_list="$( \
+      echo \
+        -e \
+        "${bus_id_list//,\\n}" \
+      | sort \
+        --version-sort
+      )"
+
+    for bus_id in "${bus_id_list[@]}"; do
+      if ! verify_this_devices_matches "${bus_id}"; then
+        break
+      fi
+
+      is_selected=true
+    done
+
+    if "${has_host}"; then
+      OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${has_pci}"; then
+      OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${has_vga}"; then
+      (( vga_group_index++ ))
+      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${has_vfio}"; then
+      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${is_selected}"; then
+      OUTPUTS["SELECTED_DRIVER_LIST"]+="${1},"
+      OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
+      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${1},"
+    else
+      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
+    fi
   }
 
   function verify_this_devices_matches
@@ -544,69 +625,8 @@
       return 1
     fi
 
+    append_device_info_to_output
     return 0
-  }
-
-  function verify_many_devices_matches
-  {
-    if ! is_positive_integer "${1}"; then
-      return 1
-    fi
-
-    has_host=false
-    has_pci=false
-    has_name=false
-    has_name_reverse_match=false
-    has_type=false
-    has_type_reverse_match=false
-    has_vendor=false
-    has_vendor_reverse_match=false
-    has_vfio=false
-    has_vga=false
-    is_selected=false
-
-    local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
-
-    bus_id_list="$( \
-      echo \
-        -e \
-        "${bus_id_list//,\\n}" \
-      | sort \
-        --version-sort
-      )"
-
-    for bus_id in "${bus_id_list[@]}"; do
-      if ! verify_this_devices_matches "${bus_id}"; then
-        break
-      fi
-
-      is_selected=true
-    done
-
-    if "${has_host}"; then
-      OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_pci}"; then
-      OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_vga}"; then
-      (( vga_group_index++ ))
-      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_vfio}"; then
-      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${is_selected}"; then
-      OUTPUTS["SELECTED_DRIVER_LIST"]+="${1},"
-      OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
-      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${1},"
-    else
-      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
-    fi
   }
 
   function write_hardware_ids_to_xml
