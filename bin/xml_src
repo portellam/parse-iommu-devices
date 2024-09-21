@@ -32,13 +32,13 @@
 #
   function append_driver
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
     local -r hardware_id="${1}"
 
-    if is_empty_string "${2}"; then
+    if ! is_string "${2}"; then
       return 1
     fi
 
@@ -92,7 +92,7 @@
 
   function append_hardware_id
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -129,7 +129,7 @@
 
   function get_xml_driver_list
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -165,13 +165,13 @@
 
   function insert_xml_driver
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
     local -r hardware_id="${1}"
 
-    if is_empty_string "${2}"; then
+    if ! is_string "${2}"; then
       return 1
     fi
 
@@ -232,7 +232,7 @@
 
   function set_xml_driver_list
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -267,13 +267,13 @@
 
   function unset_xml_driver
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
     local -r hardware_id="${1}"
 
-    if is_empty_string "${2}"; then
+    if ! is_string "${2}"; then
       return 1
     fi
 
@@ -287,7 +287,7 @@
 
   function unset_xml_hardware_id
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -300,13 +300,13 @@
 
   function update_xml_driver
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
     local -r hardware_id="${1}"
 
-    if is_empty_string "${2}"; then
+    if ! is_string "${2}"; then
       return 1
     fi
 

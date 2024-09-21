@@ -81,11 +81,11 @@
 #
 # params (2/2)
 #
-  if is_empty_string "${2}"; then
+  if ! is_string "${2}"; then
     exit 1
   fi
 
-  if is_empty_string "${3}"; then
+  if ! is_string "${3}"; then
     exit 1
   fi
 
@@ -428,15 +428,6 @@
       has_host=false
       has_pci=true
     fi
-  }
-
-  function set_sources
-  {
-    source \
-    "${SOURCE_PATH}xml_src" \
-    "${SOURCE_PATH}" \
-    "${INPUTS["XML_FILE"]}" \
-    "${INPUTS["READ_XML"]}"
   }
 
   function verify_all_devices_matches

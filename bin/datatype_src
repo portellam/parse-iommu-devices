@@ -99,7 +99,7 @@
     fi
 
     for value in "${is_array[@]}"; do
-      if ! is_empty_string "${value}"; then
+      if is_string "${value}"; then
         return 1
       fi
     done
@@ -220,7 +220,7 @@
 
   function is_integer
   {
-    if is_empty_string "${1}" \
+    if ! is_string "${1}" \
       || ! [[ "${1}" =~ ^[0-9]+$ ]] \
       && ! [[ "${1}" =~ ^-[0-9]+$ ]]; then
       return 1

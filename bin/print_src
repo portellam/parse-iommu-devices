@@ -9,7 +9,7 @@
 #
 # params (1/2)
 #
-  if is_empty_string "${1}"; then
+  if ! is_string "${1}"; then
     exit 1
   fi
 
@@ -25,7 +25,7 @@
 #
 # params (2/2)
 #
-  if is_empty_string "${2}"; then
+  if ! is_string "${2}"; then
     exit 1
   fi
 
@@ -42,7 +42,7 @@
 #
   function get_repeated_space
   {
-    if is_empty_string "${1}" \
+    if ! is_string "${1}" \
       || ! is_positive_integer "${1}"; then
       return 1
     fi
@@ -59,7 +59,7 @@
 
   function get_repeated_space_from_tabspace
   {
-    if is_empty_string "${1}" \
+    if ! is_string "${1}" \
       || ! is_positive_integer "${1}"; then
       return 1
     fi
@@ -76,7 +76,7 @@
 
   function get_space_count
   {
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -86,7 +86,7 @@
 
   function get_space_count_from_tabspace_count
   {
-    if is_empty_string "${1}" \
+    if ! is_string "${1}" \
       || ! is_positive_integer "${1}"; then
       return 1
     fi
@@ -164,7 +164,7 @@
   {
     local -r use_tab_space="${1}"
 
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -188,14 +188,14 @@
 
     local prefix_width="${1}"
 
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
     shift
     local -i column_width="${1}"
 
-    if is_empty_string "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 

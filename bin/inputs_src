@@ -26,11 +26,11 @@
 #
   shopt -s nullglob   # aid with argument inputs.
 
-  if is_empty_string "${2}"; then
+  if ! is_string "${2}"; then
     exit 1
   fi
 
-  if is_empty_string "${3}"; then
+  if ! is_string "${3}"; then
     exit 1
   fi
 
@@ -275,7 +275,7 @@
 
           shift
 
-          if ! is_empty_string "${1}"; then
+          if is_string "${1}"; then
             INPUTS["XML_FILE"]="${1}"
           fi
 
