@@ -1,0 +1,687 @@
+#!/bin/false
+
+#
+# Filename:       inputs_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+#
+
+#
+# params (1/2)
+#
+  declare -g SOURCE_PATH="${1}"
+
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src" \
+    "${SOURCE_PATH}"
+
+  source \
+    "${SOURCE_PATH}file_src"
+
+  source \
+    "${SOURCE_PATH}query_src" \
+    "${SOURCE_PATH}"
+
+#
+# params (2/2)
+#
+  shopt -s nullglob   # aid with argument inputs.
+
+  if is_empty_string "${2}"; then
+    exit 1
+  fi
+
+  if is_empty_string "${3}"; then
+    exit 1
+  fi
+
+  declare -gi MIN_VGA_INDEX_VALUE=1
+  declare -gi MIN_IOMMU_VALUE=0
+
+  declare -gA INPUTS=(
+    ["GET_LESS_OUTPUT"]=false
+    ["GET_MINIMUM_OUTPUT"]=false
+    ["GROUPS_TO_MATCH"]=""
+    ["GROUPS_TO_REVERSE_MATCH"]=""
+    ["MATCH_GROUPS"]=false
+    ["MATCH_HOST"]=false
+    ["MATCH_NAME"]=false
+    ["MATCH_PCI"]=false
+    ["MATCH_VGA_GROUP_INDEX"]=false
+    ["MATCH_TYPE"]=false
+    ["MATCH_VENDOR"]=false
+    ["NAMES_TO_MATCH"]=""
+    ["NAMES_TO_REVERSE_MATCH"]=""
+    ["REVERSE_MATCH_GROUPS"]=false
+    ["REVERSE_MATCH_NAME"]=false
+    ["REVERSE_MATCH_TYPE"]=false
+    ["REVERSE_MATCH_VENDOR"]=false
+    ["TYPES_TO_MATCH"]=""
+    ["TYPES_TO_REVERSE_MATCH"]=""
+    ["READ_XML"]=false
+    ["WRITE_XML"]=false
+    ["XML_FILE"]="${SOURCE_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
+    ["VENDORS_TO_MATCH"]=""
+    ["VENDORS_TO_REVERSE_MATCH"]=""
+    ["VGA_GROUP_INDEX_TO_MATCH"]=""
+  )
+
+#
+# sources (2/2)
+#
+  source \
+    "${SOURCE_PATH}print_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_NAME}${LOG_EXTENSION}" \
+    "${COLUMN_SIZE}"
+
+#
+# logic
+#
+  function get_less_output
+  {
+    if ! "${INPUTS["GET_LESS_OUTPUT"]}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function get_minimum_output
+  {
+    if ! "${INPUTS["GET_MINIMUM_OUTPUT"]}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function print_invalid_argument
+  {
+    get_minimum_output && exit 1
+    print_and_log_output "Error: Invalid argument(s) specified."
+    print_usage
+    exit 1
+  }
+
+  function print_invalid_option
+  {
+    get_minimum_output && exit 1
+    print_and_log_output "Error: Invalid option specified."
+    print_usage
+    exit 1
+  }
+
+  function parse_many_arguments
+  {
+    if [[ "${1}" == "-"* ]] \
+      && [[ "${1}" != "--"* ]]; then
+      for char in $( \
+        echo "${1:1}" \
+          | sed -e 's/\(.\)/\1\n/g'
+      ); do
+        argument="-${char}"
+
+        if [[ -z "${argument}" ]]; then
+          break
+        fi
+
+        parse_this_argument "${argument}"
+      done
+
+      shift
+    fi
+
+    parse_this_argument "${@}"
+  }
+
+  function parse_this_argument
+  {
+    while [[ ! -z "${1}" ]]; do
+      case "${1,,}" in
+        "-g" | "--group" )
+          INPUTS["MATCH_GROUPS"]=true
+          shift
+
+          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+            || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["GROUPS_TO_MATCH"]="${1}"
+          ;;
+
+        "-H" | "--host" )
+          INPUTS["MATCH_HOST"]=true
+          ;;
+
+        "--ignore-group" )
+          INPUTS["REVERSE_MATCH_GROUPS"]=""
+          shift
+
+          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+            || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["GROUPS_TO_REVERSE_MATCH"]="${1}"
+          ;;
+
+        "--ignore-name" )
+          INPUTS["REVERSE_MATCH_NAME"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["NAMES_TO_REVERSE_MATCH"]="${1}"
+          ;;
+
+        "--ignore-type" )
+          INPUTS["REVERSE_MATCH_TYPE"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["TYPES_TO_REVERSE_MATCH"]="${1}"
+          ;;
+
+        "--ignore-vendor" )
+          INPUTS["REVERSE_MATCH_VENDOR"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["VENDORS_TO_REVERSE_MATCH"]="${1}"
+          ;;
+
+        "-n" | "--name" )
+          INPUTS["MATCH_NAME"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["NAMES_TO_MATCH"]="${1}"
+          ;;
+
+        "-p" | "--pci" | "--pcie" )
+          INPUTS["MATCH_PCI"]=true
+          ;;
+
+        "-q" | "--quiet" )
+          INPUTS["GET_LESS_OUTPUT"]=true
+          ;;
+
+        "-qq" | "--quieter" )
+          INPUTS["GET_MINIMUM_OUTPUT"]=true
+          ;;
+
+        "-t" | "--type" )
+          INPUTS["MATCH_TYPE"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["TYPES_TO_MATCH"]="${1}"
+          ;;
+
+        "-v" | "--vendor" )
+          INPUTS["MATCH_VENDOR"]=true
+          shift
+
+          if [[ -z "${1}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["VENDORS_TO_MATCH"]="${1}"
+          ;;
+
+        "--vga-index" )
+          INPUTS["MATCH_VGA_GROUP_INDEX"]=true
+          shift
+
+          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+            || [[ "${1}" -lt "${MIN_VGA_INDEX_VALUE}" ]]; then
+            print_invalid_option
+          fi
+
+          INPUTS["VGA_GROUP_INDEX_TO_MATCH"]="${1}"
+          ;;
+
+        "--x" | "--xml" )
+          shift
+
+          case "${1,,}" in
+            "import" )
+            INPUTS["READ_XML"]=true
+            ;;
+
+            "export" )
+            INPUTS["WRITE_XML"]=true
+            ;;
+
+            * )
+            print_invalid_option
+            ;;
+          esac
+
+          shift
+
+          if ! is_empty_string "${1}"; then
+            INPUTS["XML_FILE"]="${1}"
+          fi
+
+          set_sources
+          ;;
+
+        "" )
+          return 0
+          ;;
+
+        "-h" | "--help" )
+          print_usage
+          exit 2
+          ;;
+
+        * )
+          print_invalid_argument
+          ;;
+
+      esac
+
+      shift
+    done
+  }
+
+  function print_usage
+  {
+    if get_minimum_output; then
+      return 0
+    fi
+
+    local -i column_prefix_count=28
+
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Usage:\t${SCRIPT_NAME} [INPUTS]"
+
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Parse, sort, and display hardware devices by IOMMU group(s)."
+
+    wrap_text \
+      false \
+      false \
+      false \
+      0 \
+      "${COLUMN_SIZE}" \
+      "Version ${SCRIPT_VERSION}."
+
+    echo
+    echo -en "  -h, --help                "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Print this help and exit."
+
+    echo -en "  -q, --quiet               "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Quiet most output except for IOMMU groups output, and lists of device drivers"\
+        "and hardware IDs."
+
+    echo -en "  -qq, --very-quiet         "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Quiet all output except for lists of device drivers and hardware IDs."
+
+    echo -en "  -g, --group=GROUPS        "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group ID(s);"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "GROUPS is a comma delimited list of positive numbers."
+
+    echo -en "  --ignore-group=GROUPS     "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Reverse match IOMMU group ID(s), overrides \"--group\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "GROUPS is a comma delimited list of positive numbers."
+
+    echo -en "  -H, --host                "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU groups with at least one (1) or more Host devices."
+
+    echo -en "  -n, --name=NAME           "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) with device name;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "NAME is a comma delimited list of text."
+
+    echo -en "  --ignore-name=NAME        "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device name, overrides \"--name\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "NAME is a comma delimited list of text."
+
+    echo -en "  -t, --type=TYPE           "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) with device type;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "TYPE is a comma delimited list of text."
+
+    echo -en "  --ignore-type=TYPE        "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device type, overrides \"--type\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "TYPE is a comma delimited list of text."
+
+    echo -en "  -v, --vendor=VENDOR       "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) with device vendor;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "VENDOR is a comma delimited list of text."
+
+    echo -en "  --ignore-vendor=VENDOR    "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU group(s) without device vendor, overrides \"--vendor\";"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "VENDOR is a comma delimited list of text."
+
+    echo -en "  -p, --pci, --pcie         "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
+
+    echo -en "  --vga-index=INDEX         "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match all IOMMU groups without VGA," \
+      "and any with VGA which match the index value(s) (not an IOMMU group ID);"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "INDEX is a comma delimited list of postive non-zero numbers."
+
+    echo -en "  -x, --xml, --xml=FILE     "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Query an XML file for device drivers should none be found or any devices" \
+      "are binded to VFIO;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "FILE is the XML file name as text. Leave FILE empty to use default file"\
+      "name (\"${INPUTS["XML_FILE"]}\")."
+
+    echo -e "Examples:"
+
+    echo -en "  ${SCRIPT_NAME} " # do wrap_text for args here.
+
+    column_prefix_count=$(( "${#SCRIPT_NAME}" + 3 ))
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "--ignore-name ether --pcie -qq --vga-index 2"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    column_prefix_count=28
+    text="Quiet output except for drivers and "
+    text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
+    text+="groups with VGA device(s) before and after the second matched group, "
+    text+="and exclude any wired ethernet devices (Host and PCI/e)."
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "${text}"
+  }
+
+  function verify_groups
+  {
+    local warning="Error: Invalid IOMMU group ID(s) specified. Please enter a "
+    warning+="number between '${MIN_IOMMU_VALUE}' and '${MAX_IOMMU_GROUP_ID}'."
+
+    if ! is_comma_delimited_list_of_positive_numbers \
+        "${INPUTS["GROUPS_TO_MATCH"]}" \
+      || [[ "$( \
+        echo "${INPUTS["GROUPS_TO_MATCH"]}" \
+          | sort --reverse --version-sort \
+          | head --lines 1 \
+        )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
+      print_and_log_output "${warning}"
+      return 1
+    fi
+
+    if ! is_comma_delimited_list_of_positive_numbers \
+        "${INPUTS["GROUPS_TO_REVERSE_MATCH"]}" \
+      || [[ "$( \
+        echo "${INPUTS["GROUPS_TO_REVERSE_MATCH"]}" \
+          | sort --reverse --version-sort \
+          | head --lines 1 \
+        )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
+      print_and_log_output "${warning}"
+      return 1
+    fi
+  }
+
+  function verify_vga_group_index
+  {
+    if ! is_positive_integer "${1}" \
+      || [[ "${MIN_VGA_INDEX_VALUE}" -lt "${1}" ]]; then
+      return 1
+    fi
+
+    vga_group_index="${1}"
+
+    if [[ -z "${INPUTS["VGA_GROUP_INDEX_TO_MATCH"]}" ]]; then
+      return 0
+    fi
+
+    for this_vga_group_index in $( \
+      echo "${INPUTS["VGA_GROUP_INDEX_TO_MATCH"]}" \
+        | sed "s/,/ /g"
+    ); do
+      if [[ "${this_vga_group_index}" -le "${vga_group_index}" ]]; then
+        continue
+      fi
+
+      if get_minimum_output; then
+        return 1
+      fi
+
+      print_and_log_output "Error: Invalid index specified."
+
+      print_and_log_output \
+        "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
+        "'${vga_group_index}'."
+
+      return 1
+    done
+  }
