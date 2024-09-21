@@ -36,10 +36,11 @@
     set_tabspace_size
     # create_logfile
     # log "${0} ${@}"
-    parse_arguments "${@}"
+    parse_many_arguments "${@}"
 
-    if ! modify_xml_hardware_ids \
-      || ! verify_groups; then
+    set -o xtrace
+
+    if ! verify_groups; then
       return 1
     fi
 
