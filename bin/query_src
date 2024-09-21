@@ -26,8 +26,7 @@
 # sources (1/2)
 #
   source \
-    "${SOURCE_PATH}datatype_src" \
-    "${SOURCE_PATH}"
+    "${SOURCE_PATH}datatype_src"
 
 #
 # params (2/3)

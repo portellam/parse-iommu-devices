@@ -1,7 +1,7 @@
 #!/bin/false
 
 #
-# Filename:       inputs_src
+# Filename:       input_src
 # Author(s):      Alex Portell <github.com/portellam>
 # Maintainer(s):  Alex Portell <github.com/portellam>
 #
@@ -15,8 +15,7 @@
 # sources (1/2)
 #
   source \
-    "${SOURCE_PATH}datatype_src" \
-    "${SOURCE_PATH}"
+    "${SOURCE_PATH}datatype_src"
 
   source \
     "${SOURCE_PATH}file_src"
@@ -34,14 +33,19 @@
     exit 1
   fi
 
+  declare -g SCRIPT_NAME="${2}"
+  declare -g SCRIPT_VERSION="${3}"
+  declare -gi COLUMN_SIZE="$( tput cols )"
   declare -gi MIN_VGA_INDEX_VALUE=1
   declare -gi MIN_IOMMU_VALUE=0
+  declare -g LOG_EXTENSION=".log"
+  declare -g XML_EXTENSION=".xml"
 
   declare -gA INPUTS=(
     ["GET_LESS_OUTPUT"]=false
     ["GET_MINIMUM_OUTPUT"]=false
-    ["GROUPS_TO_MATCH"]=""
-    ["GROUPS_TO_REVERSE_MATCH"]=""
+    ["GROUPS_MATCH_LIST"]=""
+    ["GROUPS_UNMATCH_LIST"]=""
     ["MATCH_GROUPS"]=false
     ["MATCH_HOST"]=false
     ["MATCH_NAME"]=false
@@ -49,20 +53,20 @@
     ["MATCH_VGA_GROUP_INDEX"]=false
     ["MATCH_TYPE"]=false
     ["MATCH_VENDOR"]=false
-    ["NAMES_TO_MATCH"]=""
-    ["NAMES_TO_REVERSE_MATCH"]=""
+    ["NAMES_MATCH_LIST"]=""
+    ["NAMES_UNMATCH_LIST"]=""
     ["REVERSE_MATCH_GROUPS"]=false
     ["REVERSE_MATCH_NAME"]=false
     ["REVERSE_MATCH_TYPE"]=false
     ["REVERSE_MATCH_VENDOR"]=false
-    ["TYPES_TO_MATCH"]=""
-    ["TYPES_TO_REVERSE_MATCH"]=""
+    ["TYPES_MATCH_LIST"]=""
+    ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
     ["WRITE_XML"]=false
     ["XML_FILE"]="${SOURCE_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
-    ["VENDORS_TO_MATCH"]=""
-    ["VENDORS_TO_REVERSE_MATCH"]=""
-    ["VGA_GROUP_INDEX_TO_MATCH"]=""
+    ["VENDORS_MATCH_LIST"]=""
+    ["VENDORS_UNMATCH_LIST"]=""
+    ["VGA_GROUP_INDEX_MATCH_LIST"]=""
   )
 
 #
@@ -147,7 +151,7 @@
             print_invalid_option
           fi
 
-          INPUTS["GROUPS_TO_MATCH"]="${1}"
+          INPUTS["GROUPS_MATCH_LIST"]="${1}"
           ;;
 
         "-H" | "--host" )
@@ -163,7 +167,7 @@
             print_invalid_option
           fi
 
-          INPUTS["GROUPS_TO_REVERSE_MATCH"]="${1}"
+          INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
           ;;
 
         "--ignore-name" )
@@ -174,7 +178,7 @@
             print_invalid_option
           fi
 
-          INPUTS["NAMES_TO_REVERSE_MATCH"]="${1}"
+          INPUTS["NAMES_UNMATCH_LIST"]="${1}"
           ;;
 
         "--ignore-type" )
@@ -185,7 +189,7 @@
             print_invalid_option
           fi
 
-          INPUTS["TYPES_TO_REVERSE_MATCH"]="${1}"
+          INPUTS["TYPES_UNMATCH_LIST"]="${1}"
           ;;
 
         "--ignore-vendor" )
@@ -196,7 +200,7 @@
             print_invalid_option
           fi
 
-          INPUTS["VENDORS_TO_REVERSE_MATCH"]="${1}"
+          INPUTS["VENDORS_UNMATCH_LIST"]="${1}"
           ;;
 
         "-n" | "--name" )
@@ -207,7 +211,7 @@
             print_invalid_option
           fi
 
-          INPUTS["NAMES_TO_MATCH"]="${1}"
+          INPUTS["NAMES_MATCH_LIST"]="${1}"
           ;;
 
         "-p" | "--pci" | "--pcie" )
@@ -230,7 +234,7 @@
             print_invalid_option
           fi
 
-          INPUTS["TYPES_TO_MATCH"]="${1}"
+          INPUTS["TYPES_MATCH_LIST"]="${1}"
           ;;
 
         "-v" | "--vendor" )
@@ -241,7 +245,7 @@
             print_invalid_option
           fi
 
-          INPUTS["VENDORS_TO_MATCH"]="${1}"
+          INPUTS["VENDORS_MATCH_LIST"]="${1}"
           ;;
 
         "--vga-index" )
@@ -253,7 +257,7 @@
             print_invalid_option
           fi
 
-          INPUTS["VGA_GROUP_INDEX_TO_MATCH"]="${1}"
+          INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]="${1}"
           ;;
 
         "--x" | "--xml" )
@@ -625,9 +629,9 @@
     warning+="number between '${MIN_IOMMU_VALUE}' and '${MAX_IOMMU_GROUP_ID}'."
 
     if ! is_comma_delimited_list_of_positive_numbers \
-        "${INPUTS["GROUPS_TO_MATCH"]}" \
+        "${INPUTS["GROUPS_MATCH_LIST"]}" \
       || [[ "$( \
-        echo "${INPUTS["GROUPS_TO_MATCH"]}" \
+        echo "${INPUTS["GROUPS_MATCH_LIST"]}" \
           | sort --reverse --version-sort \
           | head --lines 1 \
         )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
@@ -636,9 +640,9 @@
     fi
 
     if ! is_comma_delimited_list_of_positive_numbers \
-        "${INPUTS["GROUPS_TO_REVERSE_MATCH"]}" \
+        "${INPUTS["GROUPS_UNMATCH_LIST"]}" \
       || [[ "$( \
-        echo "${INPUTS["GROUPS_TO_REVERSE_MATCH"]}" \
+        echo "${INPUTS["GROUPS_UNMATCH_LIST"]}" \
           | sort --reverse --version-sort \
           | head --lines 1 \
         )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
@@ -656,12 +660,12 @@
 
     vga_group_index="${1}"
 
-    if [[ -z "${INPUTS["VGA_GROUP_INDEX_TO_MATCH"]}" ]]; then
+    if [[ -z "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" ]]; then
       return 0
     fi
 
     for this_vga_group_index in $( \
-      echo "${INPUTS["VGA_GROUP_INDEX_TO_MATCH"]}" \
+      echo "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" \
         | sed "s/,/ /g"
     ); do
       if [[ "${this_vga_group_index}" -le "${vga_group_index}" ]]; then

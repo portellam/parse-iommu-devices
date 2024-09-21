@@ -51,8 +51,6 @@
 # - [ ] test with vfio setup.
 #
 
-# set -o xtrace
-
 #
 # params (1/2)
 #
@@ -65,15 +63,10 @@
 # sources (1/2)
 #
   source \
-    "${SOURCE_PATH}datatype_src" \
-    "${SOURCE_PATH}"
+    "${SOURCE_PATH}datatype_src"
 
   source \
     "${SOURCE_PATH}file_src"
-
-  source \
-    "${SOURCE_PATH}input_src" \
-    "${SOURCE_PATH}"
 
   source \
     "${SOURCE_PATH}query_src" \
@@ -93,7 +86,6 @@
   declare -g SCRIPT_VERSION="${3}"
   declare -gi COLUMN_SIZE="$( tput cols )"
   declare -g LOG_EXTENSION=".log"
-  declare -g XML_EXTENSION=".xml"
 
   declare -gA OUTPUTS=(
     ["FOUND_GROUP_ID_LIST"]=""
@@ -110,6 +102,12 @@
 #
 # sources (2/2)
 #
+  source \
+    "${SOURCE_PATH}input_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_NAME}" \
+    "${SCRIPT_VERSION}"
+
   source \
     "${SOURCE_PATH}print_src" \
     "${SOURCE_PATH}" \
@@ -455,9 +453,16 @@
       verify_many_devices_matches "${iommu_group_id}"
     done
 
-    OUTPUTS["FOUND_GROUP_ID_LIST"]="${OUTPUTS["FOUND_GROUP_ID_LIST"]::-1}"
-    OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]::-1}"
-    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]::-1}"
+    echo "${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+
+    if ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_GROUP_ID_LIST" -1 \
+      || ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_PCI_GROUP_ID_LIST" -1 \
+      || ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_VGA_GROUP_ID_LIST" -1
+    then
+      return 1
+    fi
+
+    return 0
   }
 
   function verify_many_devices_matches
@@ -496,8 +501,10 @@
       is_selected=true
     done
 
+    OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
+
     if "${has_host}"; then
-      OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
+      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
     if "${has_pci}"; then
@@ -548,35 +555,35 @@
       "has_name_reverse_match" \
       "INPUTS" \
       "REVERSE_MATCH_NAME" \
-      "NAMES_TO_REVERSE_MATCH" \
+      "NAMES_UNMATCH_LIST" \
       "${name}"
 
     is_matched \
       "has_type" \
       "INPUTS" \
       "MATCH_TYPE" \
-      "TYPES_TO_MATCH" \
+      "TYPES_MATCH_LIST" \
       "${type}"
 
     is_matched \
       "has_type_reverse_match" \
       "INPUTS" \
       "REVERSE_MATCH_TYPE" \
-      "TYPES_TO_REVERSE_MATCH" \
+      "TYPES_UNMATCH_LIST" \
       "${type}"
 
     is_matched \
       "has_vendor" \
       "INPUTS" \
       "MATCH_VENDOR" \
-      "VENDORS_TO_MATCH" \
+      "VENDORS_MATCH_LIST" \
       "${vendor}"
 
     is_matched \
       "has_vendor_reverse_match" \
       "INPUTS" \
       "REVERSE_MATCH_VENDOR" \
-      "VENDORS_TO_REVERSE_MATCH" \
+      "VENDORS_UNMATCH_LIST" \
       "${vendor}"
 
     local -ar vfio_driver_list=(

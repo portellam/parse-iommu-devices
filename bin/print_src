@@ -19,8 +19,7 @@
 # sources (1/2)
 #
   source \
-    "${SOURCE_PATH}datatype_src" \
-    "${SOURCE_PATH}"
+    "${SOURCE_PATH}datatype_src"
 
 #
 # params (2/2)
@@ -36,7 +35,7 @@
   declare -g LOG_FILE="${2}"
   declare -g COLUMN_SIZE="${3}"
   declare -i TABSPACE_WHITESPACE_COUNT=0
-  declare -r USE_WORD_WRAP=true
+  declare USE_WORD_WRAP=true
 #
 # logic
 #
@@ -158,6 +157,49 @@
     fi
 
     tabs "${TABSPACE_WHITESPACE_COUNT}"
+  }
+
+  function truncate_index_from_delimited_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local new_list=""
+
+    if is_dict "${1}"; then
+      if ! is_string "${2}"; then
+        return 1
+      fi
+
+      local -n reference_dict="${1}"
+      new_string=${reference_dict["${reference_key}"]}
+
+      if ! is_integer "${3}"; then
+        return 1
+      fi
+
+      reference_dict["${2}"]="$( \
+        eval $( \
+          echo "\${new_string::${3}}" \
+        ) \
+      )"
+
+    else
+      local -n reference_string="${1}"
+
+      if ! is_integer "${2}"; then
+        return 1
+      fi
+
+      reference_string="$( \
+        eval $( \
+          echo "\${new_string::${2}}" \
+        ) \
+      )"
+    fi
+
+    return 0
   }
 
   function wrap_text

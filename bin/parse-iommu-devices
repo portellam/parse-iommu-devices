@@ -38,8 +38,6 @@
     # log "${0} ${@}"
     parse_many_arguments "${@}"
 
-    set -o xtrace
-
     if ! verify_groups; then
       return 1
     fi

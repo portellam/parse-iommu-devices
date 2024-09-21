@@ -33,8 +33,10 @@ function install
   if ! install_this "${script_file}" "${parent_path}" \
     || ! install_this "datatype_src" "${binary_path}" \
     || ! install_this "file_src" "${binary_path}" \
+    || ! install_this "input_src" "${binary_path}" \
     || ! install_this "parse_src" "${binary_path}" \
     || ! install_this "print_src" "${binary_path}" \
+    || ! install_this "query_src" "${binary_path}" \
     || ! install_this "xml_src" "${binary_path}"; then
     return 1
   fi
