@@ -84,7 +84,6 @@
 
   function print_invalid_argument
   {
-    get_minimum_output && exit 1
     print_and_log_output "Error: Invalid argument(s) specified."
     print_usage
     exit 1
@@ -92,7 +91,6 @@
 
   function print_invalid_option
   {
-    get_minimum_output && exit 1
     print_and_log_output "Error: Invalid option specified."
     print_usage
     exit 1
