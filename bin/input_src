@@ -130,13 +130,19 @@
           break
         fi
 
-        parse_this_argument "${argument}"
+        if ! parse_this_argument "${argument}"; then
+          return 1
+        fi
       done
 
       shift
     fi
 
-    parse_this_argument "${@}"
+    if ! parse_this_argument "${@}"; then
+      return 1
+    fi
+
+    return 0
   }
 
   function parse_this_argument
@@ -314,13 +320,7 @@
 
     local -i column_prefix_count=28
 
-    wrap_text \
-      false \
-      false \
-      false \
-      0 \
-      "${COLUMN_SIZE}" \
-      "Usage:\t${SCRIPT_NAME} [INPUTS]"
+    echo -e "Usage:\t${SCRIPT_NAME} [INPUTS]"
 
     wrap_text \
       false \

@@ -57,6 +57,7 @@
   if [[ -z "${1}" ]]; then
     exit 1
   fi
+
   declare -g SOURCE_PATH="${1}"
 
 #
@@ -65,12 +66,6 @@
   source \
     "${SOURCE_PATH}datatype_src"
 
-  source \
-    "${SOURCE_PATH}file_src"
-
-  source \
-    "${SOURCE_PATH}query_src" \
-    "${SOURCE_PATH}"
 #
 # params (2/2)
 #
@@ -103,10 +98,7 @@
 # sources (2/2)
 #
   source \
-    "${SOURCE_PATH}input_src" \
-    "${SOURCE_PATH}" \
-    "${SCRIPT_NAME}" \
-    "${SCRIPT_VERSION}"
+    "${SOURCE_PATH}file_src"
 
   source \
     "${SOURCE_PATH}print_src" \
@@ -114,6 +106,15 @@
     "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
 
+  # source \
+  #   "${SOURCE_PATH}input_src" \
+  #   "${SOURCE_PATH}" \
+  #   "${SCRIPT_NAME}" \
+  #   "${SCRIPT_VERSION}"
+
+  source \
+    "${SOURCE_PATH}query_src" \
+    "${SOURCE_PATH}"
 #
 # logic
 #
@@ -367,12 +368,18 @@
   function parse_src_main
   {
     local -a group_output=()
+    local -r message="Parsing hardware devices..."
+
+    print_and_log_output "${message}"
 
     if ! verify_all_devices_matches \
       || ! print_groups_output; then
+      print_and_log_output "${message} Failed."
       return 1
     fi
 
+    print_and_log_output "${message} Successful.\n"
+    print_groups_output
     return 0
   }
 
@@ -453,7 +460,7 @@
       verify_many_devices_matches "${iommu_group_id}"
     done
 
-    source debug_src
+    source "${SOURCE_PATH}debug_src"
     print_dict "OUTPUTS"
 
     if ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_GROUP_ID_LIST" -1 \

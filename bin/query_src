@@ -44,7 +44,7 @@
 #
 # params (3/3)
 #
-  function has_test_src_run_once
+  function query_src_main
   {
     if "${TEST_SRC_RUN_ONCE}" &> /dev/null; then
       return 0
@@ -434,8 +434,3 @@
 
     IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${temp_list::-1}"
   }
-
-#
-# main
-#
-  has_test_src_run_once
