@@ -40,6 +40,7 @@
   declare -gi MIN_IOMMU_VALUE=0
   declare -g LOG_EXTENSION=".log"
   declare -g XML_EXTENSION=".xml"
+  declare -g ETC_PATH="/usr/local/etc/"
 
   declare -gA INPUTS=(
     ["GET_LESS_OUTPUT"]=false
@@ -63,7 +64,7 @@
     ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
     ["WRITE_XML"]=false
-    ["XML_FILE"]="${SOURCE_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
+    ["XML_FILE"]="${ETC_PATH}${XML_EXTENSION}"
     ["VENDORS_MATCH_LIST"]=""
     ["VENDORS_UNMATCH_LIST"]=""
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
@@ -141,7 +142,7 @@
   function parse_this_argument
   {
     while [[ ! -z "${1}" ]]; do
-      case "${1,,}" in
+      case "${1}" in
         "-g" | "--group" )
           INPUTS["MATCH_GROUPS"]=true
           shift
