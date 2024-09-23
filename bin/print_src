@@ -175,9 +175,12 @@
       local -n reference_dict="${1}"
       local new_string=${reference_dict["${2}"]}
 
-      if ! is_string "${new_string}" \
-        || ! is_integer "${3}"; then
+      if ! is_integer "${3}"; then
         return 1
+      fi
+
+      if ! is_string "${new_string}"; then
+        return 0
       fi
 
       reference_dict["${2}"]="$( \
@@ -189,9 +192,12 @@
     else
       local -n reference_string="${1}"
 
-      if ! is_string "${reference_string}" \
-        || ! is_integer "${2}"; then
+      if ! is_integer "${2}"; then
         return 1
+      fi
+
+      if ! is_string "${reference_string}"; then
+        return 0
       fi
 
       reference_string="$( \

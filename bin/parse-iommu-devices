@@ -45,7 +45,7 @@
 
     if ! parse_many_arguments "${@}" \
       || ! query_src_main \
-      || ! verify_groups \
+      || ! verify_iommu_groups \
       || ! parse_src_main; then
       return 1
     fi
@@ -53,4 +53,4 @@
     return 0
   }
 
-main "$@"
+main "${@}"

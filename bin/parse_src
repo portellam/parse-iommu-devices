@@ -120,7 +120,7 @@
 #
   function append_device_info_to_output
   {
-    if get_minimum_output; then
+    if ! is_verbose; then
       return 0
     fi
 
@@ -385,16 +385,20 @@
 
   function print_groups_output
   {
-    if ! get_less_output; then
-      if is_enum_empty "group_output"; then
-        print_and_log_output "Error: No IOMMU groups found."
-        return 1
-      fi
-
-      for line in "${group_output[@]}"; do
-        print_and_log_output "${line}"
-      done
+    if ! is_verbose; then
+      print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+      print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
+      return 0
     fi
+
+    if is_enum_empty "group_output"; then
+      print_and_log_output "Error: No IOMMU groups found."
+      return 1
+    fi
+
+    for line in "${group_output[@]}"; do
+      print_and_log_output "${line}"
+    done
 
     print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
@@ -427,13 +431,7 @@
       "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}\n"
 
     print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}"
-
-    if ! get_minimum_output; then
-      return 0
-    fi
-
-    print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-    print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
+    return 0
   }
 
   function set_host_or_pci_flag

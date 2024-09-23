@@ -178,11 +178,11 @@
     fi
 
     local -i total_time_in_seconds="$(( "${SECONDS}" - "${1}" ))"
-    echo -en "${2} finished in about "
+    echo -en "${2} finished in "
 
     if [[ "${total_time_in_seconds}" -lt 2 ]]; then
       total_time_in_seconds=1
-      echo -e "${total_time_in_seconds} second."
+      echo -e "about ${total_time_in_seconds} second."
     else
       echo -e "${total_time_in_seconds} seconds."
     fi
@@ -207,7 +207,7 @@
       return 1
     fi
 
-    echo -en "Parsing devices..."
+    echo -en "Querying hardware devices..."
 
     if is_readonly_variable "BUS_ID_AND_HARDWARE_ID" \
       || is_readonly_variable "IOMMU_GROUP_ID_AND_BUS_ID"; then
@@ -220,7 +220,7 @@
     local -i start_time="${SECONDS}"
 
     for bus_id in "${BUS_ID_LIST[@]}"; do
-      # echo -e "Parsing information for device ${bus_id}."
+      # echo -e "Querying information for device ${bus_id}."
 
       set_this_hardware_id_dictionaries \
         "${bus_id}"
@@ -228,18 +228,21 @@
 
     prompt_time_duration \
       "${start_time}" \
-      "Parse of ${#BUS_ID_LIST[@]} devices"
+      "Query of ${#BUS_ID_LIST[@]} devices"
 
     if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
       return 1
     fi
+
+    echo
+    return 0
   }
 
   function set_many_iommu_group_id_dictionaries
   {
     local -ir start_time="${SECONDS}"
 
-    echo -en "Parsing IOMMU groups..."
+    echo -en "Querying IOMMU groups..."
 
     if is_readonly_variable "BUS_ID_LIST" \
       || is_readonly_variable "HARDWARE_ID_AND_DRIVER" \
@@ -257,20 +260,21 @@
         0 \
         "${MAX_IOMMU_GROUP_ID}" \
     ); do
-      # echo -e "Parsing devices for IOMMU group ${iommu_group_id}."
+      # echo -e "Querying devices for IOMMU group ${iommu_group_id}."
       set_this_iommu_group_id_dictionaries \
         "${iommu_group_id}"
     done
 
     prompt_time_duration \
       "${start_time}" \
-      "Parse of ${MAX_IOMMU_GROUP_ID} IOMMU groups"
+      "Query of ${MAX_IOMMU_GROUP_ID} IOMMU groups"
 
     if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
       || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then
       return 1
     fi
 
+    echo
     return 0
   }
 
