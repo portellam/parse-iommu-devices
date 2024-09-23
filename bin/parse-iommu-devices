@@ -23,6 +23,12 @@
 # sources
 #
   source \
+    "${SOURCE_PATH}input_src" \
+    "${SOURCE_PATH}" \
+    "${SCRIPT_FILE}" \
+    "${SCRIPT_VERSION}"
+
+  source \
     "${SOURCE_PATH}parse_src" \
     "${SOURCE_PATH}" \
     "${SCRIPT_FILE}" \
@@ -36,23 +42,15 @@
     set_tabspace_size
     # create_logfile
     # log "${0} ${@}"
-    parse_many_arguments "${@}"
 
-    if ! verify_groups; then
+    if ! parse_many_arguments "${@}" \
+      || ! query_src_main \
+      || ! verify_groups \
+      || ! parse_src_main; then
       return 1
     fi
 
-    local -r message="Parsing hardware devices..."
-
-    print_and_log_output "${message}"
-
-    if ! parse_src_main; then
-      print_and_log_output "${message} Failed."
-      return 1
-    fi
-
-    print_and_log_output "${message} Successful.\n"
-    print_groups_output
+    return 0
   }
 
 main "$@"

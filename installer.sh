@@ -32,13 +32,14 @@
       return 1
     fi
 
-    if [[ ! -e "${SCRIPT_NAME}" ]] \
-      && ! install_this \
-        "${SOURCE_PATH}" "${DESTINATION_PATH}" "${SCRIPT_NAME}"; then
-      return 1
-    fi
-
     for binary in $( ls "${SOURCE_BINARY_PATH}" ); do
+      if [[ "${binary}" =~ "${SCRIPT_NAME}" ]]; then
+        if ! install_this \
+          "${SOURCE_BINARY_PATH}" "${DESTINATION_PATH}" "${binary}"; then
+          return 1
+        fi
+      fi
+
       if ! install_this \
         "${SOURCE_BINARY_PATH}" "${DESTINATION_BINARY_PATH}" "${binary}"; then
         return 1
