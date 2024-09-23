@@ -173,7 +173,7 @@
       fi
 
       local -n reference_dict="${1}"
-      local new_string=${reference_dict["${2}"]}
+      local new_string="${reference_dict[${2}]}"
 
       if ! is_integer "${3}"; then
         return 1
