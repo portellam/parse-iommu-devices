@@ -385,10 +385,10 @@
       return 0
     fi
 
-    if is_enum_empty "group_output"; then
-      print_and_log_output "Error: No IOMMU groups found."
-      return 1
-    fi
+    # if is_enum_empty "group_output"; then
+    #   print_and_log_output "Error: No IOMMU groups found."
+    #   return 1
+    # fi
 
     for line in "${group_output[@]}"; do
       print_and_log_output "${line}"
@@ -511,15 +511,15 @@
         --version-sort
       )"
 
-    for bus_id in "${bus_id_list[@]}"; do
-      if ! verify_this_devices_matches "${bus_id}"; then
-        break
-      fi
+    for bus_id_delim in "${bus_id_list[@]}"; do
+      for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
+        if ! verify_this_devices_matches "${bus_id}"; then
+          break
+        fi
 
-      is_selected=true
+        is_selected=true
+      done
     done
-
-    echo "iommu_group_id=${1}"
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
@@ -555,18 +555,16 @@
 
   function verify_this_devices_matches
   {
-    set -o xtrace
-
     if ! is_string "${1}"; then
       return 1
     fi
 
     local -r bus_id="${1}"
-    local -r hardware_id="${BUS_ID_AND_HARDWARE_ID["${bus_id}"]}"
-    local -r driver="${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}"
-    local -r name="${HARDWARE_ID_AND_NAME["${hardware_id}"]}"
-    local -r type="${HARDWARE_ID_AND_TYPE["${hardware_id}"]}"
-    local -r vendor="${HARDWARE_ID_AND_VENDOR["${hardware_id}"]}"
+    local -r hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
+    local -r driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
+    local -r name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
+    local -r type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
+    local -r vendor="${HARDWARE_ID_AND_VENDOR[${hardware_id}]}"
 
     set_host_or_pci_flag "${bus_id}"
 
@@ -637,13 +635,11 @@
 
     if "${has_host}" \
       && "${INPUTS["MATCH_HOST"]}"; then
-      set +o xtrace
       return 1
     fi
 
     if "${has_pci}" \
       && "${INPUTS["MATCH_PCI"]}"; then
-      set +o xtrace
       return 1
     fi
 
@@ -657,11 +653,9 @@
       || "${has_vendor_reverse_match}" \
       || "${has_vfio}" \
       || "${has_vga}"; then
-      set +o xtrace
       return 1
     fi
 
-    set +o xtrace
     append_device_info_to_output
     return 0
   }
