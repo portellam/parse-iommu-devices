@@ -183,11 +183,7 @@
         return 0
       fi
 
-      reference_dict["${2}"]="$( \
-        eval $( \
-          echo "\${new_string::${3}}" \
-        ) \
-      )"
+      echo "${new_string::${3}}"
 
     else
       local -n reference_string="${1}"
@@ -200,11 +196,7 @@
         return 0
       fi
 
-      reference_string="$( \
-        eval $( \
-          echo "\${new_string::${2}}" \
-        ) \
-      )"
+      echo "${reference_string::${2}}"
     fi
 
     return 0
