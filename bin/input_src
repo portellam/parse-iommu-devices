@@ -43,8 +43,7 @@
   declare -g ETC_PATH="/usr/local/etc/"
 
   declare -gA INPUTS=(
-    ["GET_LESS_OUTPUT"]=false
-    ["GET_MINIMUM_OUTPUT"]=false
+    ["GET_MINIMUM_OUTPUT"]=true
     ["GROUPS_MATCH_LIST"]=""
     ["GROUPS_UNMATCH_LIST"]=""
     ["MATCH_GROUPS"]=false
@@ -64,7 +63,7 @@
     ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
     ["WRITE_XML"]=false
-    ["XML_FILE"]="${ETC_PATH}${XML_EXTENSION}"
+    ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
     ["VENDORS_MATCH_LIST"]=""
     ["VENDORS_UNMATCH_LIST"]=""
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
@@ -82,16 +81,7 @@
 #
 # logic
 #
-  function get_less_output
-  {
-    if ! "${INPUTS["GET_LESS_OUTPUT"]}"; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function get_minimum_output
+  function is_verbose
   {
     if ! "${INPUTS["GET_MINIMUM_OUTPUT"]}"; then
       return 1
@@ -102,7 +92,10 @@
 
   function print_invalid_argument
   {
-    get_minimum_output && exit 1
+    if ! is_verbose; then
+      exit 1
+    fi
+
     print_and_log_output "Error: Invalid argument(s) specified."
     print_usage
     exit 1
@@ -110,7 +103,10 @@
 
   function print_invalid_option
   {
-    get_minimum_output && exit 1
+    if ! is_verbose; then
+      exit 1
+    fi
+
     print_and_log_output "Error: Invalid option specified."
     print_usage
     exit 1
@@ -225,12 +221,8 @@
           INPUTS["MATCH_PCI"]=true
           ;;
 
-        "-q" | "--quiet" )
-          INPUTS["GET_LESS_OUTPUT"]=true
-          ;;
-
-        "-qq" | "--quieter" )
-          INPUTS["GET_MINIMUM_OUTPUT"]=true
+        "-v" | "--verbose" )
+          INPUTS["GET_MINIMUM_OUTPUT"]=false
           ;;
 
         "-t" | "--type" )
@@ -314,7 +306,7 @@
 
   function print_usage
   {
-    if get_minimum_output; then
+    if ! is_verbose; then
       return 0
     fi
 
@@ -349,7 +341,7 @@
       "${COLUMN_SIZE}" \
       "Print this help and exit."
 
-    echo -en "  -q, --quiet               "
+    echo -en "  -v, --verbose             "
 
     wrap_text \
       false \
@@ -357,18 +349,29 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "Quiet most output except for IOMMU groups output, and lists of device drivers"\
-        "and hardware IDs."
+      "Show more output including IOMMU groups (all selected, any with VGA,"\
+        "all unselected, and unselected with VFIO)."
 
-    echo -en "  -qq, --very-quiet         "
+    # echo -en "  -q, --quiet               "
 
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Quiet all output except for lists of device drivers and hardware IDs."
+    # wrap_text \
+    #   false \
+    #   false \
+    #   true \
+    #   "${column_prefix_count}" \
+    #   "${COLUMN_SIZE}" \
+    #   "Quiet most output except for IOMMU groups output, and lists of device drivers"\
+    #     "and hardware IDs."
+
+    # echo -en "  -qq, --very-quiet         "
+
+    # wrap_text \
+    #   false \
+    #   false \
+    #   true \
+    #   "${column_prefix_count}" \
+    #   "${COLUMN_SIZE}" \
+    #   "Quiet all output except for lists of device drivers and hardware IDs."
 
     echo -en "  -g, --group=GROUPS        "
 
@@ -605,15 +608,15 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "--ignore-name ether --pcie -qq --vga-index 2"
+      "--ignore-name ether --pcie --vga-index 2"
 
     echo -en "$( get_repeated_space 28 )"
 
     column_prefix_count=28
-    text="Quiet output except for drivers and "
-    text+="hardware IDs (of IOMMU groups with PCI/e devices), exclude IOMMU "
-    text+="groups with VGA device(s) before and after the second matched group, "
-    text+="and exclude any wired ethernet devices (Host and PCI/e)."
+    text="Standard output of comma-delimited lists hardware IDs and drivers "
+    text+="(of IOMMU groups with PCI/e devices), exclude IOMMU groups with VGA "
+    text+="device(s) before and after the second matched group, and exclude any "
+    text+="wired ethernet devices (Host and PCI/e)."
 
     wrap_text \
       false \
@@ -624,7 +627,7 @@
       "${text}"
   }
 
-  function verify_groups
+  function verify_iommu_groups
   {
     local warning="Error: Invalid IOMMU group ID(s) specified. Please enter a "
     warning+="number between '${MIN_IOMMU_VALUE}' and '${MAX_IOMMU_GROUP_ID}'."
@@ -673,7 +676,7 @@
         continue
       fi
 
-      if get_minimum_output; then
+      if ! is_verbose; then
         return 1
       fi
 
