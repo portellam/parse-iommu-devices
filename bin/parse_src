@@ -367,9 +367,9 @@
   function parse_src_main
   {
     local -a group_output=()
-    verify_all_devices_matches
 
-    if ! print_groups_output; then
+    if ! verify_all_devices_matches \
+      || ! print_groups_output; then
       return 1
     fi
 
@@ -453,7 +453,8 @@
       verify_many_devices_matches "${iommu_group_id}"
     done
 
-    echo "${OUTPUTS["FOUND_GROUP_ID_LIST"]}"
+    source debug_src
+    print_dict "OUTPUTS"
 
     if ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_GROUP_ID_LIST" -1 \
       || ! truncate_index_from_delimited_list "OUTPUTS" "FOUND_PCI_GROUP_ID_LIST" -1 \
@@ -501,6 +502,8 @@
       is_selected=true
     done
 
+    echo "iommu_group_id=${1}"
+
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
     if "${has_host}"; then
@@ -526,6 +529,10 @@
       OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${1},"
     else
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if is_enum_empty "group_output"; then
+      return 1
     fi
   }
 
