@@ -43,7 +43,6 @@
   declare -g ETC_PATH="/usr/local/etc/"
 
   declare -gA INPUTS=(
-    ["GET_MINIMUM_OUTPUT"]=true
     ["GROUPS_MATCH_LIST"]=""
     ["GROUPS_UNMATCH_LIST"]=""
     ["MATCH_GROUPS"]=false
@@ -55,13 +54,15 @@
     ["MATCH_VENDOR"]=false
     ["NAMES_MATCH_LIST"]=""
     ["NAMES_UNMATCH_LIST"]=""
-    ["REVERSE_MATCH_GROUPS"]=false
-    ["REVERSE_MATCH_NAME"]=false
-    ["REVERSE_MATCH_TYPE"]=false
-    ["REVERSE_MATCH_VENDOR"]=false
+    ["UNMATCH_GROUPS"]=false
+    ["UNMATCH_NAME"]=false
+    ["UNMATCH_TYPE"]=false
+    ["UNMATCH_VENDOR"]=false
     ["TYPES_MATCH_LIST"]=""
     ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
+    ["VERBOSE"]=false
+    ["DOUBLE_VERBOSE"]=false
     ["WRITE_XML"]=false
     ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
     ["VENDORS_MATCH_LIST"]=""
@@ -81,58 +82,74 @@
 #
 # logic
 #
+  function is_argument_or_empty_string
+  {
+    if ! is_string "${1}"; then
+      return 0
+    fi
+
+    if [[ "${1}" == "---"* ]]; then
+      return 1
+    fi
+
+    if [[ "${1}" == "-"* ]] \
+      || [[ "${1}" == "--"* ]]; then
+      return 0
+    fi
+
+    return 1
+  }
+
   function is_verbose
   {
-    if ! "${INPUTS["GET_MINIMUM_OUTPUT"]}"; then
+    if ! "${INPUTS["VERBOSE"]}"; then
       return 1
     fi
 
     return 0
   }
 
-  function print_invalid_argument
+  function is_verbose_doubled
   {
-    if ! is_verbose; then
-      exit 1
+    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+      return 1
     fi
 
-    print_and_log_output "Error: Invalid argument(s) specified."
-    print_usage
-    exit 1
-  }
-
-  function print_invalid_option
-  {
-    if ! is_verbose; then
-      exit 1
-    fi
-
-    print_and_log_output "Error: Invalid option specified."
-    print_usage
-    exit 1
+    return 0
   }
 
   function parse_many_arguments
   {
-    if [[ "${1}" == "-"* ]] \
-      && [[ "${1}" != "--"* ]]; then
-      for char in $( \
-        echo "${1:1}" \
-          | sed -e 's/\(.\)/\1\n/g'
-      ); do
-        argument="-${char}"
+    # echo "'${@}'"
 
-        if [[ -z "${argument}" ]]; then
-          break
-        fi
+    # use a list here
 
-        if ! parse_this_argument "${argument}"; then
-          return 1
-        fi
-      done
+    # while true; do
+    #   if ! parse_this_argument "${@}"; then
+    #     return 1
+    #   fi
 
-      shift
-    fi
+    #   shift
+
+    #   # for char in $( \
+    #   #   echo "${1:1}" \
+    #   #     | sed -e 's/\(.\)/\1\n/g'
+    #   # ); do
+    #   #   argument="-${char}"
+
+    #   #   if ! is_string "${argument}"; then
+    #   #     break
+    #   #   fi
+
+    #   #   echo "'${argument}' '${@}'"
+
+    #   #   if ! parse_this_argument "${argument}" "${@}"; then
+    #   #     return 1
+    #   #   fi
+
+    #   #   shift
+    #   # done
+    # done
 
     if ! parse_this_argument "${@}"; then
       return 1
@@ -143,7 +160,7 @@
 
   function parse_this_argument
   {
-    while [[ ! -z "${1}" ]]; do
+    while $( is_argument_or_empty_string "${1}" ); do
       case "${1}" in
         "-g" | "--group" )
           INPUTS["MATCH_GROUPS"]=true
@@ -162,7 +179,7 @@
           ;;
 
         "--ignore-group" )
-          INPUTS["REVERSE_MATCH_GROUPS"]=""
+          INPUTS["UNMATCH_GROUPS"]=""
           shift
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
@@ -174,10 +191,10 @@
           ;;
 
         "--ignore-name" )
-          INPUTS["REVERSE_MATCH_NAME"]=true
+          INPUTS["UNMATCH_NAME"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
+          if ! is_string "${1}"; then
             print_invalid_option
           fi
 
@@ -185,10 +202,10 @@
           ;;
 
         "--ignore-type" )
-          INPUTS["REVERSE_MATCH_TYPE"]=true
+          INPUTS["UNMATCH_TYPE"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
+          if ! is_string "${1}"; then
             print_invalid_option
           fi
 
@@ -196,10 +213,10 @@
           ;;
 
         "--ignore-vendor" )
-          INPUTS["REVERSE_MATCH_VENDOR"]=true
+          INPUTS["UNMATCH_VENDOR"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
+          if ! is_string "${1}"; then
             print_invalid_option
           fi
 
@@ -210,7 +227,7 @@
           INPUTS["MATCH_NAME"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
+          if ! is_string "${1}"; then
             print_invalid_option
           fi
 
@@ -221,30 +238,36 @@
           INPUTS["MATCH_PCI"]=true
           ;;
 
-        "-v" | "--verbose" )
-          INPUTS["GET_MINIMUM_OUTPUT"]=false
-          ;;
-
         "-t" | "--type" )
           INPUTS["MATCH_TYPE"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
-            print_invalid_option
+          if ! is_string "${1}"; then
+            print_invalid_option "${1}"
           fi
 
           INPUTS["TYPES_MATCH_LIST"]="${1}"
           ;;
 
-        "-v" | "--vendor" )
+        "-V" | "--vendor" )
           INPUTS["MATCH_VENDOR"]=true
           shift
 
-          if [[ -z "${1}" ]]; then
+          if ! is_string "${1}"; then
             print_invalid_option
           fi
 
           INPUTS["VENDORS_MATCH_LIST"]="${1}"
+          ;;
+
+        "-v" | "--verbose" )
+          INPUTS["VERBOSE"]=true
+          INPUTS["DOUBLE_VERBOSE"]=false
+          ;;
+
+        "-vv" | "--verbose" )
+          INPUTS["VERBOSE"]=true
+          INPUTS["DOUBLE_VERBOSE"]=true
           ;;
 
         "--vga-index" )
@@ -290,6 +313,7 @@
           ;;
 
         "-h" | "--help" )
+          INPUTS["VERBOSE"]=true
           print_usage
           exit 2
           ;;
@@ -297,11 +321,34 @@
         * )
           print_invalid_argument
           ;;
-
       esac
 
       shift
     done
+
+    return 0
+  }
+
+  function print_invalid_argument
+  {
+    if ! is_verbose; then
+      exit 1
+    fi
+
+    print_and_log_output "Error: Invalid argument(s) specified."
+    print_usage
+    exit 1
+  }
+
+  function print_invalid_option
+  {
+    if ! is_verbose; then
+      exit 1
+    fi
+
+    print_and_log_output "Error: Invalid option specified '${1}'."
+    print_usage
+    exit 1
   }
 
   function print_usage
@@ -349,8 +396,18 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "Show more output including IOMMU groups (all selected, any with VGA,"\
-        "all unselected, and unselected with VFIO)."
+      "Show more output including query telemetry and IOMMU groups"\
+        "(all selected, any with VGA, all unselected, and unselected with VFIO)."
+
+    echo -en "  -vv                       "
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Show all output."
 
     # echo -en "  -q, --quiet               "
 
@@ -503,7 +560,7 @@
       "${COLUMN_SIZE}" \
       "TYPE is a comma delimited list of text."
 
-    echo -en "  -v, --vendor=VENDOR       "
+    echo -en "  -V, --vendor=VENDOR       "
 
     wrap_text \
       false \
@@ -664,7 +721,7 @@
 
     vga_group_index="${1}"
 
-    if [[ -z "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" ]]; then
+    if ! is_string "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}"; then
       return 0
     fi
 

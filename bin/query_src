@@ -173,19 +173,27 @@
       return 1
     fi
 
-    if ! is_string "${2}"; then
-      return 1
+    if ! is_verbose; then
+      return 0
     fi
 
     local -i total_time_in_seconds="$(( "${SECONDS}" - "${1}" ))"
-    echo -en "${2} finished in "
+    local output="Time elapsed:\t"
 
-    if [[ "${total_time_in_seconds}" -lt 2 ]]; then
+    if [[ "${total_time_in_seconds}" -le 0 ]]; then
       total_time_in_seconds=1
-      echo -e "about ${total_time_in_seconds} second."
+      output+="<${total_time_in_seconds} second"
+
+    elif [[ "${total_time_in_seconds}" -eq 1 ]]; then
+      output+="${total_time_in_seconds} second"
+
     else
-      echo -e "${total_time_in_seconds} seconds."
+      output+="${total_time_in_seconds} seconds"
     fi
+
+    print_and_log_output \
+      "<${total_time_in_seconds} second" \
+      true
 
     return 0
   }
@@ -207,28 +215,35 @@
       return 1
     fi
 
-    echo -en "Querying hardware devices..."
+    print_and_log_following_output \
+     "Querying hardware devices..." \
+     "${INPUTS["VERBOSE"]}"
 
     if is_readonly_variable "BUS_ID_AND_HARDWARE_ID" \
       || is_readonly_variable "IOMMU_GROUP_ID_AND_BUS_ID"; then
-      echo -e " Skipped."
+      print_and_log_output " Skipped." "${INPUTS["VERBOSE"]}"
       return 1
     fi
 
-    echo
+    print_and_log_output \
+      " Finished." \
+      "${INPUTS["VERBOSE"]}"
 
     local -i start_time="${SECONDS}"
 
     for bus_id in "${BUS_ID_LIST[@]}"; do
-      # echo -e "Querying information for device ${bus_id}."
+      print_and_log_output \
+        "Querying information for device ${bus_id}." "${INPUTS["DOUBLE_VERBOSE"]}"
 
       set_this_hardware_id_dictionaries \
         "${bus_id}"
     done
 
+    print_and_log_output \
+      "Total devices:\t${#BUS_ID_LIST[@]}" "${INPUTS["VERBOSE"]}"
+
     prompt_time_duration \
-      "${start_time}" \
-      "Query of ${#BUS_ID_LIST[@]} devices"
+      "${start_time}"
 
     if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
       return 1
@@ -242,32 +257,44 @@
   {
     local -ir start_time="${SECONDS}"
 
-    echo -en "Querying IOMMU groups..."
+    print_and_log_following_output \
+     "Querying IOMMU groups..." \
+     "${INPUTS["VERBOSE"]}"
 
     if is_readonly_variable "BUS_ID_LIST" \
       || is_readonly_variable "HARDWARE_ID_AND_DRIVER" \
       || is_readonly_variable "HARDWARE_ID_AND_NAME" \
       || is_readonly_variable "HARDWARE_ID_AND_TYPE" \
       || is_readonly_variable "HARDWARE_ID_AND_VENDOR"; then
-      echo -e " Skipped."
+      print_and_log_output \
+        " Skipped." \
+        "${INPUTS["VERBOSE"]}"
+
       return 1
     fi
 
-    echo
+    print_and_log_output \
+      " Finished." \
+      "${INPUTS["VERBOSE"]}"
 
     for iommu_group_id in $( \
       seq \
         0 \
         "${MAX_IOMMU_GROUP_ID}" \
     ); do
-      # echo -e "Querying devices for IOMMU group ${iommu_group_id}."
+      print_and_log_output \
+        "Querying devices for IOMMU group ${iommu_group_id}." \
+        "${INPUTS["DOUBLE_VERBOSE"]}"
+
       set_this_iommu_group_id_dictionaries \
         "${iommu_group_id}"
     done
 
+    print_and_log_output \
+      "Total groups:\t${MAX_IOMMU_GROUP_ID}" "${INPUTS["VERBOSE"]}"
+
     prompt_time_duration \
-      "${start_time}" \
-      "Query of ${MAX_IOMMU_GROUP_ID} IOMMU groups"
+      "${start_time}"
 
     if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
       || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then

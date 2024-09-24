@@ -121,18 +121,38 @@
   function print_and_log_output
   {
     local -ir int_return_code="${?}"
-    local is_minimum_output=false
+    local is_verbose=false
 
     if is_boolean "${1}"; then
-      is_minimum_output="${1}"
+      is_verbose="${1}"
     fi
 
     if [[ "${int_return_code}" -ne 0 ]]; then
       log "${1}"
     fi
 
-    if ! "${is_minimum_output}"; then
+    if "${is_verbose}"; then
       echo -e "${1}" >&1
+    fi
+
+    return "${int_return_code}"
+  }
+
+  function print_and_log_following_output
+  {
+    local -ir int_return_code="${?}"
+    local is_verbose=false
+
+    if is_boolean "${1}"; then
+      is_verbose="${1}"
+    fi
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      log "${1}"
+    fi
+
+    if "${is_verbose}"; then
+      echo -en "${1}" >&1
     fi
 
     return "${int_return_code}"
@@ -158,6 +178,21 @@
 
     tabs "${TABSPACE_WHITESPACE_COUNT}"
   }
+
+  function sort_comma_delimited_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    echo -e "${list//,/\\n}" \
+      | sort --unique --version-sort \
+      | tr '\n' ',' \
+      | sed 's/,$//'
+
+    # echo
+  }
+
 
   function truncate_index_from_delimited_list
   {

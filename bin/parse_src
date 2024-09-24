@@ -117,7 +117,7 @@
       return 0
     fi
 
-    if [[ -z "${driver}" ]]; then
+    if ! is_string "${driver}"; then
       driver="${NULL_VALUE}"
     fi
 
@@ -147,7 +147,7 @@
         "${name_input}"
     )"
 
-    if [[ -z "${name_output}" ]]; then
+    if ! is_string "${name_output}"; then
       name_output="${name_input}"
     fi
 
@@ -183,6 +183,11 @@
       "${hardware_id_output}"
       ""
     )
+
+    if [[ "${driver}" == "${NULL_VALUE}" ]]; then
+      local +r driver
+      local -r driver=""
+    fi
 
     (( device_index++ ))
     return 0
@@ -366,6 +371,7 @@
     fi
 
     print_and_log_output "${message} Successful.\n"
+    sort_lists
     set_null_value_to_lists_if_empty
     print_groups_output
     return 0
@@ -379,9 +385,11 @@
       return 0
     fi
 
-    for line in "${group_output[@]}"; do
-      print_and_log_output "${line}"
-    done
+    if is_verbose_doubled; then
+      for line in "${group_output[@]}"; do
+        print_and_log_output "${line}"
+      done
+    fi
 
     # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
@@ -464,6 +472,19 @@
     if ! is_string "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"; then
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
+
+    return 0
+  }
+
+  function sort_lists
+  {
+    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
+      sort_comma_delimited_list "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
+      sort_comma_delimited_list "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
+    )"
 
     return 0
   }
@@ -551,6 +572,8 @@
     is_selected=false
 
     local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+    local driver_list=""
+    local hardware_id_list=""
 
     bus_id_list="$( \
       echo \
@@ -566,6 +589,16 @@
       for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
         verify_this_devices_matches "${bus_id}"
       done
+
+      if "${is_selected}"; then
+        OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver_list}"
+        OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id_list}"
+      fi
+
+      # echo "'${driver_list}'"
+      # echo "'${hardware_id_list}'"
+      driver_list=""
+      hardware_id_list=""
     done
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
@@ -590,9 +623,7 @@
     fi
 
     if "${is_selected}"; then
-      OUTPUTS["SELECTED_DRIVER_LIST"]+="${1},"
       OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
-      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${1},"
     else
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
     fi
@@ -606,6 +637,7 @@
       return 1
     fi
 
+    # is_selected=false
     local -r bus_id="${1}"
     local -r hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
     local -r driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
@@ -615,6 +647,9 @@
 
     append_device_info_to_output
     set_host_or_pci_flag "${bus_id}"
+
+    driver_list+="${driver},"
+    hardware_id_list="${hardware_id},"
 
     is_matched \
       "has_name" \
