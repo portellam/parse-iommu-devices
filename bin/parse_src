@@ -104,10 +104,6 @@
     "${SOURCE_PATH}" \
     "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
-
-  source \
-    "${SOURCE_PATH}query_src" \
-    "${SOURCE_PATH}"
 #
 # logic
 #

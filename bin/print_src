@@ -121,10 +121,10 @@
   function print_and_log_output
   {
     local -ir int_return_code="${?}"
-    local is_verbose=false
+    local is_verbose=true
 
-    if is_boolean "${1}"; then
-      is_verbose="${1}"
+    if is_boolean "${2}"; then
+      is_verbose="${2}"
     fi
 
     if [[ "${int_return_code}" -ne 0 ]]; then
@@ -141,10 +141,10 @@
   function print_and_log_following_output
   {
     local -ir int_return_code="${?}"
-    local is_verbose=false
+    local is_verbose=true
 
-    if is_boolean "${1}"; then
-      is_verbose="${1}"
+    if is_boolean "${2}"; then
+      is_verbose="${2}"
     fi
 
     if [[ "${int_return_code}" -ne 0 ]]; then

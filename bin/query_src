@@ -21,7 +21,7 @@
 # params (1/3)
 #
   declare -g SOURCE_PATH="${1}"
-
+  declare -gi FLAG_USE_NTH_QUERY_METHOD=3   # May be 1, 2, or 3.
 #
 # sources (1/2)
 #
@@ -31,11 +31,27 @@
 #
 # params (2/3)
 #
-  declare -g XML_FILE="${2}"
+  if ! is_string "${2}"; then
+    exit 1
+  fi
+
+  if ! is_positive_integer "${3}"; then
+    exit 1
+  fi
+
+  declare -g LOG_FILE="${2}"
+  declare -g COLUMN_SIZE="${3}"
+  declare -g XML_FILE="${4}"
 
 #
 # sources (2/2)
 #
+  source \
+    "${SOURCE_PATH}print_src" \
+    "${SOURCE_PATH}" \
+    "${LOG_FILE}" \
+    "${COLUMN_SIZE}"
+
   source \
     "${SOURCE_PATH}xml_src" \
     "${SOURCE_PATH}" \
@@ -192,8 +208,7 @@
     fi
 
     print_and_log_output \
-      "<${total_time_in_seconds} second" \
-      true
+      "${output}"
 
     return 0
   }
@@ -215,32 +230,53 @@
       return 1
     fi
 
-    print_and_log_following_output \
-     "Querying hardware devices..." \
-     "${INPUTS["VERBOSE"]}"
+    local output="Querying hardware devices... "
 
     if is_readonly_variable "BUS_ID_AND_HARDWARE_ID" \
       || is_readonly_variable "IOMMU_GROUP_ID_AND_BUS_ID"; then
-      print_and_log_output " Skipped." "${INPUTS["VERBOSE"]}"
+      print_and_log_output \
+        "${output}Skipped." \
+        "${INPUTS["VERBOSE"]}"
+
       return 1
     fi
 
-    print_and_log_output \
-      " Finished." \
+    print_and_log_following_output \
+      "${output}" \
       "${INPUTS["VERBOSE"]}"
+
+    if "${INPUTS["DOUBLE_VERBOSE"]}"; then
+      print_and_log_following_output \
+        "\n" \
+        "${INPUTS["VERBOSE"]}"
+    fi
 
     local -i start_time="${SECONDS}"
 
     for bus_id in "${BUS_ID_LIST[@]}"; do
       print_and_log_output \
-        "Querying information for device ${bus_id}." "${INPUTS["DOUBLE_VERBOSE"]}"
+        "Querying information for device ${bus_id}." \
+        "${INPUTS["DOUBLE_VERBOSE"]}"
 
       set_this_hardware_id_dictionaries \
         "${bus_id}"
     done
 
+    local suffix="Finished."
+
+    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+      print_and_log_output \
+        "${suffix}" \
+        "${INPUTS["VERBOSE"]}"
+    else
+      print_and_log_output \
+        "${output}${suffix}" \
+        "${INPUTS["VERBOSE"]}"
+    fi
+
     print_and_log_output \
-      "Total devices:\t${#BUS_ID_LIST[@]}" "${INPUTS["VERBOSE"]}"
+      "Total devices:\t${#BUS_ID_LIST[@]}" \
+      "${INPUTS["VERBOSE"]}"
 
     prompt_time_duration \
       "${start_time}"
@@ -255,11 +291,7 @@
 
   function set_many_iommu_group_id_dictionaries
   {
-    local -ir start_time="${SECONDS}"
-
-    print_and_log_following_output \
-     "Querying IOMMU groups..." \
-     "${INPUTS["VERBOSE"]}"
+    local output="Querying IOMMU groups... "
 
     if is_readonly_variable "BUS_ID_LIST" \
       || is_readonly_variable "HARDWARE_ID_AND_DRIVER" \
@@ -267,15 +299,23 @@
       || is_readonly_variable "HARDWARE_ID_AND_TYPE" \
       || is_readonly_variable "HARDWARE_ID_AND_VENDOR"; then
       print_and_log_output \
-        " Skipped." \
+        "${output}Skipped." \
         "${INPUTS["VERBOSE"]}"
 
       return 1
     fi
 
-    print_and_log_output \
-      " Finished." \
+    print_and_log_following_output \
+      "${output}" \
       "${INPUTS["VERBOSE"]}"
+
+    if "${INPUTS["DOUBLE_VERBOSE"]}"; then
+      print_and_log_following_output \
+        "\n" \
+        "${INPUTS["VERBOSE"]}"
+    fi
+
+    local -ir start_time="${SECONDS}"
 
     for iommu_group_id in $( \
       seq \
@@ -290,8 +330,21 @@
         "${iommu_group_id}"
     done
 
+    local suffix="Finished."
+
+    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+      print_and_log_output \
+        "${suffix}" \
+        "${INPUTS["VERBOSE"]}"
+    else
+      print_and_log_output \
+        "${output}${suffix}" \
+        "${INPUTS["VERBOSE"]}"
+    fi
+
     print_and_log_output \
-      "Total groups:\t${MAX_IOMMU_GROUP_ID}" "${INPUTS["VERBOSE"]}"
+      "Total groups:\t$(( MAX_IOMMU_GROUP_ID + 1 ))" \
+      "${INPUTS["VERBOSE"]}"
 
     prompt_time_duration \
       "${start_time}"
@@ -313,131 +366,154 @@
       return 1
     fi
 
-    ### 3
+    case "${FLAG_USE_NTH_QUERY_METHOD}" in
+      # NOTE: Parses commandline at startup.
+      3 )
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
 
-    # commenting out driver saves ~1 second.
-    local driver="$( \
-      get_driver \
-        "${1}"
-    )"
+        local -r hardware_id="$( \
+          echo \
+            -e \
+            "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
+          | \
+            grep \
+              "${1}" \
+          | awk \
+            'END {print $3}'
+        )"
 
-    local -r hardware_id="$( \
-      echo \
-        -e \
-        "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
-      | \
-        grep \
-          "${1}" \
-      | awk \
-        'END {print $3}'
-    )"
+        local -r line="$( \
+          echo \
+            -e \
+            "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
+          | \
+            grep \
+              "${1}"
+        )"
 
-    local -r line="$( \
-      echo \
-        -e \
-        "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
-      | \
-        grep \
-          "${1}"
-    )"
+        local -r name="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              6 \
+        )"
 
-    local -r name="$( \
-      echo \
-        "${line}" \
-      | cut \
-        --delimiter \
-          '"' \
-        --fields \
-          6 \
-    )"
+        local -r type="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              2 \
+        )"
 
-    local -r type="$( \
-      echo \
-        "${line}" \
-      | cut \
-        --delimiter \
-          '"' \
-        --fields \
-          2 \
-    )"
+        local -r vendor="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              4 \
+        )"
+        ;;
 
-    local -r vendor="$( \
-      echo \
-        "${line}" \
-      | cut \
-        --delimiter \
-          '"' \
-        --fields \
-          4 \
-    )"
+      # NOTE: Parses commandline more often.
+      2 )
+        local -r hardware_id="$( \
+          lspci \
+            -ns \
+              "${1}" \
+          | awk \
+            'END {print $3}' \
+        )"
 
-    ### 2
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
 
-    # local -r hardware_id="$( \
-    #   lspci \
-    #     -ns \
-    #       "${1}" \
-    #   | awk \
-    #     'END {print $3}' \
-    # )"
+        local -r line="$( \
+          lspci \
+            -ms \
+              "${1}"
+        )"
 
-    # local driver="$( \
-    #   get_driver \
-    #     "${1}"
-    # )"
+        local -r name="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              6 \
+        )"
 
-    # local -r line="$( \
-    #   lspci \
-    #     -ms \
-    #       "${1}"
-    # )"
+        local -r type="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              2 \
+        )"
 
-    # local -r name="$( \
-    #   echo \
-    #     "${line}" \
-    #   | cut \
-    #     --delimiter \
-    #       '"' \
-    #     --fields \
-    #       6 \
-    # )"
+        local -r vendor="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              4 \
+        )"
+        ;;
 
-    # local -r type="$( \
-    #   echo \
-    #     "${line}" \
-    #   | cut \
-    #     --delimiter \
-    #       '"' \
-    #     --fields \
-    #       2 \
-    # )"
+      # NOTE: Parses commandline most often.
+      1 )
+        local -r hardware_id="$( \
+          lspci \
+            -ns \
+              "${1}" \
+          | awk \
+            'END {print $3}' \
+        )"
 
-    # local -r vendor="$( \
-    #   echo \
-    #     "${line}" \
-    #   | cut \
-    #     --delimiter \
-    #       '"' \
-    #     --fields \
-    #       4 \
-    # )"
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
 
-    ### 1
+        local -r name="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 6 \
+        )"
 
-    # local -r name="$( \
-    #   lspci -ms "${1}" \
-    #     | cut --delimiter '"' --fields 6 \
-    # )"
+        local -r type="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 2 \
+        )"
 
-    # local -r type="$( \
-    #   lspci -ms "${1}" \
-    #     | cut --delimiter '"' --fields 2 \
-    # )"
+        local -r vendor="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 4 \
+        )"
+        ;;
 
-    # local -r vendor="$( \
-    #   lspci -ms "${1}" \
-    #     | cut --delimiter '"' --fields 4 \
-    # )"
+    * )
+      print_and_log_output "Error: Query method is not set." true
+      exit 1
+      ;;
+
+    esac
 
     BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
     HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"

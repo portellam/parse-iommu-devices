@@ -265,7 +265,7 @@
           INPUTS["DOUBLE_VERBOSE"]=false
           ;;
 
-        "-vv" | "--verbose" )
+        "-vv" )
           INPUTS["VERBOSE"]=true
           INPUTS["DOUBLE_VERBOSE"]=true
           ;;
@@ -359,7 +359,7 @@
 
     local -i column_prefix_count=28
 
-    echo -e "Usage:\t${SCRIPT_NAME} [INPUTS]"
+    echo -e "Usage:\t${SCRIPT_NAME} [ARGUMENTS]"
 
     wrap_text \
       false \
