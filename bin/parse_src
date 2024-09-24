@@ -78,7 +78,6 @@
   fi
 
   declare -g SCRIPT_NAME="${2}"
-  declare -g SCRIPT_VERSION="${3}"
   declare -gi COLUMN_SIZE="$( tput cols )"
   declare -g LOG_EXTENSION=".log"
 
@@ -105,12 +104,6 @@
     "${SOURCE_PATH}" \
     "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
-
-  # source \
-  #   "${SOURCE_PATH}input_src" \
-  #   "${SOURCE_PATH}" \
-  #   "${SCRIPT_NAME}" \
-  #   "${SCRIPT_VERSION}"
 
   source \
     "${SOURCE_PATH}query_src" \
@@ -191,6 +184,7 @@
       ""
     )
 
+    (( device_index++ ))
     return 0
   }
 
@@ -366,13 +360,13 @@
 
     print_and_log_output "${message}"
 
-    if ! verify_all_devices_matches \
-      || ! print_groups_output; then
+    if ! verify_all_devices_matches; then
       print_and_log_output "${message} Failed."
       return 1
     fi
 
     print_and_log_output "${message} Successful.\n"
+    set_null_value_to_lists_if_empty
     print_groups_output
     return 0
   }
@@ -385,16 +379,11 @@
       return 0
     fi
 
-    # if is_enum_empty "group_output"; then
-    #   print_and_log_output "Error: No IOMMU groups found."
-    #   return 1
-    # fi
-
     for line in "${group_output[@]}"; do
       print_and_log_output "${line}"
     done
 
-    print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
+    # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
@@ -409,7 +398,7 @@
       "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Unselected Groups binded to VFIO:\n${OUTPUTS["VFIO_GROUP_ID_LIST"]}\n"
+      "Unselected Groups binded to VFIO:\n${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}\n"
@@ -446,6 +435,39 @@
     fi
   }
 
+    function set_null_value_to_lists_if_empty
+  {
+    if ! is_string "${OUTPUTS["FOUND_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
+      OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"; then
+      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    return 0
+  }
+
   function verify_all_devices_matches
   {
     for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
@@ -454,31 +476,57 @@
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
-        "OUTPUTS" \
-        "FOUND_GROUP_ID_LIST" \
-        -1
-    )
+        -1 \
+        "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" \
+    )"
 
     OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
-        "OUTPUTS" \
-        "FOUND_HOST_GROUP_ID_LIST" \
-        -1
-    )
+        -1 \
+        "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
+    )"
 
     OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
-        "OUTPUTS" \
-        "FOUND_PCI_GROUP_ID_LIST" \
-        -1
-    )
+        -1 \
+        "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}" \
+    )"
 
     OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
-        "OUTPUTS" \
-        "FOUND_VGA_GROUP_ID_LIST" \
-        -1
-    )
+        -1 \
+        "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" \
+    )"
 
     return 0
   }
@@ -489,6 +537,7 @@
       return 1
     fi
 
+    local -i device_index=1
     has_host=false
     has_pci=false
     has_name=false
@@ -511,33 +560,33 @@
         --version-sort
       )"
 
+    group_output+=( "IOMMU Group ${iommu_group_id}:" )
+
     for bus_id_delim in "${bus_id_list[@]}"; do
       for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
-        if ! verify_this_devices_matches "${bus_id}"; then
-          break
-        fi
-
-        is_selected=true
+        verify_this_devices_matches "${bus_id}"
       done
     done
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
-    if "${has_host}"; then
+    if "${has_host}" \
+      && ! "${has_pci}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${has_pci}"; then
+    if ! "${has_host}" \
+      || "${has_pci}"; then
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
+    fi
+
+     if "${has_vfio}"; then
+      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     fi
 
     if "${has_vga}"; then
       (( vga_group_index++ ))
       OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_vfio}"; then
-      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     fi
 
     if "${is_selected}"; then
@@ -548,9 +597,7 @@
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if is_enum_empty "group_output"; then
-      return 1
-    fi
+    return 0
   }
 
   function verify_this_devices_matches
@@ -566,6 +613,7 @@
     local -r type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
     local -r vendor="${HARDWARE_ID_AND_VENDOR[${hardware_id}]}"
 
+    append_device_info_to_output
     set_host_or_pci_flag "${bus_id}"
 
     is_matched \
@@ -578,7 +626,7 @@
     is_matched \
       "has_name_reverse_match" \
       "INPUTS" \
-      "REVERSE_MATCH_NAME" \
+      "UNMATCH_NAME" \
       "NAMES_UNMATCH_LIST" \
       "${name}"
 
@@ -592,7 +640,7 @@
     is_matched \
       "has_type_reverse_match" \
       "INPUTS" \
-      "REVERSE_MATCH_TYPE" \
+      "UNMATCH_TYPE" \
       "TYPES_UNMATCH_LIST" \
       "${type}"
 
@@ -606,7 +654,7 @@
     is_matched \
       "has_vendor_reverse_match" \
       "INPUTS" \
-      "REVERSE_MATCH_VENDOR" \
+      "UNMATCH_VENDOR" \
       "VENDORS_UNMATCH_LIST" \
       "${vendor}"
 
@@ -633,30 +681,26 @@
       "${vga_type_list[@]}" \
       "${type}"
 
-    if "${has_host}" \
-      && "${INPUTS["MATCH_HOST"]}"; then
-      return 1
+    if ! [[ "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" =~ "${vga_group_index}" ]] \
+      && "${MATCH_VGA_GROUP_INDEX}"; then
+      return 0
     fi
 
-    if "${has_pci}" \
-      && "${INPUTS["MATCH_PCI"]}"; then
-      return 1
+    # if ! "${has_host}" \
+    #   && "${INPUTS["MATCH_HOST"]}"; then
+    #   return 0
+    # fi
+
+    # if ! "${has_pci}" \
+    #   && "${INPUTS["MATCH_PCI"]}"; then
+    #   return 0
+    # fi
+
+    if "${has_vfio}"; then
+      return 0
     fi
 
-    if "${has_host}" \
-      || "${has_pci}" \
-      || "${has_name}" \
-      || "${has_name_reverse_match}" \
-      || "${has_type}" \
-      || "${has_type_reverse_match}" \
-      || "${has_vendor}" \
-      || "${has_vendor_reverse_match}" \
-      || "${has_vfio}" \
-      || "${has_vga}"; then
-      return 1
-    fi
-
-    append_device_info_to_output
+    is_selected=true
     return 0
   }
 
