@@ -161,44 +161,19 @@
 
   function truncate_index_from_delimited_list
   {
-    if ! is_string "${1}"; then
+    if ! is_integer "${1}"; then
       return 1
     fi
 
-    local new_list=""
+    local -i index="${1}"
+    shift
 
-    if is_dict "${1}"; then
-      if ! is_string "${2}"; then
-        return 1
-      fi
-
-      local -n reference_dict="${1}"
-      local new_string="${reference_dict[${2}]}"
-
-      if ! is_integer "${3}"; then
-        return 1
-      fi
-
-      if ! is_string "${new_string}"; then
-        return 0
-      fi
-
-      echo "${new_string::${3}}"
-
-    else
-      local -n reference_string="${1}"
-
-      if ! is_integer "${2}"; then
-        return 1
-      fi
-
-      if ! is_string "${reference_string}"; then
-        return 0
-      fi
-
-      echo "${reference_string::${2}}"
+    if ! is_string "${@}"; then
+      return 1
     fi
 
+    local truncate_index_from_delimited_list_string="${@}"
+    echo "${truncate_index_from_delimited_list_string::$index}"
     return 0
   }
 
