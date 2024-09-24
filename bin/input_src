@@ -62,7 +62,7 @@
     ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
     ["VERBOSE"]=false
-    ["DOUBLE_VERBOSE"]=false
+    ["MORE_VERBOSE"]=false
     ["WRITE_XML"]=false
     ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
     ["VENDORS_MATCH_LIST"]=""
@@ -111,7 +111,7 @@
 
   function is_verbose_doubled
   {
-    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+    if ! "${INPUTS["MORE_VERBOSE"]}"; then
       return 1
     fi
 
@@ -262,12 +262,12 @@
 
         "-v" | "--verbose" )
           INPUTS["VERBOSE"]=true
-          INPUTS["DOUBLE_VERBOSE"]=false
+          INPUTS["MORE_VERBOSE"]=false
           ;;
 
         "-vv" )
           INPUTS["VERBOSE"]=true
-          INPUTS["DOUBLE_VERBOSE"]=true
+          INPUTS["MORE_VERBOSE"]=true
           ;;
 
         "--vga-index" )

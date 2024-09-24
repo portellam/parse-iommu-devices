@@ -62,12 +62,6 @@
 #
   function query_src_main
   {
-    if "${TEST_SRC_RUN_ONCE}" &> /dev/null; then
-      return 0
-    fi
-
-    declare -gr TEST_SRC_RUN_ONCE=true
-
     declare -agr LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
       lspci \
         -kn
@@ -189,10 +183,6 @@
       return 1
     fi
 
-    if ! is_verbose; then
-      return 0
-    fi
-
     local -i total_time_in_seconds="$(( "${SECONDS}" - "${1}" ))"
     local output="Time elapsed:\t"
 
@@ -208,7 +198,8 @@
     fi
 
     print_and_log_output \
-      "${output}"
+      "${output}" \
+      "${INPUTS["VERBOSE"]}"
 
     return 0
   }
@@ -245,18 +236,16 @@
       "${output}" \
       "${INPUTS["VERBOSE"]}"
 
-    if "${INPUTS["DOUBLE_VERBOSE"]}"; then
-      print_and_log_following_output \
-        "\n" \
-        "${INPUTS["VERBOSE"]}"
-    fi
+    print_and_log_following_output \
+      "\n" \
+      "${INPUTS["MORE_VERBOSE"]}"
 
     local -i start_time="${SECONDS}"
 
     for bus_id in "${BUS_ID_LIST[@]}"; do
       print_and_log_output \
         "Querying information for device ${bus_id}." \
-        "${INPUTS["DOUBLE_VERBOSE"]}"
+        "${INPUTS["MORE_VERBOSE"]}"
 
       set_this_hardware_id_dictionaries \
         "${bus_id}"
@@ -264,7 +253,7 @@
 
     local suffix="Finished."
 
-    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+    if ! is_verbose_doubled; then
       print_and_log_output \
         "${suffix}" \
         "${INPUTS["VERBOSE"]}"
@@ -285,7 +274,10 @@
       return 1
     fi
 
-    echo
+    print_and_log_output \
+      "" \
+      "${INPUTS["VERBOSE"]}"
+
     return 0
   }
 
@@ -309,11 +301,9 @@
       "${output}" \
       "${INPUTS["VERBOSE"]}"
 
-    if "${INPUTS["DOUBLE_VERBOSE"]}"; then
-      print_and_log_following_output \
-        "\n" \
-        "${INPUTS["VERBOSE"]}"
-    fi
+    print_and_log_following_output \
+      "\n" \
+      "${INPUTS["MORE_VERBOSE"]}"
 
     local -ir start_time="${SECONDS}"
 
@@ -324,7 +314,7 @@
     ); do
       print_and_log_output \
         "Querying devices for IOMMU group ${iommu_group_id}." \
-        "${INPUTS["DOUBLE_VERBOSE"]}"
+        "${INPUTS["MORE_VERBOSE"]}"
 
       set_this_iommu_group_id_dictionaries \
         "${iommu_group_id}"
@@ -332,7 +322,7 @@
 
     local suffix="Finished."
 
-    if ! "${INPUTS["DOUBLE_VERBOSE"]}"; then
+    if ! is_verbose_doubled; then
       print_and_log_output \
         "${suffix}" \
         "${INPUTS["VERBOSE"]}"
@@ -354,7 +344,10 @@
       return 1
     fi
 
-    echo
+    print_and_log_output \
+      "" \
+      "${INPUTS["VERBOSE"]}"
+
     return 0
   }
 

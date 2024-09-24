@@ -359,16 +359,23 @@
     local -a group_output=()
     local -r message="Parsing hardware devices..."
 
-    print_and_log_output "${message}"
+    print_and_log_output \
+      "${message}" \
+      "${INPUTS["VERBOSE"]}"
 
     if ! verify_all_devices_matches; then
-      print_and_log_output "${message} Failed."
+      print_and_log_output \
+        "${message} Failed." \
+        "${INPUTS["VERBOSE"]}"
+
       return 1
     fi
 
-    print_and_log_output "${message} Successful.\n"
+    print_and_log_output \
+      "${message} Successful.\n" \
+      "${INPUTS["VERBOSE"]}"
+
     sort_lists
-    set_null_value_to_lists_if_empty
     print_groups_output
     return 0
   }
@@ -376,6 +383,10 @@
   function print_groups_output
   {
     if ! is_verbose; then
+      if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
+        return 0
+      fi
+
       print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
       print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
       return 0
@@ -386,6 +397,8 @@
         print_and_log_output "${line}"
       done
     fi
+
+    set_null_value_to_lists_if_empty
 
     # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
@@ -463,6 +476,14 @@
 
     if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
       OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_DRIVER_LIST"]}"; then
+      OUTPUTS["SELECTED_DRIVER_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
+      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="${NULL_VALUE}"
     fi
 
     if ! is_string "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"; then
