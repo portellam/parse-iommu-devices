@@ -101,7 +101,10 @@ Linux.
 
 ### 6. Usage
 #### 6.1. Install
-Installer will copy required files to `/usr/local/bin/`.
+Installer will copy the script file to `/usr/local/bin/`, and source files to
+`/usr/local/bin/parse-iommu-devices.d/`.
+
+Log and XML files will be generated in `/usr/local/etc/`, w
 
 ```bash
 sudo bash installer.sh
@@ -112,13 +115,10 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -q, --quiet               Quiet most output except for IOMMU
-                            groups output, and lists of device
-                            drivers and hardware IDs.
+  -v, --verbose             Show more output including query
+                            output and IOMMU groups.
 
-  -qq, --very-quiet         Quiet all output except for lists of
-                            device drivers and hardware IDs.
-
+  -vv                       Show all output.
   -g, --group=GROUPS        Match IOMMU group ID(s);
                             GROUPS is a comma delimited list of
                             positive numbers.
@@ -131,17 +131,27 @@ sudo bash installer.sh
   -H, --host                Match IOMMU groups with at least one
                             (1) or more Host devices.
 
-  -n, --name=NAME           Match IOMMU group(s) with device name;
-                            NAME is a comma delimited list of text.
+  -n, --name=NAME           Match IOMMU group(s) with device
+                            name;
+                            NAME is a comma delimited list of
+                            text.
+
   --ignore-name=NAME        Match IOMMU group(s) without device
                             name, overrides "--name";
-                            NAME is a comma delimited list of text.
-  -t, --type=TYPE           Match IOMMU group(s) with device type;
-                            TYPE is a comma delimited list of text.
+                            NAME is a comma delimited list of
+                            text.
+
+  -t, --type=TYPE           Match IOMMU group(s) with device
+                            type;
+                            TYPE is a comma delimited list of
+                            text.
+
   --ignore-type=TYPE        Match IOMMU group(s) without device
                             type, overrides "--type";
-                            TYPE is a comma delimited list of text.
-  -v, --vendor=VENDOR       Match IOMMU group(s) with device
+                            TYPE is a comma delimited list of
+                            text.
+
+  -V, --vendor=VENDOR       Match IOMMU group(s) with device
                             vendor;
                             VENDOR is a comma delimited list of
                             text.
@@ -155,8 +165,9 @@ sudo bash installer.sh
                             (1) or more PCI/PCIe bus devices.
 
   --vga-index=INDEX         Match all IOMMU groups without VGA,
-                            and any with VGA which match the index
-                            value(s) (not an IOMMU group ID);
+                            and any with VGA which match the
+                            index value(s) (not an IOMMU group
+                            ID);
                             INDEX is a comma delimited list of
                             postive non-zero numbers.
 
@@ -165,23 +176,31 @@ sudo bash installer.sh
                             are binded to VFIO;
                             FILE is the XML file name as text.
                             Leave FILE empty to use default file
-                            name ("parse-iommu-devices.xml").
+                            name
+                            ("/usr/local/etc/parse-iommu-devices.
+                            xml").
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie -qq --vga-index 2
-                            Quiet output except for drivers and
-                            hardware IDs (of IOMMU groups with
-                            PCI/e devices), exclude IOMMU groups
-                            with VGA device(s) before and after
-                            the second matched group, and exclude
+  parse-iommu-devices --ignore-name ether --pcie --vga-index 2
+                            Standard output of comma-delimited
+                            lists hardware IDs and drivers (of
+                            IOMMU groups with PCI/e devices),
+                            exclude IOMMU groups with VGA
+                            device(s) before and after the
+                            second matched group, and exclude
                             any wired ethernet devices (Host and
                             PCI/e).
 ```
 
 #### 6.3. XML file
-Regardless of an existing VFIO setup, the script will output a complete list of **valid** drivers, if a known good XML file is present, with the exact device hardware IDs and valid drivers for the system.
+Regardless of an existing VFIO setup, the script will output lists of hardware
+IDs and **valid** drivers, *if* a known good XML file is present.
 
-It is recommended to backup this file (`/usr/local/bin/parse-iommu-devices.d/parse-iommu-devices.xml`).
+##### An XML file may be generated on a known good system:
+1. No VFIO drivers present
+2. Drivers are installed for all relevant devices.
+
+You may backup the default XML file (`/usr/local/etc/parse-iommu-devices.xml`).
 
 Please feel free to share your XML file with other VFIO users and enthusiasts.
 
