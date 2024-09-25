@@ -168,7 +168,7 @@
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
             || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["GROUPS_MATCH_LIST"]="${1}"
@@ -184,7 +184,7 @@
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
             || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
@@ -195,7 +195,7 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["NAMES_UNMATCH_LIST"]="${1}"
@@ -206,7 +206,7 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["TYPES_UNMATCH_LIST"]="${1}"
@@ -217,7 +217,7 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["VENDORS_UNMATCH_LIST"]="${1}"
@@ -228,7 +228,7 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["NAMES_MATCH_LIST"]="${1}"
@@ -254,7 +254,7 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["VENDORS_MATCH_LIST"]="${1}"
@@ -276,7 +276,7 @@
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
             || [[ "${1}" -lt "${MIN_VGA_INDEX_VALUE}" ]]; then
-            print_invalid_option
+            print_invalid_option "${1}"
           fi
 
           INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]="${1}"
@@ -295,7 +295,7 @@
             ;;
 
             * )
-            print_invalid_option
+            print_invalid_option "${1}"
             ;;
           esac
 
@@ -319,7 +319,7 @@
           ;;
 
         * )
-          print_invalid_argument
+          print_invalid_argument "${1}"
           ;;
       esac
 
@@ -335,7 +335,13 @@
       exit 1
     fi
 
-    print_and_log_output "Error: Invalid argument(s) specified."
+    local message="Error: Invalid argument(s) specified."
+
+    if is_string "${@}"; then
+      message="${message::-1}: '${@}'"
+    fi
+
+    print_and_log_output "${message}\n"
     print_usage
     exit 1
   }
@@ -346,7 +352,13 @@
       exit 1
     fi
 
-    print_and_log_output "Error: Invalid option specified '${1}'."
+    local message="Error: Invalid option specified."
+
+    if is_string "${1}"; then
+      message="${message::-1}: '${1}'"
+    fi
+
+    print_and_log_output "${message}\n"
     print_usage
     exit 1
   }
@@ -367,7 +379,7 @@
       false \
       0 \
       "${COLUMN_SIZE}" \
-      "Parse, sort, and display hardware devices by IOMMU group(s)."
+      "Parse, sort, and display hardware IDs and device drivers by IOMMU group(s)."
 
     wrap_text \
       false \
@@ -396,8 +408,7 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "Show more output including query telemetry and IOMMU groups"\
-        "(all selected, any with VGA, all unselected, and unselected with VFIO)."
+      "Show more output including query output and IOMMU groups."
 
     echo -en "  -vv                       "
 
