@@ -747,14 +747,27 @@
       "video"
     )
 
+    if [[ "${type^^}" =~ "VGA" ]]; then
+      # set -o xtrace
+      echo "has vga"
+    fi
+
+    echo $has_vga
+
+    # FIXME: is_matched is not working as intended here.
+
     is_matched \
       "has_vga" \
       true \
       "${vga_type_list[@]}" \
       "${type}"
 
+    echo $has_vga
+    set +o xtrace
+
+    # NOTE: had to fix variable name, as this is part of the INPUTS dict.
     if ! [[ "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" =~ "${vga_group_index}" ]] \
-      && "${MATCH_VGA_GROUP_INDEX}"; then
+      && "${INPUTS["MATCH_VGA_GROUP_INDEX"]}"; then
       return 0
     fi
 
