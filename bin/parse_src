@@ -233,23 +233,21 @@
       return 2
     fi
 
-    if ! is_variable "${2}"; then
-      return 2
-    fi
-
     local do_match=false
     local things_to_match=""
-
-    if is_dict "${2}"; then
-      local -n is_matched_dict="${2}"
-      shift
-    fi
+    local has_dict=false
 
     if ! is_string "${2}"; then
       return 2
     fi
 
-    if is_variable "is_matched_dict"; then
+    if is_dict "${2}"; then
+      has_dict=true
+      local -n is_matched_dict="${2}"
+      shift
+    fi
+
+    if "${has_dict}"; then
       do_match="${is_matched_dict["${2}"]}"
       things_to_match="${is_matched_dict["${3}"]}"
 
@@ -263,13 +261,12 @@
       fi
 
       do_match="${2}"
-      shift
 
-      if ! is_string "${2}"; then
+      if ! is_string "${3}"; then
         return 2
       fi
 
-      things_to_match="${2}"
+      things_to_match="${3}"
       shift
     fi
 
@@ -278,14 +275,15 @@
       return 0
     fi
 
-    local things="${@}"
+    shift
+    shift
+    local things="$@"
 
     for this_thing in $( \
       echo "${things_to_match}" \
         | sed "s/,/ /g"
     ); do
-      if echo "${things[@],,}" \
-          | grep --quiet "${this_thing,,}"; then
+      if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
         reference_is_matched=true
         return 0
       fi
@@ -723,6 +721,7 @@
       "VENDORS_MATCH_LIST" \
       "${vendor}"
 
+    # NOTE: has five (5) inputs
     is_matched \
       "has_vendor_reverse_match" \
       "INPUTS" \
@@ -730,40 +729,24 @@
       "VENDORS_UNMATCH_LIST" \
       "${vendor}"
 
-    local -ar vfio_driver_list=(
-      "pci-stub"
-      "vfio-pci"
-    )
+    local -r vfio_driver_list="pci-stub,vfio-pci"
 
+    # NOTE: has four (4) inputs
     is_matched \
       "has_vfio" \
       true \
       "${vfio_driver_list[@]}" \
       "${driver}"
 
-    local -ar vga_type_list=(
-      "graphics"
-      "vga"
-      "video"
-    )
+    local -r vga_type_list="graphics,vga,video"
 
-    if [[ "${type^^}" =~ "VGA" ]]; then
-      # set -o xtrace
-      echo "has vga"
-    fi
-
-    echo $has_vga
-
-    # FIXME: is_matched is not working as intended here.
-
+    # FIXME: is_matched is not working as intended here. FIXED!
+    # NOTE: has four (4) inputs
     is_matched \
       "has_vga" \
       true \
       "${vga_type_list[@]}" \
       "${type}"
-
-    echo $has_vga
-    set +o xtrace
 
     # NOTE: had to fix variable name, as this is part of the INPUTS dict.
     if ! [[ "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" =~ "${vga_group_index}" ]] \
