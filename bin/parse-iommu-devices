@@ -53,8 +53,8 @@
     # log "${0} ${@}"
 
     if ! parse_many_arguments "${@}" \
-      || ! query_src_main \
       || ! verify_iommu_groups \
+      || ! query_src_main \
       || ! parse_src_main; then
       return 1
     fi
