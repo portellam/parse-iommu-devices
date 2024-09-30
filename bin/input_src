@@ -42,6 +42,17 @@
   declare -g XML_EXTENSION=".xml"
   declare -g ETC_PATH="/usr/local/etc/"
 
+  declare -gir MAX_IOMMU_GROUP_ID="$( \
+  ls \
+    /sys/kernel/iommu_groups/ \
+  | sort \
+    --reverse \
+    --version-sort \
+  | head \
+    --lines \
+      1 \
+)"
+
   declare -gA INPUTS=(
     ["GROUPS_MATCH_LIST"]=""
     ["GROUPS_UNMATCH_LIST"]=""
@@ -158,6 +169,15 @@
     return 0
   }
 
+  function get_comma_list_of_iommu_group_ids
+  {
+    seq "${MIN_IOMMU_VALUE}" "${MAX_IOMMU_GROUP_ID}" \
+      | tr '\n' ',' \
+      | sed 's:,*$::'
+
+    echo
+  }
+
   function parse_this_argument
   {
     while $( is_argument_or_empty_string "${1}" ); do
@@ -166,9 +186,13 @@
           INPUTS["MATCH_GROUPS"]=true
           shift
 
-          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
-            || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
-            print_invalid_option "${1}"
+          if [[ "${1}" == "all" ]]; then
+            INPUTS["GROUPS_MATCH_LIST"]="$( get_comma_list_of_iommu_group_ids )"
+          else
+            if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+              || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+              print_invalid_option "${1}"
+            fi
           fi
 
           INPUTS["GROUPS_MATCH_LIST"]="${1}"
@@ -179,12 +203,16 @@
           ;;
 
         "--ignore-group" )
-          INPUTS["UNMATCH_GROUPS"]=""
+          INPUTS["UNMATCH_GROUPS"]=true
           shift
 
-          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
-            || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
-            print_invalid_option "${1}"
+          if [[ "${1}" == "all" ]]; then
+            INPUTS["GROUPS_UNMATCH_LIST"]="$( get_comma_list_of_iommu_group_ids )"
+          else
+            if ! is_comma_delimited_list_of_positive_numbers "${1}" \
+              || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
+              print_invalid_option "${1}"
+            fi
           fi
 
           INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
