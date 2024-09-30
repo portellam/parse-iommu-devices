@@ -75,15 +75,11 @@
       return 2
     fi
 
-    case "$( declare -p ${1} 2>/dev/null )" in
-      *"-a"* )
-        return 0
-        ;;
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -a" ]]; then
+      return 1
+    fi
 
-      * )
-        return 1
-        ;;
-    esac
+    return 0
   }
 
   function is_array_empty
@@ -126,7 +122,7 @@
       return 2
     fi
 
-    if ! [[ $( declare -p ${1} 2>/dev/null ) == "declare -A"* ]]; then
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -A" ]]; then
       return 1
     fi
 
@@ -163,15 +159,12 @@
       return 2
     fi
 
-    case "$( declare -p ${1} 2>/dev/null )" in
-      *"-a"* | *"-A"* )
-        return 0
-        ;;
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -A" ]] \
+      && ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -a" ]]; then
+      return 1
+    fi
 
-      * )
-        return 1
-        ;;
-    esac
+    return 0
   }
 
   function is_dict_empty
@@ -255,7 +248,7 @@
       return 2
     fi
 
-    if [[ $( declare -p "${1}" 2>/dev/null ) != *"-n"* ]]; then
+    if ! [[ $( declare -p "${1}" 2>/dev/null ) =~ "-n" ]]; then
       return 1
     fi
 
@@ -268,7 +261,7 @@
       return 2
     fi
 
-    if ! [[ $( declare -p ${1} 2>/dev/null ) == "declare -r"* ]]; then
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -r" ]]; then
       return 1
     fi
 
