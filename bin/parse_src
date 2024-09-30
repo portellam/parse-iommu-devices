@@ -84,6 +84,7 @@
   declare -gA OUTPUTS=(
     ["FOUND_GROUP_ID_LIST"]=""
     ["FOUND_HOST_GROUP_ID_LIST"]=""
+    ["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]=""
     ["FOUND_PCI_GROUP_ID_LIST"]=""
     ["FOUND_VGA_GROUP_ID_LIST"]=""
     ["SELECTED_DRIVER_LIST"]=""
@@ -403,10 +404,13 @@
     # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
+      "Found Groups exclusively with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}\n"
+      "Found Groups exclusively with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with both Host and PCI device(s):\n${OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
@@ -444,11 +448,11 @@
     local -r internal_bus_id="00"
 
     if [[ "${this_bus_id}" == "${internal_bus_id}" ]]; then
-      has_host=true
-      has_pci=false
+      has_some_host=true
+      has_some_pci=false
     else
-      has_host=false
-      has_pci=true
+      has_some_host=false
+      has_some_pci=true
     fi
   }
 
@@ -460,6 +464,10 @@
 
     if ! is_string "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
 
     if ! is_string "${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}"; then
@@ -524,6 +532,12 @@
         "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
     )"
 
+    OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]}" \
+    )"
+
     OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
@@ -576,8 +590,10 @@
     fi
 
     local -i device_index=1
-    has_host=false
-    has_pci=false
+    has_all_host=true
+    has_all_pci=true
+    has_some_host=false
+    has_some_pci=false
     has_name=false
     has_name_reverse_match=false
     has_type=false
@@ -620,14 +636,19 @@
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
-    if "${has_host}" \
-      && ! "${has_pci}"; then
+    if "${has_all_host}" \
+      && ! "${has_all_pci}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if ! "${has_host}" \
-      || "${has_pci}"; then
+    if ! "${has_all_host}" \
+      && "${has_all_pci}"; then
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if ! "${has_all_host}" \
+      && ! "${has_all_pci}"; then
+      OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
      if "${has_vfio}"; then
@@ -654,7 +675,6 @@
       return 1
     fi
 
-    # is_selected=false
     local -r bus_id="${1}"
     local -r hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
     local -r driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
@@ -738,19 +758,27 @@
       return 0
     fi
 
-    # if ! "${has_host}" \
-    #   && "${INPUTS["MATCH_HOST"]}"; then
-    #   return 0
-    # fi
+    if "${has_some_pci}"; then
+      has_all_host=false
+    fi
 
-    # if ! "${has_pci}" \
-    #   && "${INPUTS["MATCH_PCI"]}"; then
-    #   return 0
-    # fi
+    if "${has_some_host}"; then
+      has_all_pci=false
+    fi
 
-    if "${has_vfio}"; then
+    if ! "${has_some_host}" \
+      && "${INPUTS["MATCH_HOST"]}"; then
       return 0
     fi
+
+    if ! "${has_some_pci}" \
+      && "${INPUTS["MATCH_PCI"]}"; then
+      return 0
+    fi
+
+    # if "${has_vfio}"; then
+    #   return 0
+    # fi
 
     is_selected=true
     return 0
