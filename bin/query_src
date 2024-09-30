@@ -82,17 +82,6 @@
       HARDWARE_ID_AND_VENDOR \
       IOMMU_GROUP_ID_AND_BUS_ID
 
-    declare -gir MAX_IOMMU_GROUP_ID="$( \
-      ls \
-        /sys/kernel/iommu_groups/ \
-      | sort \
-        --reverse \
-        --version-sort \
-      | head \
-        --lines \
-          1 \
-    )"
-
     declare -gr NULL_VALUE="N/A"
 
     if ! run_queries; then
