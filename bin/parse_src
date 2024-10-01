@@ -608,6 +608,7 @@
     local has_some_vendor_unmatch=false
     local has_some_vfio_match=false
     local has_some_vga_match=false
+    local has_some_vga_group_index_match=false
 
     bus_id_list="$( \
       echo \
@@ -772,10 +773,13 @@
       "${vga_type_list[@]}" \
       "${type}"
 
-    if "${has_some_vga_match}" \
-      && ! [[ "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" =~ "${vga_group_index}" ]] \
-      && "${INPUTS["MATCH_VGA_GROUP_INDEX"]}"; then
-      has_some_vga_match=false
+    if "${has_some_vga_match}"; then
+      if ! [[ ",${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}," =~ ",${vga_group_index}," ]] \
+        || ! "${INPUTS["MATCH_VGA"]}"; then
+        has_some_vga_group_index_match=false
+      else
+        has_some_vga_group_index_match=true
+      fi
     fi
 
     if "${has_many_host_match}" \
@@ -783,7 +787,7 @@
       || "${has_some_name_match}" \
       || "${has_some_type_match}" \
       || "${has_some_vendor_match}" \
-      || "${has_some_vga_match}"; then
+      || ( "${has_some_vga_group_index_match}" && "${INPUTS["MATCH_VGA"]}" && "${has_some_vga_match}" ); then
       has_some_selected=true
     fi
 
@@ -795,10 +799,11 @@
         ! "${has_some_pci_match}" \
         && "${INPUTS["MATCH_PCI"]}"
       ) \
-      ||"${has_some_name_unmatch}" \
+      || "${has_some_name_unmatch}" \
       || "${has_some_type_unmatch}" \
       || "${has_some_vendor_unmatch}" \
-      || "${has_some_vfio_match}"; then
+      || "${has_some_vfio_match}" \
+      || ( ! "${has_some_vga_group_index_match}" && "${INPUTS["MATCH_VGA"]}" && "${has_some_vga_match}" ); then
       has_some_selected=false
     fi
 
