@@ -81,6 +81,8 @@
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
   )
 
+  declare -ga ORDERED_INPUTS
+
 #
 # sources (2/2)
 #
@@ -181,9 +183,11 @@
   function parse_this_argument
   {
     while $( is_argument_or_empty_string "${1}" ); do
+      local -a this_input_list=()
+
       case "${1}" in
         "-g" | "--group" | "--groups" )
-          INPUTS["MATCH_GROUPS"]=true
+          this_input_list=( "MATCH_GROUPS" )
           shift
 
           if [[ "${1}" == "all" ]]; then
@@ -199,11 +203,11 @@
           ;;
 
         "-H" | "--host" | "--hosts" )
-          INPUTS["MATCH_HOST"]=true
+          this_input_list=( "MATCH_HOST" )
           ;;
 
         "--ignore-group" | "--ignore-groups" )
-          INPUTS["UNMATCH_GROUPS"]=true
+          this_input_list=( "UNMATCH_GROUPS" )
           shift
 
           if [[ "${1}" == "all" ]]; then
@@ -219,7 +223,7 @@
           ;;
 
         "--ignore-name" | "--ignore-names" )
-          INPUTS["UNMATCH_NAME"]=true
+          this_input_list=( "UNMATCH_NAME" )
           shift
 
           if ! is_string "${1}"; then
@@ -230,7 +234,7 @@
           ;;
 
         "--ignore-type" | "--ignore-types" )
-          INPUTS["UNMATCH_TYPE"]=true
+          this_input_list=( "UNMATCH_TYPE" )
           shift
 
           if ! is_string "${1}"; then
@@ -241,7 +245,7 @@
           ;;
 
         "--ignore-vendor" | "--ignore-vendors" )
-          INPUTS["UNMATCH_VENDOR"]=true
+          this_input_list=( "UNMATCH_VENDOR" )
           shift
 
           if ! is_string "${1}"; then
@@ -252,7 +256,7 @@
           ;;
 
         "-n" | "--name" | "--names" )
-          INPUTS["MATCH_NAME"]=true
+          this_input_list=( "MATCH_NAME" )
           shift
 
           if ! is_string "${1}"; then
@@ -263,11 +267,11 @@
           ;;
 
         "-p" | "--pci" | "--pcie" )
-          INPUTS["MATCH_PCI"]=true
+          this_input_list=( "MATCH_PCI" )
           ;;
 
         "-t" | "--type" | "--types" )
-          INPUTS["MATCH_TYPE"]=true
+          this_input_list=( "MATCH_TYPE" )
           shift
 
           if ! is_string "${1}"; then
@@ -278,7 +282,7 @@
           ;;
 
         "-V" | "--vendor" | "--vendors" )
-          INPUTS["MATCH_VENDOR"]=true
+          this_input_list=( "MATCH_VENDOR" )
           shift
 
           if ! is_string "${1}"; then
@@ -289,17 +293,21 @@
           ;;
 
         "-v" | "--verbose" )
-          INPUTS["VERBOSE"]=true
           INPUTS["MORE_VERBOSE"]=false
+          this_input_list=( "VERBOSE" )
           ;;
 
         "-vv" )
-          INPUTS["VERBOSE"]=true
-          INPUTS["MORE_VERBOSE"]=true
+          this_input_list="MATCH_VGA"
+
+          this_input_list=( \
+            "VERBOSE"
+            "MORE_VERBOSE"
+          )
           ;;
 
         "--vga-index" | "--vga-indexes" )
-          INPUTS["MATCH_VGA"]=true
+          this_input_list=( "MATCH_VGA" )
           shift
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
@@ -315,11 +323,11 @@
 
           case "${1,,}" in
             "import" )
-            INPUTS["READ_XML"]=true
+            this_input_list=( "READ_XML" )
             ;;
 
             "export" )
-            INPUTS["WRITE_XML"]=true
+            this_input_list=( "WRITE_XML" )
             ;;
 
             * )
@@ -350,6 +358,11 @@
           print_invalid_argument "${1}"
           ;;
       esac
+
+      for this_input in "${this_input_list[@]}"; do
+        INPUTS["${this_input}"]=true
+        ORDERED_INPUTS+=( "${this_input}" )
+      done
 
       shift
     done
