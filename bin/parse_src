@@ -637,14 +637,24 @@
       has_many_selected=false
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     else
-      if "${INPUTS["MATCH_GROUPS"]}" \
-        && ! [[ ",${INPUTS["GROUPS_MATCH_LIST"]}," =~ ",${1}," ]]; then
-        has_many_selected=false
+      if ( \
+          "${INPUTS["MATCH_GROUPS"]}" \
+          && [[ ",${INPUTS["GROUPS_MATCH_LIST"]}," =~ ",${1}," ]] \
+        ) || ( \
+          "${INPUTS["UNMATCH_GROUPS"]}" \
+          && ! [[ ",${INPUTS["GROUPS_UNMATCH_LIST"]}," =~ ",${1}," ]] \
+        ); then
+        has_many_selected=true
       fi
 
-      if "${INPUTS["UNMATCH_GROUPS"]}" \
-        && ! [[ ",${INPUTS["GROUPS_UNMATCH_LIST"]}," =~ ",${1}," ]]; then
-        has_many_selected=true
+      if ( \
+          "${INPUTS["MATCH_GROUPS"]}" \
+          && ! [[ ",${INPUTS["GROUPS_MATCH_LIST"]}," =~ ",${1}," ]] \
+        ) || ( \
+          "${INPUTS["UNMATCH_GROUPS"]}" \
+          && [[ ",${INPUTS["GROUPS_UNMATCH_LIST"]}," =~ ",${1}," ]] \
+        ); then
+        has_many_selected=false
       fi
     fi
 
@@ -658,8 +668,8 @@
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${has_some_host_match}" \
-      && "${has_some_pci_match}"; then
+    if ! "${has_many_host_match}" \
+      && ! "${has_many_pci_match}"; then
       OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
