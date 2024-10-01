@@ -193,9 +193,9 @@
               || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
               print_invalid_option "${1}"
             fi
-          fi
 
-          INPUTS["GROUPS_MATCH_LIST"]="${1}"
+            INPUTS["GROUPS_MATCH_LIST"]="${1}"
+          fi
           ;;
 
         "-H" | "--host" )
@@ -213,9 +213,9 @@
               || [[ "${1}" -lt "${MIN_IOMMU_VALUE}" ]]; then
               print_invalid_option "${1}"
             fi
-          fi
 
-          INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
+            INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
+          fi
           ;;
 
         "--ignore-name" )
