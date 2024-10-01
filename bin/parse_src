@@ -255,6 +255,7 @@
         || ! is_string "${things_to_match}"; then
         return 2
       fi
+
     else
       if ! is_boolean "${2}"; then
         return 2
@@ -327,6 +328,7 @@
         || ! is_string "${things_to_match}"; then
         return 2
       fi
+
     else
       if ! is_boolean "${2}"; then
         return 2
@@ -347,6 +349,7 @@
       return 0
     fi
 
+    shift
     shift
     shift
     local things="$@"
@@ -520,6 +523,7 @@
     if [[ "${this_bus_id}" == "${internal_bus_id}" ]]; then
       this_has_host=true
       this_has_pci=false
+
     else
       this_has_host=false
       this_has_pci=true
@@ -675,16 +679,18 @@
     local do_select_vendor=false
     local do_select_vga_group_index=false
 
-    local has_groups=false
-    local has_no_groups=false
-    local has_host=true
-    local has_pci=true
-    local has_name=true
-    local has_type=true
-    local has_vendor=true
-    local has_vfio=true
-    local has_vga=true
-    local has_vga_group_index=true
+    local some_have_groups=false
+    local some_have_host=false
+    local some_have_pci=false
+    local some_have_name=false
+    local some_have_type=false
+    local some_have_vendor=false
+    local some_have_vfio=false
+    local some_have_vga=false
+    local some_have_vga_group_index=false
+
+    local some_have_no_groups=false
+
 
     bus_id_list="$( \
       echo \
@@ -713,55 +719,64 @@
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
-    if "${has_host}"; then
+    if "${some_have_host}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${has_pci}"; then
+    if "${some_have_pci}"; then
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if ! "${has_host}" \
-      && ! "${has_pci}"; then
+    if ! "${some_have_host}" \
+      && ! "${some_have_pci}"; then
       OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${has_vga}"; then
+    if "${some_have_vga}"; then
       (( vga_group_index++ ))
       OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
     fi
 
     is_matched_word \
-      "has_groups" \
+      "some_have_groups" \
       "INPUTS" \
       "MATCH_GROUPS" \
       "GROUPS_MATCH_LIST" \
       "${1}"
 
     is_matched_word \
-      "has_no_groups" \
+      "some_have_no_groups" \
       "INPUTS" \
       "UNMATCH_GROUPS" \
       "GROUPS_UNMATCH_LIST" \
       "${1}"
 
-    if "${has_vfio}"; then
+    # local some_have_name=false
+    # local some_have_type=false
+    # local some_have_vendor=false
+    # local some_have_vga_group_index=false
+
+    if "${some_have_vfio}"; then
       do_select=false
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
-    else
-      if "${has_groups}"; then
-        do_select=true
-      fi
 
-      if "${has_no_groups}"; then
-        do_select=true
-      fi
+    elif "${some_have_groups}" \
+      || ! "${some_have_no_groups}" \
+      || "${some_have_name}" \
+      || "${some_have_type}" \
+      || "${some_have_vendor}" \
+      || "${some_have_vga_group_index}"; then
+      do_select=true
+
+    else
+      do_select=false
     fi
 
     if "${do_select}"; then
       OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
       OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver_list}"
       OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id_list}"
+
     else
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
     fi
@@ -775,25 +790,25 @@
       return 1
     fi
 
-    this_has_host=false
-    this_has_pci=false
-    this_has_name=false
-    this_has_type=false
-    this_has_vendor=false
-    this_has_vfio=false
-    this_has_vga=false
-    this_has_vga_group_index=false
-
-    this_has_no_name=false
-    this_has_no_type=false
-    this_has_no_vendor=false
-
     local -r bus_id="${1}"
     local -r hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
     local -r driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
     local -r name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
     local -r type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
     local -r vendor="${HARDWARE_ID_AND_VENDOR[${hardware_id}]}"
+
+    local this_has_host=false
+    local this_has_pci=false
+    local this_has_name=false
+    local this_has_type=false
+    local this_has_vendor=false
+    local this_has_vfio=false
+    local this_has_vga=false
+    local this_has_vga_group_index=false
+
+    local this_has_no_name=false
+    local this_has_no_type=false
+    local this_has_no_vendor=false
 
     append_device_info_to_output
     set_host_or_pci_flag "${bus_id}"
@@ -859,61 +874,85 @@
       "${vga_type_list[@]}" \
       "${type}"
 
-    if "${this_has_vga}" \
-      && [[ ",${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}," =~ ",${vga_group_index}," ]] \
-      && "${INPUTS["MATCH_VGA"]}"; then
-      this_has_vga_group_index=true
-    fi
+    is_matched_word \
+      "this_has_vga_group_index" \
+      "INPUTS" \
+      "MATCH_VGA" \
+      "VGA_GROUP_INDEX_MATCH_LIST" \
+      "${vga_group_index}"
 
-    if ! "${this_has_host}"; then
-      has_host=false
-    else
+    if "${this_has_host}"; then
+      some_have_host=true
+
       if "${INPUTS["MATCH_HOST"]}"; then
         do_select_host=true
       fi
     fi
 
-    if ! "${this_has_pci}"; then
-      has_pci=false
-    else
+    if "${this_has_pci}"; then
+      some_have_pci=true
+
       if "${INPUTS["MATCH_PCI"]}"; then
         do_select_pci=true
       fi
     fi
 
-    if ! "${this_has_name}" \
-      || "${this_has_no_name}"; then
-      has_name=false
+    if "${this_has_name}" \
+      && ! "${this_has_no_name}"; then
+      some_have_name=true
+
+      if "${INPUTS["MATCH_NAME"]}"; then
+        do_select_name=true
+      fi
+
     else
-      do_select_name=true
+      if "${INPUTS["UNMATCH_NAME"]}"; then
+        do_select_name=false
+      fi
     fi
 
-    if ! "${this_has_type}" \
-      || "${this_has_no_type}"; then
-      has_type=false
+    if "${this_has_type}" \
+      && ! "${this_has_no_type}"; then
+      some_have_type=true
+
+      if "${INPUTS["MATCH_TYPE"]}"; then
+        do_select_type=true
+      fi
+
     else
-      do_select_type=true
+      if "${INPUTS["UNMATCH_TYPE"]}"; then
+        do_select_type=false
+      fi
     fi
 
-    if ! "${this_has_vendor}" \
-      || "${this_has_no_vendor}"; then
-      has_vendor=false
+    if "${this_has_vendor}" \
+      && ! "${this_has_no_vendor}"; then
+      some_have_vendor=true
+
+      if "${INPUTS["MATCH_VENDOR"]}"; then
+        do_select_vendor=true
+      fi
+
     else
-      do_select_vendor=true
+      if "${INPUTS["UNMATCH_VENDOR"]}"; then
+        do_select_vendor=false
+      fi
     fi
 
-    if ! "${this_has_vfio}"; then
-      has_vfio=false
+    if "${this_has_vfio}"; then
+      some_have_vfio=true
     fi
 
-    if ! "${this_has_vga}"; then
-      has_vga=false
+    if "${this_has_vga}"; then
+      some_have_vga=true
     fi
 
-    if ! "${this_has_vga_group_index}"; then
-      has_vga_group_index=false
-    else
-      do_select_vga_group_index=true
+    if "${this_has_vga_group_index}"; then
+      some_have_vga_group_index=true
+
+      if "${INPUTS["MATCH_VGA"]}"; then
+        do_select_vga_group_index=true
+      fi
     fi
 
     return 0
