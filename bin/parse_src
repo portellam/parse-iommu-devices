@@ -671,6 +671,13 @@
     local driver_list=""
     local hardware_id_list=""
 
+    #
+    # TODO:
+    # - [ ] order of operations for input parameters, set priorirty of match/unmatch flag.
+    # - [ ] toggle true/false for do_select_abc parameters given match/unmatch flag priority.
+    #
+    #
+
     local do_select=false
     local do_select_host=false
     local do_select_pci=false
@@ -903,6 +910,8 @@
       fi
 
     else
+      some_have_name=false
+
       if "${INPUTS["UNMATCH_NAME"]}"; then
         do_select_name=false
       fi
@@ -917,6 +926,8 @@
       fi
 
     else
+      some_have_type=false
+
       if "${INPUTS["UNMATCH_TYPE"]}"; then
         do_select_type=false
       fi
@@ -931,6 +942,8 @@
       fi
 
     else
+      some_have_vendor=false
+
       if "${INPUTS["UNMATCH_VENDOR"]}"; then
         do_select_vendor=false
       fi
