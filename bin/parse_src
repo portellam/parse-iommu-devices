@@ -477,13 +477,13 @@
     # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups exclusively with Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
+      "Found Groups with only Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups exclusively with PCI device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}\n"
+      "Found Groups with only PCIe device(s):\n${OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with both Host and PCI device(s):\n${OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]}\n"
+      "Found Groups with Host/PCIe device(s):\n${OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
@@ -719,16 +719,18 @@
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
-    if "${some_have_host}"; then
+    if "${some_have_host}" \
+      && ! "${some_have_pci}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${some_have_pci}"; then
+    if ! "${some_have_host}" \
+      && "${some_have_pci}"; then
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if ! "${some_have_host}" \
-      && ! "${some_have_pci}"; then
+    if "${some_have_host}" \
+      && "${some_have_pci}"; then
       OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
@@ -750,11 +752,6 @@
       "UNMATCH_GROUPS" \
       "GROUPS_UNMATCH_LIST" \
       "${1}"
-
-    # local some_have_name=false
-    # local some_have_type=false
-    # local some_have_vendor=false
-    # local some_have_vga_group_index=false
 
     if "${some_have_vfio}"; then
       do_select=false
