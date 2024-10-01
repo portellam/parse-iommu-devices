@@ -722,7 +722,7 @@
     fi
 
     if ! "${has_host}" \
-      && ! "${has_pcie}"; then
+      && ! "${has_pci}"; then
       OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
@@ -859,7 +859,7 @@
       "${vga_type_list[@]}" \
       "${type}"
 
-    if "${has_some_vga_match}" \
+    if "${this_has_vga}" \
       && [[ ",${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}," =~ ",${vga_group_index}," ]] \
       && "${INPUTS["MATCH_VGA"]}"; then
       this_has_vga_group_index=true
@@ -868,13 +868,17 @@
     if ! "${this_has_host}"; then
       has_host=false
     else
-      do_select_host=true
+      if "${INPUTS["MATCH_HOST"]}"; then
+        do_select_host=true
+      fi
     fi
 
     if ! "${this_has_pci}"; then
       has_pci=false
     else
-      do_select_pci=true
+      if "${INPUTS["MATCH_PCI"]}"; then
+        do_select_pci=true
+      fi
     fi
 
     if ! "${this_has_name}" \
