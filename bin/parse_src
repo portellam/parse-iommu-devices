@@ -856,7 +856,7 @@
 # - [ ] test combinations of options!
 # - [x] fixed vga-index
 # - [x] fixed host and pci
-# - [ ]
+# - [ ] vga-index and host and/or pci
 # - [ ]
 # - [ ]
 #
