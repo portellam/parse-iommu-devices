@@ -633,6 +633,26 @@
       hardware_id_list=""
     done
 
+    OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
+
+    if "${has_many_host_match}"; then
+      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${has_many_pci_match}"; then
+      OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if ! "${has_many_host_match}" \
+      && ! "${has_many_pci_match}"; then
+      OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
+    fi
+
+    if "${has_some_vga_match}"; then
+      (( vga_group_index++ ))
+      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
+    fi
+
     if "${has_some_vfio_match}"; then
       has_many_selected=false
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
@@ -656,26 +676,6 @@
         ); then
         has_many_selected=false
       fi
-    fi
-
-    OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
-
-    if "${has_many_host_match}"; then
-      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_many_pci_match}"; then
-      OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if ! "${has_many_host_match}" \
-      && ! "${has_many_pci_match}"; then
-      OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${has_some_vga_match}"; then
-      (( vga_group_index++ ))
-      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
     fi
 
     if "${has_many_selected}"; then
