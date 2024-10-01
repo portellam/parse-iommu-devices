@@ -594,6 +594,7 @@
     local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
     local driver_list=""
     local hardware_id_list=""
+    local has_some_both_match=false
     local has_many_host_match=true
     local has_many_pci_match=true
     local has_many_selected=true
@@ -636,6 +637,16 @@
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
+    if ( \
+        "${has_many_host_match}" \
+        && "${has_many_pci_match}" \
+      ) || ( \
+        ! "${has_many_host_match}" \
+        && ! "${has_many_pci_match}" \
+      ); then
+      has_some_both_match=true
+    fi
+
     if "${has_many_host_match}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
@@ -644,9 +655,16 @@
       OUTPUTS["FOUND_PCI_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if ! "${has_many_host_match}" \
-      && ! "${has_many_pci_match}"; then
+    if "${has_some_both_match}"; then
       OUTPUTS["FOUND_HOST_AND_PCI_GROUP_ID_LIST"]+="${1},"
+
+      if "${INPUTS["MATCH_HOST"]}"; then
+        has_many_selected=true
+      fi
+
+      if "${INPUTS["MATCH_PCI"]}"; then
+        has_many_selected=true
+      fi
     fi
 
     if "${has_some_vga_match}"; then
@@ -833,3 +851,12 @@
 
     return 0
   }
+
+#
+# - [ ] test combinations of options!
+# - [x] fixed vga-index
+# - [x] fixed host and pci
+# - [ ]
+# - [ ]
+# - [ ]
+#
