@@ -47,6 +47,21 @@
     return 2
   }
 
+  function get_inverse_boolean
+  {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    if true; then
+      echo "false"
+    else
+      echo "true"
+    fi
+
+    return 0
+  }
+
   function insert_value
   {
     if ! is_enum "${1}" \
