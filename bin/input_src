@@ -182,7 +182,7 @@
   {
     while $( is_argument_or_empty_string "${1}" ); do
       case "${1}" in
-        "-g" | "--group" )
+        "-g" | "--group" | "--groups" )
           INPUTS["MATCH_GROUPS"]=true
           shift
 
@@ -198,11 +198,11 @@
           fi
           ;;
 
-        "-H" | "--host" )
+        "-H" | "--host" | "--hosts" )
           INPUTS["MATCH_HOST"]=true
           ;;
 
-        "--ignore-group" )
+        "--ignore-group" | "--ignore-groups" )
           INPUTS["UNMATCH_GROUPS"]=true
           shift
 
@@ -218,7 +218,7 @@
           fi
           ;;
 
-        "--ignore-name" )
+        "--ignore-name" | "--ignore-names" )
           INPUTS["UNMATCH_NAME"]=true
           shift
 
@@ -229,7 +229,7 @@
           INPUTS["NAMES_UNMATCH_LIST"]="${1}"
           ;;
 
-        "--ignore-type" )
+        "--ignore-type" | "--ignore-types" )
           INPUTS["UNMATCH_TYPE"]=true
           shift
 
@@ -240,7 +240,7 @@
           INPUTS["TYPES_UNMATCH_LIST"]="${1}"
           ;;
 
-        "--ignore-vendor" )
+        "--ignore-vendor" | "--ignore-vendors" )
           INPUTS["UNMATCH_VENDOR"]=true
           shift
 
@@ -251,7 +251,7 @@
           INPUTS["VENDORS_UNMATCH_LIST"]="${1}"
           ;;
 
-        "-n" | "--name" )
+        "-n" | "--name" | "--names" )
           INPUTS["MATCH_NAME"]=true
           shift
 
@@ -266,7 +266,7 @@
           INPUTS["MATCH_PCI"]=true
           ;;
 
-        "-t" | "--type" )
+        "-t" | "--type" | "--types" )
           INPUTS["MATCH_TYPE"]=true
           shift
 
@@ -277,7 +277,7 @@
           INPUTS["TYPES_MATCH_LIST"]="${1}"
           ;;
 
-        "-V" | "--vendor" )
+        "-V" | "--vendor" | "--vendors" )
           INPUTS["MATCH_VENDOR"]=true
           shift
 
@@ -298,7 +298,7 @@
           INPUTS["MORE_VERBOSE"]=true
           ;;
 
-        "--vga-index" )
+        "--vga-index" | "--vga-indexes" )
           INPUTS["MATCH_VGA"]=true
           shift
 
