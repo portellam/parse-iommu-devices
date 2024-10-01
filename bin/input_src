@@ -60,7 +60,7 @@
     ["MATCH_HOST"]=false
     ["MATCH_NAME"]=false
     ["MATCH_PCI"]=false
-    ["MATCH_VGA_GROUP_INDEX"]=false
+    ["MATCH_VGA"]=false
     ["MATCH_TYPE"]=false
     ["MATCH_VENDOR"]=false
     ["NAMES_MATCH_LIST"]=""
@@ -299,7 +299,7 @@
           ;;
 
         "--vga-index" )
-          INPUTS["MATCH_VGA_GROUP_INDEX"]=true
+          INPUTS["MATCH_VGA"]=true
           shift
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
@@ -447,27 +447,6 @@
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "Show all output."
-
-    # echo -en "  -q, --quiet               "
-
-    # wrap_text \
-    #   false \
-    #   false \
-    #   true \
-    #   "${column_prefix_count}" \
-    #   "${COLUMN_SIZE}" \
-    #   "Quiet most output except for IOMMU groups output, and lists of device drivers"\
-    #     "and hardware IDs."
-
-    # echo -en "  -qq, --very-quiet         "
-
-    # wrap_text \
-    #   false \
-    #   false \
-    #   true \
-    #   "${column_prefix_count}" \
-    #   "${COLUMN_SIZE}" \
-    #   "Quiet all output except for lists of device drivers and hardware IDs."
 
     echo -en "  -g, --group=GROUPS        "
 
