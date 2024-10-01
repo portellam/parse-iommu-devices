@@ -673,9 +673,13 @@
 
     #
     # TODO:
-    # - [ ] order of operations for input parameters, set priorirty of match/unmatch flag.
+    # - [x] order of operations for input parameters, set priorirty of match/unmatch flag.
     # - [ ] toggle true/false for do_select_abc parameters given match/unmatch flag priority.
-    #
+    # - [ ] use ordered inputs list to run match and unmatch checks upon selection.
+    #   - if "--group all" is set first,
+    #     and then "--ignore-group 1,2,3,4,5" is set second,
+    #     and then "--vga-index 1" is set last (and the first VGA IOMMU group is "2"),
+    #     the selected IOMMU groups should be: 0,2, and 6 to max.
     #
 
     local do_select=false
@@ -697,7 +701,6 @@
     local some_have_vga_group_index=false
 
     local some_have_no_groups=false
-
 
     bus_id_list="$( \
       echo \
