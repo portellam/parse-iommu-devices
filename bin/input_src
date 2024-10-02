@@ -293,17 +293,13 @@
           ;;
 
         "-v" | "--verbose" )
+          INPUTS["VERBOSE"]=true
           INPUTS["MORE_VERBOSE"]=false
-          this_input_list=( "VERBOSE" )
           ;;
 
         "-vv" )
-          this_input_list="MATCH_VGA"
-
-          this_input_list=( \
-            "VERBOSE"
-            "MORE_VERBOSE"
-          )
+          INPUTS["VERBOSE"]=true
+          INPUTS["MORE_VERBOSE"]=true
           ;;
 
         "--vga-index" | "--vga-indexes" )
