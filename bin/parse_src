@@ -428,6 +428,85 @@
     return 0
   }
 
+  function parse_this_match_by_order
+  {
+    case "${1}" in
+      "MATCH_GROUPS" )
+        echo "${some_have_groups}"
+        ;;
+
+      "MATCH_HOST" )
+        echo "${do_select_vga_group_index}"
+        ;;
+
+      "MATCH_NAME" )
+        echo "${do_select_name}"
+        ;;
+
+      "MATCH_PCI" )
+        echo "${do_select_vga_group_index}"
+        ;;
+
+      "MATCH_TYPE" )
+        echo "${do_select_type}"
+        ;;
+
+      "MATCH_VENDOR" )
+        echo "${do_select_vendor}"
+        ;;
+
+      "MATCH_VGA" )
+        echo "${do_select_vga_group_index}"
+        ;;
+
+      "UNMATCH_GROUPS" )
+        echo "${some_have_no_groups}"
+        ;;
+
+      "UNMATCH_NAME" )
+        echo "${do_select_name}"
+        ;;
+
+      "UNMATCH_TYPE" )
+        echo "${do_select_type}"
+        ;;
+
+      "UNMATCH_VENDOR" )
+        echo "${do_select_vendor}"
+        ;;
+
+      * )
+        return 1
+        ;;
+      esac
+
+      return 0
+  }
+
+  function parse_some_matches_by_order
+  {
+    is_matched_word \
+      "some_have_groups" \
+      "INPUTS" \
+      "MATCH_GROUPS" \
+      "GROUPS_MATCH_LIST" \
+      "${1}"
+
+    is_matched_word \
+      "some_have_no_groups" \
+      "INPUTS" \
+      "UNMATCH_GROUPS" \
+      "GROUPS_UNMATCH_LIST" \
+      "${1}"
+
+    for input in "${ORDERED_INPUTS[@]}"; do
+      do_select="$( \
+        parse_this_match_by_order \
+          "${input}" \
+      )"
+    done
+  }
+
   function parse_src_main
   {
     local -a group_output=()
@@ -698,7 +777,6 @@
     local some_have_vendor=false
     local some_have_vfio=false
     local some_have_vga=false
-    local some_have_vga_group_index=false
 
     local some_have_no_groups=false
 
@@ -718,14 +796,7 @@
       done
     done
 
-    if "${do_select_host}" \
-      || "${do_select_name}" \
-      || "${do_select_pci}" \
-      || "${do_select_type}" \
-      || "${do_select_vendor}" \
-      || "${do_select_vga_group_index}"; then
-      do_select=true
-    fi
+    parse_some_matches_by_order "${1}"
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
@@ -749,34 +820,9 @@
       OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
     fi
 
-    is_matched_word \
-      "some_have_groups" \
-      "INPUTS" \
-      "MATCH_GROUPS" \
-      "GROUPS_MATCH_LIST" \
-      "${1}"
-
-    is_matched_word \
-      "some_have_no_groups" \
-      "INPUTS" \
-      "UNMATCH_GROUPS" \
-      "GROUPS_UNMATCH_LIST" \
-      "${1}"
-
     if "${some_have_vfio}"; then
       do_select=false
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
-
-    elif "${some_have_groups}" \
-      || ! "${some_have_no_groups}" \
-      || "${some_have_name}" \
-      || "${some_have_type}" \
-      || "${some_have_vendor}" \
-      || "${some_have_vga_group_index}"; then
-      do_select=true
-
-    else
-      do_select=false
     fi
 
     if "${do_select}"; then
@@ -960,12 +1006,9 @@
       some_have_vga=true
     fi
 
-    if "${this_has_vga_group_index}"; then
-      some_have_vga_group_index=true
-
-      if "${INPUTS["MATCH_VGA"]}"; then
-        do_select_vga_group_index=true
-      fi
+    if "${this_has_vga_group_index}" \
+      && "${INPUTS["MATCH_VGA"]}"; then
+      do_select_vga_group_index=true
     fi
 
     return 0
