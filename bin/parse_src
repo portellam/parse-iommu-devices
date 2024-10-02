@@ -428,61 +428,6 @@
     return 0
   }
 
-  function parse_this_match_by_order
-  {
-    case "${1}" in
-      "MATCH_GROUPS" )
-        echo "${some_have_groups}"
-        ;;
-
-      "MATCH_HOST" )
-        echo "${do_select_vga_group_index}"
-        ;;
-
-      "MATCH_NAME" )
-        echo "${do_select_name}"
-        ;;
-
-      "MATCH_PCI" )
-        echo "${do_select_vga_group_index}"
-        ;;
-
-      "MATCH_TYPE" )
-        echo "${do_select_type}"
-        ;;
-
-      "MATCH_VENDOR" )
-        echo "${do_select_vendor}"
-        ;;
-
-      "MATCH_VGA" )
-        echo "${do_select_vga_group_index}"
-        ;;
-
-      "UNMATCH_GROUPS" )
-        echo "${some_have_no_groups}"
-        ;;
-
-      "UNMATCH_NAME" )
-        echo "${do_select_name}"
-        ;;
-
-      "UNMATCH_TYPE" )
-        echo "${do_select_type}"
-        ;;
-
-      "UNMATCH_VENDOR" )
-        echo "${do_select_vendor}"
-        ;;
-
-      * )
-        return 1
-        ;;
-      esac
-
-      return 0
-  }
-
   function parse_some_matches_by_order
   {
     is_matched_word \
@@ -500,11 +445,72 @@
       "${1}"
 
     for input in "${ORDERED_INPUTS[@]}"; do
-      do_select="$( \
-        parse_this_match_by_order \
-          "${input}" \
-      )"
+      echo "\$input == '$input'"
+      parse_this_match_by_order "${input}"
     done
+  }
+
+  function parse_this_match_by_order
+  {
+    case "${1}" in
+      "MATCH_GROUPS" )
+        do_select="${some_have_groups}"
+        ;;
+
+      "MATCH_HOST" )
+        do_select="${do_select_host}"
+        ;;
+
+      "MATCH_NAME" | "UNMATCH_NAME" )
+        do_select="${do_select_name}"
+        ;;
+
+      "MATCH_PCI" )
+        do_select="${do_select_pci}"
+        ;;
+
+      "MATCH_TYPE" | "UNMATCH_TYPE" )
+        do_select="${do_select_type}"
+        ;;
+
+      "MATCH_VENDOR" | "UNMATCH_VENDOR" )
+        do_select="${do_select_vendor}"
+        ;;
+
+      "MATCH_VGA" )
+        do_select="${do_select_vga_group_index}"
+        ;;
+
+      "UNMATCH_GROUPS" )
+        do_select="${some_have_no_groups}"
+        ;;
+
+      * )
+        return 1
+        ;;
+      esac
+
+      return 0
+  }
+
+  function set_do_select_first_time
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    if [[ "${1}" =~ "UNMATCH" ]]; then
+      do_select=false
+
+    elif [[ "${1}" =~ "MATCH" ]] \
+      && ! [[ "${1}" =~ "UNMATCH" ]]; then
+      do_select=true
+
+    else
+      return 1
+    fi
+
+    return 0
   }
 
   function parse_src_main
@@ -761,6 +767,8 @@
     #     the selected IOMMU groups should be: 0,2, and 6 to max.
     #
 
+    # set default do_select if
+
     local do_select=false
     local do_select_host=false
     local do_select_pci=false
@@ -779,6 +787,8 @@
     local some_have_vga=false
 
     local some_have_no_groups=false
+
+    set_do_select_first_time "${ORDERED_INPUTS[0]}"
 
     bus_id_list="$( \
       echo \
