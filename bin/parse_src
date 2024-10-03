@@ -524,7 +524,7 @@
       "${message}" \
       "${INPUTS["VERBOSE"]}"
 
-    if ! verify_all_groups_matches; then
+    if ! verify_many_groups_matches; then
       print_and_log_output \
         "${message} Failed." \
         "${INPUTS["VERBOSE"]}"
@@ -704,12 +704,104 @@
       "${7}"
   }
 
-  function verify_all_groups_matches
+  function verify_some_devices_matches
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    if ! is_string "${2}"; then
+      return 1
+    fi
+
+    local some_have_match=true
+
+    for bus_id_delim in "${bus_id_list[@]}"; do
+      local bus_id_delim="$( \
+        echo -e "${bus_id_delim//,/\\n}" \
+      )"
+
+      for bus_id in "${bus_id_delim[@]}"; do
+        verify_this_device_match \
+          "${bus_id}" \
+          "${2}" \
+          "${3}"
+      done
+    done
+
+    local -r vfio_driver_list="pcie-stub,vfio-pcie"
+
+    is_matched_keyword \
+      "${this_has_match}" \
+      "${vfio_driver_list}" \
+      "${4}"
+
+    if "${this_has_match}"; then
+      some_have_match=true
+    fi
+
+    if "${this_has_unmatch}"; then
+      some_have_match=false
+    fi
+
+    if "${some_have_match}"; then
+      some_have_match_list+=( "${1}" )
+    else
+      some_have_unmatch_list+=( "${1}" )
+    fi
+
+    return 0
+  }
+
+  function verify_this_device_match
+  {
+    if ! is_string "${1}" \
+      || ! is_string "${2}"; then
+      return 1
+    fi
+
+    local this_has_match=false
+    local this_has_unmatch=false
+
+    verify_this_device_match_get_match_or_unmatch \
+      "${2}" \
+      "${3}"
+
+    return 0
+  }
+
+  function verify_this_device_match_get_match_or_unmatch
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local this_has_reference=""
+    local match_list_reference=""
+
+    get_input_match_or_unmatch \
+      "${1}"
+
+    get_match_list_by_match_input \
+      "match_list_reference" \
+      "${1}"
+
+    is_matched_keyword \
+      "${this_has_reference}" \
+      "INPUTS" \
+      "${1}" \
+      "${match_list_reference}" \
+      "${2}"
+
+    return 0
+  }
+
+  function verify_many_groups_matches
   {
     local driver_list=""
     local hardware_id_list=""
 
-    verify_many_groups_matches
+    verify_some_groups_matches
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
@@ -774,7 +866,7 @@
     return 0
   }
 
-  function verify_many_groups_matches
+  function verify_some_groups_matches
   {
     if ! is_string "${1}"; then
       return 1
@@ -794,7 +886,7 @@
           --version-sort
       )"
 
-      verify_this_groups_matches \
+      verify_this_group_match \
         "${iommu_group_id}"
 
       append_many_device_info_to_output \
@@ -802,7 +894,7 @@
     done
   }
 
-  function verify_this_groups_matches
+  function verify_this_group_match
   {
     if ! is_positive_integer "${1}"; then
       return 1
@@ -824,98 +916,6 @@
         "${type}" \
         "${driver}"
     done
-
-    return 0
-  }
-
-  function verify_some_devices_matches
-  {
-    if ! is_positive_integer "${1}"; then
-      return 1
-    fi
-
-    if ! is_string "${2}"; then
-      return 1
-    fi
-
-    local some_have_match=true
-
-    for bus_id_delim in "${bus_id_list[@]}"; do
-      local bus_id_delim="$( \
-        echo -e "${bus_id_delim//,/\\n}" \
-      )"
-
-      for bus_id in "${bus_id_delim[@]}"; do
-        verify_this_group_match \
-          "${bus_id}" \
-          "${2}" \
-          "${3}"
-      done
-    done
-
-    local -r vfio_driver_list="pcie-stub,vfio-pcie"
-
-    is_matched_keyword \
-      "${this_has_match}" \
-      "${vfio_driver_list}" \
-      "${4}"
-
-    if "${this_has_match}"; then
-      some_have_match=true
-    fi
-
-    if "${this_has_unmatch}"; then
-      some_have_match=false
-    fi
-
-    if "${some_have_match}"; then
-      some_have_match_list+=( "${1}" )
-    else
-      some_have_unmatch_list+=( "${1}" )
-    fi
-
-    return 0
-  }
-
-  function verify_this_group_match
-  {
-    if ! is_string "${1}" \
-      || ! is_string "${2}"; then
-      return 1
-    fi
-
-    local this_has_match=false
-    local this_has_unmatch=false
-
-    verify_this_group_match_get_match_or_unmatch \
-      "${2}" \
-      "${3}"
-
-    return 0
-  }
-
-  function verify_this_group_match_get_match_or_unmatch
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    local this_has_reference=""
-    local match_list_reference=""
-
-    get_input_match_or_unmatch \
-      "${1}"
-
-    get_match_list_by_match_input \
-      "match_list_reference" \
-      "${1}"
-
-    is_matched_keyword \
-      "${this_has_reference}" \
-      "INPUTS" \
-      "${1}" \
-      "${match_list_reference}" \
-      "${2}"
 
     return 0
   }
