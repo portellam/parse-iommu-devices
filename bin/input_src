@@ -95,6 +95,85 @@
 #
 # logic
 #
+  function get_comma_list_of_iommu_group_ids
+  {
+    seq "${MIN_IOMMU_VALUE}" "${MAX_IOMMU_GROUP_ID}" \
+      | tr '\n' ',' \
+      | sed 's:,*$::'
+
+    echo
+  }
+
+  function get_match_list_by_match_input
+  {
+    if ! is_variable "${1}"; then
+      return 1
+    fi
+
+    local -n reference_get_match_list_by_match_input="${1}"
+
+    case "${1}" in
+      "MATCH_GROUPS" )
+        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
+        ;;
+
+      "MATCH_MAKE" )
+        reference_get_match_list_by_match_input="MATCH_MAKE_LIST"
+        ;;
+
+      "MATCH_NAME" )
+        reference_get_match_list_by_match_input="MATCH_NAME_LIST"
+        ;;
+
+      "MATCH_TYPE" )
+        reference_get_match_list_by_match_input="MATCH_TYPE_LIST"
+        ;;
+
+      "MATCH_VGA" )
+        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
+        ;;
+
+      "UNMATCH_GROUPS" )
+        reference_get_match_list_by_match_input="UNMATCH_GROUP_LIST"
+        ;;
+
+      "UNMATCH_MAKE" )
+        reference_get_match_list_by_match_input="UNMATCH_MAKE_LIST"
+        ;;
+
+      "UNMATCH_NAME" )
+        reference_get_match_list_by_match_input="UNMATCH_NAME_LIST"
+        ;;
+
+      "UNMATCH_TYPE" )
+        reference_get_match_list_by_match_input="UNMATCH_TYPE_LIST"
+        ;;
+    esac
+
+    return 0
+  }
+
+  function get_input_match_or_unmatch
+  {
+    if ! is_variable "${1}"; then
+      return 1
+    fi
+
+    local -n reference_get_input_match_or_unmatch="${1}"
+
+    case "${1}" in
+      "MATCH"* )
+        reference_get_input_match_or_unmatch="this_has_match"
+        ;;
+
+      "UNMATCH"* )
+        reference_get_input_match_or_unmatch="this_has_unmatch"
+        ;;
+    esac
+
+    return 0
+  }
+
   function is_argument_or_empty_string
   {
     if ! is_string "${1}"; then
@@ -167,64 +246,6 @@
     if ! parse_this_argument "${@}"; then
       return 1
     fi
-
-    return 0
-  }
-
-  function get_comma_list_of_iommu_group_ids
-  {
-    seq "${MIN_IOMMU_VALUE}" "${MAX_IOMMU_GROUP_ID}" \
-      | tr '\n' ',' \
-      | sed 's:,*$::'
-
-    echo
-  }
-
-  function get_match_list_by_match_input
-  {
-    if ! is_variable "${1}"; then
-      return 1
-    fi
-
-    local -n reference_get_match_list_by_match_input="${1}"
-
-    case "${1}" in
-      "MATCH_GROUPS" )
-        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
-        ;;
-
-      "MATCH_MAKE" )
-        reference_get_match_list_by_match_input="MATCH_MAKE_LIST"
-        ;;
-
-      "MATCH_NAME" )
-        reference_get_match_list_by_match_input="MATCH_NAME_LIST"
-        ;;
-
-      "MATCH_TYPE" )
-        reference_get_match_list_by_match_input="MATCH_TYPE_LIST"
-        ;;
-
-      "MATCH_VGA" )
-        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
-        ;;
-
-      "UNMATCH_GROUPS" )
-        reference_get_match_list_by_match_input="UNMATCH_GROUP_LIST"
-        ;;
-
-      "UNMATCH_MAKE" )
-        reference_get_match_list_by_match_input="UNMATCH_MAKE_LIST"
-        ;;
-
-      "UNMATCH_NAME" )
-        reference_get_match_list_by_match_input="UNMATCH_NAME_LIST"
-        ;;
-
-      "UNMATCH_TYPE" )
-        reference_get_match_list_by_match_input="UNMATCH_TYPE_LIST"
-        ;;
-    esac
 
     return 0
   }

@@ -99,6 +99,8 @@
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
+  declare -gr VGA_TYPE_LIST="graphics,vga,video"
+
 #
 # sources (2/2)
 #
@@ -690,6 +692,9 @@
       "MATCH_TYPE" )
         value_to_match="${6}"
         ;;
+
+      "MATCH_VGA" )
+        value_to_match="${VGA_TYPE_LIST}"
     esac
 
     verify_some_devices_matches \
@@ -771,8 +776,15 @@
 
   function verify_many_groups_matches
   {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -ir min_vga_group_index=1
+    local -i vga_group_index="${min_vga_group_index}"
+
     for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
-      local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+      local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
 
       bus_id_list="$( \
         echo \
@@ -792,6 +804,10 @@
 
   function verify_this_groups_matches
   {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
     local hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
     local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
     local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
@@ -822,17 +838,6 @@
       return 1
     fi
 
-    if ! is_string "${3}"; then
-      return 1
-    fi
-
-    if ! is_string "${4}"; then
-      return 1
-    fi
-
-    local -ir min_vga_group_index=1
-    local -i vga_group_index="${min_vga_group_index}"
-
     local some_have_match=true
 
     for bus_id_delim in "${bus_id_list[@]}"; do
@@ -843,19 +848,17 @@
       for bus_id in "${bus_id_delim[@]}"; do
         verify_this_group_match \
           "${bus_id}" \
-          "${2}"
+          "${2}" \
+          "${3}"
       done
     done
 
     local -r vfio_driver_list="pcie-stub,vfio-pcie"
 
-    #TODO: move this.
-    local -r vga_type_list="graphics,vga,video"
-
     is_matched_keyword \
       "${this_has_match}" \
       "${vfio_driver_list}" \
-      "${3}"
+      "${4}"
 
     if "${this_has_match}"; then
       some_have_match=true
@@ -876,17 +879,13 @@
 
   function verify_this_group_match
   {
-    if ! is_string "${1}"; then
+    if ! is_string "${1}" \
+      || ! is_string "${2}"; then
       return 1
     fi
 
     local this_has_match=false
     local this_has_unmatch=false
-
-    verify_this_group_match_is_this_host_or_pcie \
-      "${1}"
-
-    verify_this_host_or_pcie_group_match
 
     verify_this_group_match_get_match_or_unmatch \
       "${2}" \
@@ -895,26 +894,16 @@
     return 0
   }
 
-  function verify_this_host_or_pcie_group_match
-  {
-    if "${INPUTS["MATCH_HOST"]}"; then
-      this_has_match="${this_has_host}"
-    fi
-
-    if "${INPUTS["MATCH_PCIE"]}"; then
-      this_has_match="${this_has_pcie}"
-    fi
-
-    return 0
-  }
-
   function verify_this_group_match_get_match_or_unmatch
   {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
     local this_has_reference=""
     local match_list_reference=""
-    local echo ""
 
-    verify_this_group_match_set_this_has_reference \
+    get_input_match_or_unmatch \
       "${1}"
 
     get_match_list_by_match_input \
@@ -927,42 +916,6 @@
       "${1}" \
       "${match_list_reference}" \
       "${2}"
-
-    return 0
-  }
-
-  function verify_this_group_match_is_this_host_or_pcie
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    local -r this_bus_id="${1::2}"
-    local -r internal_bus_id="00"
-
-    if [[ "${this_bus_id}" == "${internal_bus_id}" ]]; then
-      this_has_host=true
-      this_has_pcie=false
-
-    else
-      this_has_host=false
-      this_has_pcie=true
-    fi
-
-    return 0
-  }
-
-  function verify_this_group_match_set_this_has_reference
-  {
-    case "${1}" in
-      "MATCH"* )
-        this_has_reference="this_has_match"
-        ;;
-
-      "UNMATCH"* )
-        this_has_reference="this_has_unmatch"
-        ;;
-    esac
 
     return 0
   }
