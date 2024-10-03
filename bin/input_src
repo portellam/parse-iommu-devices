@@ -59,16 +59,16 @@
     ["MATCH_GROUPS"]=false
     ["MATCH_HOST"]=false
     ["MATCH_NAME"]=false
-    ["MATCH_PCI"]=false
+    ["MATCH_PCIE"]=false
     ["MATCH_VGA"]=false
     ["MATCH_TYPE"]=false
-    ["MATCH_VENDOR"]=false
+    ["MATCH_MAKE"]=false
     ["NAMES_MATCH_LIST"]=""
     ["NAMES_UNMATCH_LIST"]=""
     ["UNMATCH_GROUPS"]=false
     ["UNMATCH_NAME"]=false
     ["UNMATCH_TYPE"]=false
-    ["UNMATCH_VENDOR"]=false
+    ["UNMATCH_MAKE"]=false
     ["TYPES_MATCH_LIST"]=""
     ["TYPES_UNMATCH_LIST"]=""
     ["READ_XML"]=false
@@ -76,12 +76,12 @@
     ["MORE_VERBOSE"]=false
     ["WRITE_XML"]=false
     ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
-    ["VENDORS_MATCH_LIST"]=""
-    ["VENDORS_UNMATCH_LIST"]=""
+    ["MAKES_MATCH_LIST"]=""
+    ["MAKES_UNMATCH_LIST"]=""
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
   )
 
-  declare -ga ORDERED_INPUTS
+  declare -ga ORDERED_INPUT_LIST
 
 #
 # sources (2/2)
@@ -180,6 +180,55 @@
     echo
   }
 
+  function get_match_list_by_match_input
+  {
+    if ! is_variable "${1}"; then
+      return 1
+    fi
+
+    local -n reference_get_match_list_by_match_input="${1}"
+
+    case "${1}" in
+      "MATCH_GROUPS" )
+        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
+        ;;
+
+      "MATCH_MAKE" )
+        reference_get_match_list_by_match_input="MATCH_MAKE_LIST"
+        ;;
+
+      "MATCH_NAME" )
+        reference_get_match_list_by_match_input="MATCH_NAME_LIST"
+        ;;
+
+      "MATCH_TYPE" )
+        reference_get_match_list_by_match_input="MATCH_TYPE_LIST"
+        ;;
+
+      "MATCH_VGA" )
+        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
+        ;;
+
+      "UNMATCH_GROUPS" )
+        reference_get_match_list_by_match_input="UNMATCH_GROUP_LIST"
+        ;;
+
+      "UNMATCH_MAKE" )
+        reference_get_match_list_by_match_input="UNMATCH_MAKE_LIST"
+        ;;
+
+      "UNMATCH_NAME" )
+        reference_get_match_list_by_match_input="UNMATCH_NAME_LIST"
+        ;;
+
+      "UNMATCH_TYPE" )
+        reference_get_match_list_by_match_input="UNMATCH_TYPE_LIST"
+        ;;
+    esac
+
+    return 0
+  }
+
   function parse_this_argument
   {
     while $( is_argument_or_empty_string "${1}" ); do
@@ -245,14 +294,14 @@
           ;;
 
         "--ignore-vendor" | "--ignore-vendors" )
-          this_input_list=( "UNMATCH_VENDOR" )
+          this_input_list=( "UNMATCH_MAKE" )
           shift
 
           if ! is_string "${1}"; then
             print_invalid_option "${1}"
           fi
 
-          INPUTS["VENDORS_UNMATCH_LIST"]="${1}"
+          INPUTS["MAKES_UNMATCH_LIST"]="${1}"
           ;;
 
         "-n" | "--name" | "--names" )
@@ -267,7 +316,7 @@
           ;;
 
         "-p" | "--pci" | "--pcie" )
-          this_input_list=( "MATCH_PCI" )
+          this_input_list=( "MATCH_PCIE" )
           ;;
 
         "-t" | "--type" | "--types" )
@@ -282,14 +331,14 @@
           ;;
 
         "-V" | "--vendor" | "--vendors" )
-          this_input_list=( "MATCH_VENDOR" )
+          this_input_list=( "MATCH_MAKE" )
           shift
 
           if ! is_string "${1}"; then
             print_invalid_option "${1}"
           fi
 
-          INPUTS["VENDORS_MATCH_LIST"]="${1}"
+          INPUTS["MAKES_MATCH_LIST"]="${1}"
           ;;
 
         "-v" | "--verbose" )
@@ -357,7 +406,7 @@
 
       for this_input in "${this_input_list[@]}"; do
         INPUTS["${this_input}"]=true
-        ORDERED_INPUTS+=( "${this_input}" )
+        ORDERED_INPUT_LIST+=( "${this_input}" )
       done
 
       shift
