@@ -115,14 +115,40 @@
 #
 # logic
 #
-  function append_many_device_info_to_output
+  function parse_src_main
+  {
+    local -a group_output=()
+    local -r message="Parsing hardware devices..."
+
+    print_and_log_output \
+      "${message}" \
+      "${INPUTS["VERBOSE"]}"
+
+    if ! parse_many_groups_matches; then
+      print_and_log_output \
+        "${message} Failed." \
+        "${INPUTS["VERBOSE"]}"
+
+      return 1
+    fi
+
+    print_and_log_output \
+      "${message} Successful.\n" \
+      "${INPUTS["VERBOSE"]}"
+
+    sort_output_lists
+    print_output_lists
+    return 0
+  }
+
+  function append_many_device_info_to_output_lists
   {
     local -i device_index=1
     group_output+=( "IOMMU Group ${1}:" )
 
     for bus_id_delim in "${bus_id_list[@]}"; do
       for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
-        append_this_device_info_to_output "${bus_id}"
+        append_this_device_info_to_output_lists "${bus_id}"
       done
     done
 
@@ -164,7 +190,7 @@
     fi
   }
 
-  function append_this_device_info_to_output
+  function append_this_device_info_to_output_lists
   {
     if ! is_verbose; then
       return 0
@@ -488,177 +514,7 @@
     return 0
   }
 
-  function does_flag_precede_another
-  {
-    if ! is_string "${1}" \
-      || ! is_string "${2}"; then
-      return 2
-    fi
-
-    local -i first_flag_key=0
-    local -i second_flag_key=0
-
-    is_matched_word \
-      "INPUTS" \
-      "first_flag_key" \
-      "${1}"
-
-    is_matched_word \
-      "INPUTS" \
-      "first_flag_key" \
-      "${2}"
-
-    if [[ "${first_flag_key}" -ge "${second_flag_key}" ]]; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function parse_src_main
-  {
-    local -a group_output=()
-    local -r message="Parsing hardware devices..."
-
-    print_and_log_output \
-      "${message}" \
-      "${INPUTS["VERBOSE"]}"
-
-    if ! verify_many_groups_matches; then
-      print_and_log_output \
-        "${message} Failed." \
-        "${INPUTS["VERBOSE"]}"
-
-      return 1
-    fi
-
-    print_and_log_output \
-      "${message} Successful.\n" \
-      "${INPUTS["VERBOSE"]}"
-
-    sort_lists
-    print_groups_output
-    return 0
-  }
-
-  function print_groups_output
-  {
-    if ! is_verbose; then
-      if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
-        return 0
-      fi
-
-      print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
-      print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
-      return 0
-    fi
-
-    if is_verbose_doubled; then
-      for line in "${group_output[@]}"; do
-        print_and_log_output "${line}"
-      done
-    fi
-
-    set_null_value_to_lists_if_empty
-
-    # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Found Groups with only Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Found Groups with only PCIEe device(s):\n${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Found Groups with Host/PCIEe device(s):\n${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Found Groups with VFIO device(s):\n${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}\n"
-
-    #
-    # NOTE: Print hardware IDs first, as this value is never null, but drivers
-    #       may be. Should a user rely on the output as input, the user may only
-    #       have to validate if $2 is null or not. Otherwise, the user would have
-    #       to validate by regex, which is not nice.
-    #
-
-    print_and_log_output \
-      "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}\n"
-
-    print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}"
-    return 0
-  }
-
-  function set_null_value_to_lists_if_empty
-  {
-    if ! is_string "${OUTPUTS["FOUND_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"; then
-      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
-      OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["SELECTED_DRIVER_LIST"]}"; then
-      OUTPUTS["SELECTED_DRIVER_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
-      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    if ! is_string "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"; then
-      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
-    return 0
-  }
-
-  function sort_lists
-  {
-    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
-      sort_comma_delimited_list \
-        "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
-    )"
-
-    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
-      sort_comma_delimited_list \
-        "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
-    )"
-
-    return 0
-  }
-
-  function verify_many_devices_matches
+  function parse_many_devices_matches
   {
     if ! is_positive_integer "${1}" \
       || ! is_string "${2}" \
@@ -697,14 +553,14 @@
         value_to_match="${VGA_TYPE_LIST}"
     esac
 
-    verify_some_devices_matches \
+    parse_some_devices_matches \
       "${1}" \
       "${2}" \
       "${value_to_match}" \
       "${7}"
   }
 
-  function verify_some_devices_matches
+  function parse_some_devices_matches
   {
     if ! is_positive_integer "${1}"; then
       return 1
@@ -722,7 +578,7 @@
       )"
 
       for bus_id in "${bus_id_delim[@]}"; do
-        verify_this_device_match \
+        parse_this_device_match \
           "${bus_id}" \
           "${2}" \
           "${3}"
@@ -753,7 +609,7 @@
     return 0
   }
 
-  function verify_this_device_match
+  function parse_this_device_match
   {
     if ! is_string "${1}" \
       || ! is_string "${2}"; then
@@ -763,14 +619,14 @@
     local this_has_match=false
     local this_has_unmatch=false
 
-    verify_this_device_match_get_match_or_unmatch \
+    parse_this_device_match_get_match_or_unmatch \
       "${2}" \
       "${3}"
 
     return 0
   }
 
-  function verify_this_device_match_get_match_or_unmatch
+  function parse_this_device_match_get_match_or_unmatch
   {
     if ! is_string "${1}"; then
       return 1
@@ -796,12 +652,12 @@
     return 0
   }
 
-  function verify_many_groups_matches
+  function parse_many_groups_matches
   {
     local driver_list=""
     local hardware_id_list=""
 
-    verify_some_groups_matches
+    parse_some_groups_matches
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
@@ -866,7 +722,7 @@
     return 0
   }
 
-  function verify_some_groups_matches
+  function parse_some_groups_matches
   {
     if ! is_string "${1}"; then
       return 1
@@ -886,15 +742,15 @@
           --version-sort
       )"
 
-      verify_this_group_match \
+      parse_this_group_match \
         "${iommu_group_id}"
 
-      append_many_device_info_to_output \
+      append_many_device_info_to_output_lists \
         "${iommu_group_id}"
     done
   }
 
-  function verify_this_group_match
+  function parse_this_group_match
   {
     if ! is_positive_integer "${1}"; then
       return 1
@@ -907,7 +763,7 @@
     local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
-      verify_many_devices_matches \
+      parse_many_devices_matches \
         "${1}" \
         "${input}" \
         "${bus_id}" \
@@ -916,6 +772,123 @@
         "${type}" \
         "${driver}"
     done
+
+    return 0
+  }
+
+  function print_output_lists
+  {
+    if ! is_verbose; then
+      if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
+        return 0
+      fi
+
+      print_and_log_output "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"
+      print_and_log_output "${OUTPUTS["SELECTED_DRIVER_LIST"]}"
+      return 0
+    fi
+
+    if is_verbose_doubled; then
+      for line in "${group_output[@]}"; do
+        print_and_log_output "${line}"
+      done
+    fi
+
+    set_null_value_to_empty_output_lists
+
+    # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with only Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with only PCIEe device(s):\n${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with Host/PCIEe device(s):\n${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Found Groups with VFIO device(s):\n${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Unselected Groups:\n${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}\n"
+
+    print_and_log_output \
+      "Selected Groups:\n${OUTPUTS["SELECTED_GROUP_ID_LIST"]}\n"
+
+    #
+    # NOTE: Print hardware IDs first, as this value is never null, but drivers
+    #       may be. Should a user rely on the output as input, the user may only
+    #       have to validate if $2 is null or not. Otherwise, the user would have
+    #       to validate by regex, which is not nice.
+    #
+
+    print_and_log_output \
+      "Selected Hardware IDs:\n${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}\n"
+
+    print_and_log_output "Selected Drivers:\n${OUTPUTS["SELECTED_DRIVER_LIST"]}"
+    return 0
+  }
+
+  function set_null_value_to_empty_output_lists
+  {
+    if ! is_string "${OUTPUTS["FOUND_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}"; then
+      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
+      OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_DRIVER_LIST"]}"; then
+      OUTPUTS["SELECTED_DRIVER_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
+      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}"; then
+      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
+    fi
+
+    return 0
+  }
+
+  function sort_output_lists
+  {
+    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
+    )"
 
     return 0
   }
