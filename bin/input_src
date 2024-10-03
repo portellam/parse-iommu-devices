@@ -192,6 +192,153 @@
     return 1
   }
 
+  function is_matched_keyword
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_matched="${1}"
+
+    if ! is_boolean "${reference_is_matched}"; then
+      return 2
+    fi
+
+    local do_match=false
+    local things_to_match=""
+    local has_dict=false
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    if is_dict "${2}"; then
+      has_dict=true
+      local -n is_matched_dict="${2}"
+      shift
+    fi
+
+    if "${has_dict}"; then
+      do_match="${is_matched_dict["${2}"]}"
+      things_to_match="${is_matched_dict["${3}"]}"
+
+      if ! is_boolean "${do_match}" \
+        || ! is_string "${things_to_match}"; then
+        return 2
+      fi
+
+    else
+      if ! is_boolean "${2}"; then
+        return 2
+      fi
+
+      do_match="${2}"
+
+      if ! is_string "${3}"; then
+        return 2
+      fi
+
+      things_to_match="${3}"
+      shift
+    fi
+
+    if "${reference_is_matched}" \
+      || ! "${do_match}"; then
+      return 0
+    fi
+
+    shift
+    shift
+    local things="$@"
+
+    for this_thing in $( \
+      echo "${things_to_match}" \
+        | sed "s/,/ /g"
+    ); do
+      if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
+        reference_is_matched=true
+        return 0
+      fi
+    done
+
+    reference_is_matched=false
+    return 1
+  }
+
+  function is_matched_word
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_matched="${1}"
+
+    if ! is_boolean "${reference_is_matched}"; then
+      return 2
+    fi
+
+    local do_match=false
+    local things_to_match=""
+    local has_dict=false
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    if is_dict "${2}"; then
+      has_dict=true
+      local -n is_matched_dict="${2}"
+      shift
+    fi
+
+    if "${has_dict}"; then
+      do_match="${is_matched_dict["${2}"]}"
+      things_to_match="${is_matched_dict["${3}"]}"
+
+      if ! is_boolean "${do_match}" \
+        || ! is_string "${things_to_match}"; then
+        return 2
+      fi
+
+    else
+      if ! is_boolean "${2}"; then
+        return 2
+      fi
+
+      do_match="${2}"
+
+      if ! is_string "${3}"; then
+        return 2
+      fi
+
+      things_to_match="${3}"
+      shift
+    fi
+
+    if "${reference_is_matched}" \
+      || ! "${do_match}"; then
+      return 0
+    fi
+
+    shift
+    shift
+    shift
+    local things="$@"
+
+    for this_thing in $( \
+      echo "${things_to_match}" \
+        | sed "s/,/ /g"
+    ); do
+      if [[ "${things,,}" == "${this_thing,,}" ]]; then
+        reference_is_matched=true
+        return 0
+      fi
+    done
+
+    reference_is_matched=false
+    return 1
+  }
+
   function is_verbose
   {
     if ! "${INPUTS["VERBOSE"]}"; then

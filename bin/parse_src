@@ -17,7 +17,7 @@
 #   - hardware ID as primary key.
 #   - record one or more driver(s).
 #   - if `lspcie` differs and is not binded to vfio, update or append.
-#   - append new information.
+#   - append new info.
 #   - add functionality to sort by driver name?
 #  - [ ] populate hardware_id and driver dictionary with xml output.
 #  - [ ] replace args and output dict with standalone params.
@@ -99,6 +99,7 @@
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
+  declare -gr VFIO_DRIVER_LIST="pcie-stub,vfio-pcie"
   declare -gr VGA_TYPE_LIST="graphics,vga,video"
 
 #
@@ -141,53 +142,86 @@
     return 0
   }
 
-  function append_many_device_info_to_output_lists
+  function append_to_output_lists
   {
+    local some_have_host=false
+    local some_have_pcie=false
+    local some_have_vfio=false
+    local some_have_vga=false
+
     local -i device_index=1
     group_output+=( "IOMMU Group ${1}:" )
 
     for bus_id_delim in "${bus_id_list[@]}"; do
-      for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
-        append_this_device_info_to_output_lists "${bus_id}"
-      done
+      append_some_device_info_to_output_lists
     done
 
-    #TODO: move this.
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
 
-    if "${some_have_match_host}" \
-      && ! "${some_have_match_pcie}"; then
+    if "${some_have_host}" \
+      && ! "${some_have_pcie}"; then
       OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if ! "${some_have_match_host}" \
-      && "${some_have_match_pcie}"; then
+    if ! "${some_have_host}" \
+      && "${some_have_pcie}"; then
       OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${some_have_match_host}" \
-      && "${some_have_match_pcie}"; then
+    if "${some_have_host}" \
+      && "${some_have_pcie}"; then
       OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${some_have_match_vga}"; then
-      (( vga_group_index++ ))
-      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
-    fi
-
-    if "${some_have_match_vfio}"; then
-      do_select=false
+    if "${some_have_vfio}"; then
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     fi
 
-    if "${do_select}"; then
-      OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
-      OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver_list}"
-      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id_list}"
-
-    else
-      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${1},"
+    if "${some_have_vga}"; then
+      (( vga_group_index++ ))
+      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     fi
+
+    append_many_matches_to_output_list
+    append_many_unmatches_to_output_list
+    return 0
+  }
+
+  function append_many_matches_to_output_list
+  {
+    for match in "${match_list[@]}"; do
+      OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${match},"
+
+      for bus_id_delim in "${bus_id_list[@]}"; do
+        append_this_match_to_output_lists
+      done
+    done
+  }
+
+  function append_many_unmatches_to_output_list
+  {
+    for unmatch in "${unmatch_list[@]}"; do
+      OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${unmatch},"
+    done
+  }
+
+  function append_some_device_info_to_output_lists
+  {
+    for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
+      local driver \
+        hardware_id \
+        make \
+        name \
+        type
+
+      get_device_info \
+        "${bus_id}"
+
+      verify_this_match
+      append_this_device_info_to_output_lists
+    done
+
+    return 0
   }
 
   function append_this_device_info_to_output_lists
@@ -272,6 +306,23 @@
     return 0
   }
 
+  function append_this_match_to_output_lists
+  {
+    for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
+      local driver \
+        hardware_id \
+        make \
+        name \
+        type
+
+      get_device_info \
+        "${bus_id}"
+
+      OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver}"
+      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
+    done
+  }
+
   function create_logfile
   {
     if [[ -e "${LOG_FILE}" ]] \
@@ -282,6 +333,20 @@
     if ! touch "${LOG_FILE}" &> /dev/null; then
       echo -e "Failed to create logfile."
     fi
+  }
+
+  function get_device_info
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
+    local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
+    local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
+    local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
+    local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
+    return 0
   }
 
   function get_driver_list
@@ -301,153 +366,6 @@
 
       echo "${driver}"
     done
-  }
-
-  function is_matched_keyword
-  {
-    if ! is_variable "${1}"; then
-      return 2
-    fi
-
-    local -n reference_is_matched="${1}"
-
-    if ! is_boolean "${reference_is_matched}"; then
-      return 2
-    fi
-
-    local do_match=false
-    local things_to_match=""
-    local has_dict=false
-
-    if ! is_string "${2}"; then
-      return 2
-    fi
-
-    if is_dict "${2}"; then
-      has_dict=true
-      local -n is_matched_dict="${2}"
-      shift
-    fi
-
-    if "${has_dict}"; then
-      do_match="${is_matched_dict["${2}"]}"
-      things_to_match="${is_matched_dict["${3}"]}"
-
-      if ! is_boolean "${do_match}" \
-        || ! is_string "${things_to_match}"; then
-        return 2
-      fi
-
-    else
-      if ! is_boolean "${2}"; then
-        return 2
-      fi
-
-      do_match="${2}"
-
-      if ! is_string "${3}"; then
-        return 2
-      fi
-
-      things_to_match="${3}"
-      shift
-    fi
-
-    if "${reference_is_matched}" \
-      || ! "${do_match}"; then
-      return 0
-    fi
-
-    shift
-    shift
-    local things="$@"
-
-    for this_thing in $( \
-      echo "${things_to_match}" \
-        | sed "s/,/ /g"
-    ); do
-      if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
-        reference_is_matched=true
-        return 0
-      fi
-    done
-
-    reference_is_matched=false
-    return 1
-  }
-
-  function is_matched_word
-  {
-    if ! is_variable "${1}"; then
-      return 2
-    fi
-
-    local -n reference_is_matched="${1}"
-
-    if ! is_boolean "${reference_is_matched}"; then
-      return 2
-    fi
-
-    local do_match=false
-    local things_to_match=""
-    local has_dict=false
-
-    if ! is_string "${2}"; then
-      return 2
-    fi
-
-    if is_dict "${2}"; then
-      has_dict=true
-      local -n is_matched_dict="${2}"
-      shift
-    fi
-
-    if "${has_dict}"; then
-      do_match="${is_matched_dict["${2}"]}"
-      things_to_match="${is_matched_dict["${3}"]}"
-
-      if ! is_boolean "${do_match}" \
-        || ! is_string "${things_to_match}"; then
-        return 2
-      fi
-
-    else
-      if ! is_boolean "${2}"; then
-        return 2
-      fi
-
-      do_match="${2}"
-
-      if ! is_string "${3}"; then
-        return 2
-      fi
-
-      things_to_match="${3}"
-      shift
-    fi
-
-    if "${reference_is_matched}" \
-      || ! "${do_match}"; then
-      return 0
-    fi
-
-    shift
-    shift
-    shift
-    local things="$@"
-
-    for this_thing in $( \
-      echo "${things_to_match}" \
-        | sed "s/,/ /g"
-    ); do
-      if [[ "${things,,}" == "${this_thing,,}" ]]; then
-        reference_is_matched=true
-        return 0
-      fi
-    done
-
-    reference_is_matched=false
-    return 1
   }
 
   function modify_xml_drivers
@@ -585,11 +503,9 @@
       done
     done
 
-    local -r vfio_driver_list="pcie-stub,vfio-pcie"
-
     is_matched_keyword \
       "${this_has_match}" \
-      "${vfio_driver_list}" \
+      "${VFIO_DRIVER_LIST}" \
       "${4}"
 
     if "${this_has_match}"; then
@@ -601,9 +517,17 @@
     fi
 
     if "${some_have_match}"; then
-      some_have_match_list+=( "${1}" )
+      match_list+=( "${1}" )
+
+      remove_value \
+        "unmatch_list" \
+        "${1}"
     else
-      some_have_unmatch_list+=( "${1}" )
+      unmatch_list+=( "${1}" )
+
+      remove_value \
+        "match_list" \
+        "${1}"
     fi
 
     return 0
@@ -654,79 +578,8 @@
 
   function parse_many_groups_matches
   {
-    local driver_list=""
-    local hardware_id_list=""
-
-    parse_some_groups_matches
-
-    OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
-    )"
-
-    OUTPUTS["SELECTED_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
-    )"
-
-    OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" \
-    )"
-
-    return 0
-  }
-
-  function parse_some_groups_matches
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
+    local -a match_list=()
+    local -a unmatch_list=()
 
     local -ir min_vga_group_index=1
     local -i vga_group_index="${min_vga_group_index}"
@@ -745,9 +598,12 @@
       parse_this_group_match \
         "${iommu_group_id}"
 
-      append_many_device_info_to_output_lists \
+      append_to_output_lists \
         "${iommu_group_id}"
     done
+
+    trim_output_lists
+    return 0
   }
 
   function parse_this_group_match
@@ -756,11 +612,14 @@
       return 1
     fi
 
-    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
-    local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
-    local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
-    local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
-    local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
+    local driver \
+          hardware_id \
+          make \
+          name \
+          type
+
+    get_device_info \
+      "${bus_id}"
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
       parse_many_devices_matches \
@@ -889,6 +748,112 @@
       sort_comma_delimited_list \
         "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
     )"
+
+    return 0
+  }
+
+  function trim_output_lists
+  {
+    OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" \
+    )"
+
+    return 0
+  }
+
+  function verify_this_match
+  {
+    is_matched_keyword \
+      "this_has_host" \
+      "00:" \
+      "${bus_id}"
+
+    this_has_pcie="$( \
+      get_inverse_boolean \
+        "${this_has_host}"
+    )"
+
+    is_matched_keyword \
+      "this_has_vfio" \
+      "${VFIO_DRIVER_LIST}" \
+      "${driver}"
+
+    is_matched_keyword \
+      "this_has_vga" \
+      "${VGA_DRIVER_LIST}" \
+      "${type}"
+
+    if "${this_has_host}"; then
+      some_have_host=true
+    fi
+
+    if "${this_has_pcie}"; then
+      some_have_pcie=true
+    fi
+
+    if "${this_has_vfio}"; then
+      some_have_vfio=true
+    fi
+
+    if "${this_has_vga}"; then
+      some_have_vga=true
+    fi
 
     return 0
   }
