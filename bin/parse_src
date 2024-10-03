@@ -819,6 +819,11 @@
 
   function verify_this_match
   {
+    local this_has_host=false
+    local this_has_pcie=false
+    local this_has_vfio=false
+    local this_has_vga=false
+
     is_matched_keyword \
       "this_has_host" \
       "00:" \
