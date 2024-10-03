@@ -661,10 +661,10 @@
       "Found Groups with only Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with only PCIEe device(s):\n${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}\n"
+      "Found Groups with only PCIe device(s):\n${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with Host/PCIEe device(s):\n${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
+      "Found Groups with Host/PCIe device(s):\n${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with VGA device(s):\n${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}\n"
