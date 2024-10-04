@@ -125,7 +125,7 @@
       "${message}" \
       "${INPUTS["VERBOSE"]}"
 
-    if ! parse_many_groups_matches; then
+    if ! parse_many_group_matches; then
       print_and_log_output \
         "${message} Failed." \
         "${INPUTS["VERBOSE"]}"
@@ -142,18 +142,28 @@
     return 0
   }
 
-  function append_to_output_lists
+  function append_many_device_info_to_output_files
   {
+    if ! is_positive_integer "${1}" \
+      || ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -i device_index=1
+    group_output+=( "IOMMU Group ${1}:" )
+
+    local -a bus_id_list="$( \
+      echo -e "${2//,/\\n}" \
+    )"
+
     local some_have_host=false
     local some_have_pcie=false
     local some_have_vfio=false
     local some_have_vga=false
 
-    local -i device_index=1
-    group_output+=( "IOMMU Group ${1}:" )
-
-    for bus_id_delim in "${bus_id_list[@]}"; do
-      append_some_device_info_to_output_lists
+    for bus_id in ${bus_id_list[@]}; do
+      append_some_device_info_to_output_lists \
+        "${bus_id}"
     done
 
     OUTPUTS["FOUND_GROUP_ID_LIST"]+="${1},"
@@ -182,45 +192,54 @@
       OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
     fi
 
-    append_many_matches_to_output_list
-    append_many_unmatches_to_output_list
     return 0
   }
 
-  function append_many_matches_to_output_list
+  function append_many_matches_to_output_lists
   {
-    for match in "${match_list[@]}"; do
-      OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${match},"
-
-      for bus_id_delim in "${bus_id_list[@]}"; do
-        append_this_match_to_output_lists
-      done
+    for match in "${match_iommu_group_list[@]}"; do
+      append_some_matches_to_output_lists \
+        "${match}"
     done
+  }
+
+  function append_some_matches_to_output_lists
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    OUTPUTS["SELECTED_GROUP_ID_LIST"]+="${1},"
+    local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+
+    append_this_match_to_output_lists \
+      "${bus_id_delim}"
   }
 
   function append_many_unmatches_to_output_list
   {
-    for unmatch in "${unmatch_list[@]}"; do
+    for unmatch in "${unmatch_iommu_group_list[@]}"; do
       OUTPUTS["UNSELECTED_GROUP_ID_LIST"]+="${unmatch},"
     done
   }
 
   function append_some_device_info_to_output_lists
   {
-    for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
-      local driver \
-        hardware_id \
-        make \
-        name \
-        type
+    if ! is_string "${1}"; then
+      return 1
+    fi
 
-      get_device_info \
-        "${bus_id}"
+    local driver \
+      hardware_id \
+      make \
+      name \
+      type
 
-      verify_this_match
-      append_this_device_info_to_output_lists
-    done
+    get_device_info \
+      "${1}"
 
+    verify_this_match
+    append_this_device_info_to_output_lists
     return 0
   }
 
@@ -308,7 +327,15 @@
 
   function append_this_match_to_output_lists
   {
-    for bus_id in $( echo -e "${bus_id_delim//,/\\n}" ); do
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -a bus_id_list="$( \
+      echo -e "${2//,/\\n}" \
+    )"
+
+    for bus_id in ${bus_id_list[@]}; do
       local driver \
         hardware_id \
         make \
@@ -342,6 +369,11 @@
     fi
 
     local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
+
+    if ! is_string "${hardware_id}"; then
+      return 1
+    fi
+
     local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
     local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
     local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
@@ -432,7 +464,7 @@
     return 0
   }
 
-  function parse_many_devices_matches
+  function parse_many_device_matches
   {
     if ! is_positive_integer "${1}" \
       || ! is_string "${2}" \
@@ -471,14 +503,14 @@
         value_to_match="${VGA_TYPE_LIST}"
     esac
 
-    parse_some_devices_matches \
+    parse_some_device_matches \
       "${1}" \
       "${2}" \
       "${value_to_match}" \
       "${7}"
   }
 
-  function parse_some_devices_matches
+  function parse_some_device_matches
   {
     if ! is_positive_integer "${1}"; then
       return 1
@@ -488,19 +520,19 @@
       return 1
     fi
 
+    # NOTE: do not validate for $3 and $4.
+
     local some_have_match=true
 
-    for bus_id_delim in "${bus_id_list[@]}"; do
-      local bus_id_delim="$( \
-        echo -e "${bus_id_delim//,/\\n}" \
-      )"
+    local -a bus_id_list="$( \
+      echo -e "${2//,/\\n}" \
+    )"
 
-      for bus_id in "${bus_id_delim[@]}"; do
-        parse_this_device_match \
-          "${bus_id}" \
-          "${2}" \
-          "${3}"
-      done
+    for bus_id in ${bus_id_list[@]}; do
+      parse_this_device_match \
+        "${bus_id}" \
+        "${2}" \
+        "${3}"
     done
 
     is_matched_keyword \
@@ -517,16 +549,17 @@
     fi
 
     if "${some_have_match}"; then
-      match_list+=( "${1}" )
+      match_iommu_group_list+=( "${1}" )
 
       remove_value \
-        "unmatch_list" \
+        "unmatch_iommu_group_list" \
         "${1}"
+
     else
-      unmatch_list+=( "${1}" )
+      unmatch_iommu_group_list+=( "${1}" )
 
       remove_value \
-        "match_list" \
+        "match_iommu_group_list" \
         "${1}"
     fi
 
@@ -557,75 +590,99 @@
     fi
 
     local this_has_reference=""
-    local match_list_reference=""
+    local match_iommu_group_list_reference=""
 
     get_input_match_or_unmatch \
       "${1}"
 
-    get_match_list_by_match_input \
-      "match_list_reference" \
+    get_match_iommu_group_list_by_match_input \
+      "match_iommu_group_list_reference" \
       "${1}"
 
     is_matched_keyword \
       "${this_has_reference}" \
       "INPUTS" \
       "${1}" \
-      "${match_list_reference}" \
+      "${match_iommu_group_list_reference}" \
       "${2}"
 
     return 0
   }
 
-  function parse_many_groups_matches
+  function parse_many_group_matches
   {
-    local -a match_list=()
-    local -a unmatch_list=()
+    source "${SOURCE_PATH}debug_src"
+
+    local -a match_iommu_group_list=()
+    local -a unmatch_iommu_group_list=()
 
     local -ir min_vga_group_index=1
     local -i vga_group_index="${min_vga_group_index}"
 
     for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
-      local bus_id_list="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
+      local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
 
-      bus_id_list="$( \
-        echo \
-          -e \
-          "${bus_id_list//,\\n}" \
-        | sort \
-          --version-sort
-      )"
+      print_var "bus_id_delim"
 
-      parse_this_group_match \
-        "${iommu_group_id}"
+      parse_some_group_matches \
+        "${iommu_group_id}" \
+        "${bus_id_delim}"
 
-      append_to_output_lists \
-        "${iommu_group_id}"
+      append_many_device_info_to_output_files \
+        "${iommu_group_id}" \
+        "${bus_id_delim}"
     done
 
+    append_many_matches_to_output_lists
+    append_many_unmatches_to_output_list
     trim_output_lists
+    return 0
+  }
+
+  function parse_some_group_matches
+  {
+    if ! is_positive_integer "${1}" \
+      || ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -a bus_id_list="$( \
+      echo -e "${2//,/\\n}" \
+    )"
+
+    for bus_id in ${bus_id_list[@]}; do
+      print_var "bus_id"
+
+      parse_this_group_match \
+        "${1}" \
+        "${bus_id}"
+    done
+
     return 0
   }
 
   function parse_this_group_match
   {
-    if ! is_positive_integer "${1}"; then
+    if ! is_positive_integer "${1}" \
+      || ! is_string "${2}"; then
       return 1
     fi
 
     local driver \
-          hardware_id \
-          make \
-          name \
-          type
+      hardware_id \
+      make \
+      name \
+      type
 
-    get_device_info \
-      "${bus_id}"
+    if ! get_device_info "${2}"; then
+      return 1
+    fi
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
-      parse_many_devices_matches \
+      parse_many_device_matches \
         "${1}" \
         "${input}" \
-        "${bus_id}" \
+        "${2}" \
         "${make}" \
         "${name}" \
         "${type}" \
@@ -655,7 +712,7 @@
 
     set_null_value_to_empty_output_lists
 
-    # print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
+    print_and_log_output "Found Groups:\n${OUTPUTS["FOUND_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with only Host device(s):\n${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}\n"
