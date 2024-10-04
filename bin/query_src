@@ -26,7 +26,7 @@
   # Flag values:
   # 1 == Parses commandline most often.
   # 2 == Parses commandline more often.
-  # 3 == Parses commandlinn at startup.
+  # 3 == Parses commandline at startup.
   #
   declare -gi FLAG_USE_NTH_QUERY_METHOD=3
 #
@@ -71,7 +71,8 @@
   {
     declare -agr LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
       lspci \
-        -kn
+        -k \
+        -n
     )"
 
     declare -agr LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
@@ -140,7 +141,9 @@
 
     local driver="$( \
       lspci \
-        -kns \
+        -k \
+        -n \
+        -s \
           "${1}" \
       | grep \
         driver \
