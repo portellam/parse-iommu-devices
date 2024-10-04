@@ -21,7 +21,14 @@
 # params (1/3)
 #
   declare -g SOURCE_PATH="${1}"
-  declare -gi FLAG_USE_NTH_QUERY_METHOD=3   # May be 1, 2, or 3.
+
+  #
+  # Flag values:
+  # 1 == Parses commandline most often.
+  # 2 == Parses commandline more often.
+  # 3 == Parses commandlinn at startup.
+  #
+  declare -gi FLAG_USE_NTH_QUERY_METHOD=3
 #
 # sources (1/2)
 #
@@ -340,8 +347,6 @@
     return 0
   }
 
-  # given my machine, it takes ~7 seconds to populate all dictionaries.
-  # with third implementation, lscpi is only parsed twice, as opposed to everytime.
   function set_this_hardware_id_dictionaries
   {
     if ! is_string "${1}"; then

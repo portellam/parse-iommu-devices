@@ -24,6 +24,31 @@
 #
 # logic
 #
+  function main
+  {
+    if ! is_user_root; then
+      return 1
+    fi
+
+    if ! parse_many_arguments "$@"; then
+      return 1
+    fi
+
+    if "${DO_INSTALL}" \
+      && ! install_many; then
+      echo "Install failed."
+      return 1
+    fi
+
+    if "${DO_UNINSTALL}" \
+      && ! uninstall_many; then
+      echo "Uninstall failed."
+      return 1
+    fi
+
+    return 0
+  }
+
   function install_many
   {
     if [[ ! -d "${DESTINATION_BINARY_PATH}" ]] \
@@ -179,31 +204,6 @@
     fi
 
     echo "Uninstall successful."
-    return 0
-  }
-
-  function main
-  {
-    if ! is_user_root; then
-      return 1
-    fi
-
-    if ! parse_many_arguments "$@"; then
-      return 1
-    fi
-
-    if "${DO_INSTALL}" \
-      && ! install_many; then
-      echo "Install failed."
-      return 1
-    fi
-
-    if "${DO_UNINSTALL}" \
-      && ! uninstall_many; then
-      echo "Uninstall failed."
-      return 1
-    fi
-
     return 0
   }
 

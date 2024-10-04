@@ -19,8 +19,8 @@
   # are both true
   function is_and
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
@@ -38,8 +38,8 @@
   # is any true
   function is_or
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
@@ -54,8 +54,8 @@
   # is not both true
   function is_nand
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
@@ -70,8 +70,8 @@
   # is both false
   function is_nor
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
@@ -89,7 +89,7 @@
   # return opposite
   function is_not
   {
-    if ! is_bool "${1}"; then
+    if ! is_boolean "${1}"; then
       return 2
     fi
 
@@ -103,8 +103,8 @@
   # is either true, but not both
   function is_xor
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
@@ -118,8 +118,8 @@
   # are both equal
   function is_xnor
   {
-    if ! is_bool "${1}" \
-      || ! is_bool "${2}"; then
+    if ! is_boolean "${1}" \
+      || ! is_boolean "${2}"; then
       return 2
     fi
 
