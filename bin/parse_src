@@ -241,15 +241,17 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
-    local driver=""
-    local hardware_id=""
-    local make=""
-    local name=""
-    local type=""
+    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
+    local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
+    local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
+    local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
+    local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
 
-    if ! get_device_info "${1}"; then
-      return 1
-    fi
+    print_var "hardware_id"
+    print_var "driver"
+    print_var "make"
+    print_var "name"
+    print_var "type"
 
     verify_this_match
     append_this_device_info_to_output_lists
@@ -349,15 +351,17 @@ source "${SOURCE_PATH}debug_src"
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      local driver=""
-      local hardware_id=""
-      local make=""
-      local name=""
-      local type=""
+      local hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
+      local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
+      local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
+      local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
+      local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
 
-      if ! get_device_info "${bus_id}"; then
-        continue
-      fi
+      print_var "hardware_id"
+      print_var "driver"
+      print_var "make"
+      print_var "name"
+      print_var "type"
 
       OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver}"
       OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
@@ -383,10 +387,16 @@ source "${SOURCE_PATH}debug_src"
     fi
 
     local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
-    local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
-    local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
-    local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
-    local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
+    local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
+    local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
+    local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
+    local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
+
+    print_var "hardware_id"
+    print_var "driver"
+    print_var "make"
+    print_var "name"
+    print_var "type"
     return 0
   }
 
@@ -620,7 +630,7 @@ source "${SOURCE_PATH}debug_src"
     get_input_match_or_unmatch \
       "${1}"
 
-    get_match_iommu_group_list_by_match_input \
+    get_match_list_by_match_input \
       "match_iommu_group_list_reference" \
       "${1}"
 
@@ -687,13 +697,20 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
-    print_var
+    echo "'iommu_id' '${1}'"
+    echo "'bus_id' '${2}'"
 
-    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
+    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${2}]}"
     local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
-    local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
-    local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
-    local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
+    local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
+    local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
+    local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
+
+    print_var "hardware_id"
+    print_var "driver"
+    print_var "make"
+    print_var "name"
+    print_var "type"
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
       parse_many_device_matches \
