@@ -81,6 +81,8 @@
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
   )
 
+  declare -g ARGUMENT_MATCH_GROUPS="-g"
+
   declare -ga ORDERED_INPUT_LIST
 
 #
@@ -357,6 +359,13 @@
     return 0
   }
 
+  function match_all_groups
+  {
+    parse_this_argument \
+      "${ARGUMENT_MATCH_GROUPS}" \
+        "$( get_comma_list_of_iommu_group_ids )"
+  }
+
   function parse_many_arguments
   {
     # echo "'${@}'"
@@ -399,11 +408,11 @@
 
   function parse_this_argument
   {
-    while $( is_argument_or_empty_string "${1}" ); do
+    while true; do
       local -a this_input_list=()
 
       case "${1}" in
-        "-g" | "--group" | "--groups" )
+        "-g" | "--group" | "--groups" | "${ARGUMENT_MATCH_GROUPS}" )
           this_input_list=( "MATCH_GROUPS" )
           shift
 
@@ -569,6 +578,7 @@
 
         * )
           print_invalid_argument "${1}"
+          return 1
           ;;
       esac
 
@@ -586,7 +596,7 @@
   function print_invalid_argument
   {
     if ! is_verbose; then
-      exit 1
+      return 1
     fi
 
     local message="Error: Invalid argument(s) specified."
@@ -597,7 +607,7 @@
 
     print_and_log_output "${message}\n"
     print_usage
-    exit 1
+    return 0
   }
 
   function print_invalid_option
