@@ -6,6 +6,8 @@
 # Maintainer(s):  Alex Portell <github.com/portellam>
 #
 
+source "${SOURCE_PATH}debug_src"
+
 #
 # TODO:
 # - [ ] add validation for all inputs.
@@ -125,7 +127,17 @@
       "${message}" \
       "${INPUTS["VERBOSE"]}"
 
-    if ! parse_many_group_matches; then
+    if [[ "${#ORDERED_INPUT_LIST[@]}" -le 0 ]] \
+      && ! match_all_groups; then
+      print_and_log_output \
+        "${message} Failed." \
+        "${INPUTS["VERBOSE"]}"
+
+      return 1
+    fi
+
+    if [[ "${#ORDERED_INPUT_LIST[@]}" -le 0 ]] \
+      || ! parse_many_group_matches; then
       print_and_log_output \
         "${message} Failed." \
         "${INPUTS["VERBOSE"]}"
@@ -229,14 +241,15 @@
       return 1
     fi
 
-    local driver \
-      hardware_id \
-      make \
-      name \
-      type
+    local driver=""
+    local hardware_id=""
+    local make=""
+    local name=""
+    local type=""
 
-    get_device_info \
-      "${1}"
+    if ! get_device_info "${1}"; then
+      return 1
+    fi
 
     verify_this_match
     append_this_device_info_to_output_lists
@@ -336,14 +349,15 @@
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      local driver \
-        hardware_id \
-        make \
-        name \
-        type
+      local driver=""
+      local hardware_id=""
+      local make=""
+      local name=""
+      local type=""
 
-      get_device_info \
-        "${bus_id}"
+      if ! get_device_info "${bus_id}"; then
+        continue
+      fi
 
       OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver}"
       OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
@@ -369,11 +383,6 @@
     fi
 
     local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
-
-    if ! is_string "${hardware_id}"; then
-      return 1
-    fi
-
     local driver="${HARDWARE_ID_AND_DRIVER[${hardware_id}]}"
     local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
     local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
@@ -466,6 +475,18 @@
 
   function parse_many_device_matches
   {
+    # echo Hello world
+
+    echo _
+    echo $1
+    echo $2
+    echo $3
+    echo $4
+    echo $5
+    echo $6
+    echo $7
+    echo
+
     if ! is_positive_integer "${1}" \
       || ! is_string "${2}" \
       || ! is_string "${3}" \
@@ -512,6 +533,8 @@
 
   function parse_some_device_matches
   {
+    echo Hello world
+
     if ! is_positive_integer "${1}"; then
       return 1
     fi
@@ -547,6 +570,8 @@
     if "${this_has_unmatch}"; then
       some_have_match=false
     fi
+
+    # echo Hello world
 
     if "${some_have_match}"; then
       match_iommu_group_list+=( "${1}" )
@@ -611,8 +636,6 @@
 
   function parse_many_group_matches
   {
-    source "${SOURCE_PATH}debug_src"
-
     local -a match_iommu_group_list=()
     local -a unmatch_iommu_group_list=()
 
@@ -621,8 +644,6 @@
 
     for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
       local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
-
-      print_var "bus_id_delim"
 
       parse_some_group_matches \
         "${iommu_group_id}" \
@@ -651,8 +672,6 @@
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      print_var "bus_id"
-
       parse_this_group_match \
         "${1}" \
         "${bus_id}"
@@ -668,15 +687,13 @@
       return 1
     fi
 
-    local driver \
-      hardware_id \
-      make \
-      name \
-      type
+    print_var
 
-    if ! get_device_info "${2}"; then
-      return 1
-    fi
+    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
+    local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
+    local make="${HARDWARE_ID_AND_MAKE[${hardware_id}]}"
+    local name="${HARDWARE_ID_AND_NAME[${hardware_id}]}"
+    local type="${HARDWARE_ID_AND_TYPE[${hardware_id}]}"
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
       parse_many_device_matches \
