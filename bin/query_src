@@ -69,13 +69,13 @@
 #
   function query_src_main
   {
-    declare -agr LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
+    declare -ag LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
       lspci \
         -k \
         -n
     )"
 
-    declare -agr LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
+    declare -ag LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
       lspci \
         -m
     )"
@@ -90,7 +90,7 @@
       HARDWARE_ID_AND_MAKE \
       IOMMU_GROUP_ID_AND_BUS_ID
 
-    declare -gr NULL_VALUE="N/A"
+    declare -g NULL_VALUE="N/A"
 
     if ! run_queries; then
       return 1
