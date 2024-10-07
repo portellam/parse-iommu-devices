@@ -185,12 +185,10 @@
       return 1
     fi
 
-    echo -e "${list//,/\\n}" \
+    echo -e "${1//,/\\n}" \
       | sort --unique --version-sort \
       | tr '\n' ',' \
       | sed 's/,$//'
-
-    # echo
   }
 
 
