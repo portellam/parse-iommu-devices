@@ -206,7 +206,7 @@
 
     if "${some_have_vga}"; then
       (( vga_group_index++ ))
-      OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
+      OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]+="${1},"
     fi
 
     return 0
@@ -605,13 +605,14 @@
 
     for bus_id in ${bus_id_list[@]}; do
       parse_this_device_match \
+        "${1}" \
         "${3}" \
-        "${4}" \
-        "${5}"
+        "${4}"
     done
 
     is_matched_keyword \
       "this_has_match" \
+      true \
       "${VFIO_DRIVER_LIST}" \
       "${4}"
 
@@ -672,12 +673,6 @@
       return 1
     fi
 
-    echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    echo -e "\$1\t\t== '$1'"
-    echo -e "\$2\t\t== '$2'"
-    echo -e "\$3\t\t== '$3'"
-    echo
-
     if [[ "${1}" =~ "UNMATCH" ]]; then
       is_matched_keyword \
         "this_has_unmatch" \
@@ -699,8 +694,9 @@
       return 1
     fi
 
-    print_var this_has_match
-    print_var this_has_unmatch
+    # print_var this_has_match
+    # print_var this_has_unmatch
+    # echo
     return 0
   }
 
@@ -1017,6 +1013,7 @@
 
     is_matched_keyword \
       "this_has_host" \
+      true \
       "00:" \
       "${bus_id}"
 
@@ -1027,12 +1024,14 @@
 
     is_matched_keyword \
       "this_has_vfio" \
+      true \
       "${VFIO_DRIVER_LIST}" \
       "${driver}"
 
     is_matched_keyword \
       "this_has_vga" \
-      "${VGA_DRIVER_LIST}" \
+      true \
+      "${VGA_TYPE_LIST}" \
       "${type}"
 
     if "${this_has_host}"; then
