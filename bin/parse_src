@@ -101,7 +101,7 @@ source "${SOURCE_PATH}debug_src"
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
-  declare -gr VFIO_DRIVER_LIST="pcie-stub,vfio-pcie"
+  declare -gr VFIO_DRIVER_LIST="pcie-stub,vfio-pci"
   declare -gr VGA_TYPE_LIST="graphics,vga,video"
 
 #
@@ -247,12 +247,6 @@ source "${SOURCE_PATH}debug_src"
     local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
     local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
 
-    print_var "hardware_id"
-    print_var "driver"
-    print_var "make"
-    print_var "name"
-    print_var "type"
-
     verify_this_match
     append_this_device_info_to_output_lists
     return 0
@@ -356,12 +350,6 @@ source "${SOURCE_PATH}debug_src"
       local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
       local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
       local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
-
-      print_var "hardware_id"
-      print_var "driver"
-      print_var "make"
-      print_var "name"
-      print_var "type"
 
       OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver}"
       OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
@@ -483,20 +471,17 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 == IOMMU group ID as an integer.
+  # $2 == the INPUTS dictionary key as a a string.
+  # $3 == the Bus ID as a string.
+  # $4 == the make as a a string.
+  # $5 == the name as a a string.
+  # $6 == the type as a a string.
+  # $7 == the driver as a a string.
+  #
   function parse_many_device_matches
   {
-    # echo Hello world
-
-    echo _
-    echo $1
-    echo $2
-    echo $3
-    echo $4
-    echo $5
-    echo $6
-    echo $7
-    echo
-
     if ! is_positive_integer "${1}" \
       || ! is_string "${2}" \
       || ! is_string "${3}" \
@@ -507,9 +492,25 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
+    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    # echo -e "\$1\t\t== '$1'"
+    # echo -e "\$2\t\t== '$2'"
+    # echo -e "\$3\t\t== '$3'"
+    # echo -e "\$4\t\t== '$4'"
+    # echo -e "\$5\t\t== '$5'"
+    # echo -e "\$6\t\t== '$6'"
+    # echo -e "\$7\t\t== '$7'"
+    # echo
+
     local value_to_match=""
+    local referenced_list=""
 
     case "${2}" in
+      "MATCH_GROUPS" )
+        value_to_match="${1}"
+        referenced_list="GROUPS_MATCH_LIST"
+        ;;
+
       "MATCH_HOST" | "MATCH_PCIE" )
         value_to_match="${3}"
         ;;
@@ -520,6 +521,7 @@ source "${SOURCE_PATH}debug_src"
 
       "MATCH_NAME" )
         value_to_match="${5}"
+        referenced_list="NAMES_MATCH_LIST"
         ;;
 
       "MATCH_PCIE" )
@@ -528,23 +530,45 @@ source "${SOURCE_PATH}debug_src"
 
       "MATCH_TYPE" )
         value_to_match="${6}"
+        referenced_list="TYPES_MATCH_LIST"
         ;;
 
       "MATCH_VGA" )
         value_to_match="${VGA_TYPE_LIST}"
+        ;;
+
+      "UNMATCH_GROUPS" )
+        value_to_match="${1}"
+        referenced_list="GROUPS_UNMATCH_LIST"
+        ;;
+
+      "UNMATCH_NAME" )
+        value_to_match="${5}"
+        referenced_list="NAMES_UNMATCH_LIST"
+        ;;
+
+      "UNMATCH_TYPE" )
+        value_to_match="${6}"
+        referenced_list="TYPES_UNMATCH_LIST"
+        ;;
     esac
 
     parse_some_device_matches \
       "${1}" \
+      "${3}" \
       "${2}" \
       "${value_to_match}" \
-      "${7}"
+      "${referenced_list}"
   }
 
+  #
+  # $1 == IOMMU group ID as an integer.
+  # $2 == the Bus ID as a string.
+  # $3 == the INPUTS dictionary key as a a string.
+  # $4 == the value to match as a string.
+  #
   function parse_some_device_matches
   {
-    echo Hello world
-
     if ! is_positive_integer "${1}"; then
       return 1
     fi
@@ -553,9 +577,18 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
+    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    # echo -e "\$1\t\t== '$1'"
+    # echo -e "\$2\t\t== '$2'"
+    # echo -e "\$3\t\t== '$3'"
+    # echo -e "\$4\t\t== '$4'"
+    # echo
+
     # NOTE: do not validate for $3 and $4.
 
     local some_have_match=true
+    local this_has_match=false
+    local this_has_unmatch=false
 
     local -a bus_id_list="$( \
       echo -e "${2//,/\\n}" \
@@ -564,14 +597,20 @@ source "${SOURCE_PATH}debug_src"
     for bus_id in ${bus_id_list[@]}; do
       parse_this_device_match \
         "${bus_id}" \
-        "${2}" \
-        "${3}"
+        "${3}" \
+        "${4}" \
+        "${5}"
     done
 
+    print_var this_has_match
+
     is_matched_keyword \
-      "${this_has_match}" \
+      "this_has_match" \
       "${VFIO_DRIVER_LIST}" \
       "${4}"
+
+    print_var this_has_match
+    print_var this_has_unmatch
 
     if "${this_has_match}"; then
       some_have_match=true
@@ -580,8 +619,6 @@ source "${SOURCE_PATH}debug_src"
     if "${this_has_unmatch}"; then
       some_have_match=false
     fi
-
-    # echo Hello world
 
     if "${some_have_match}"; then
       match_iommu_group_list+=( "${1}" )
@@ -601,6 +638,11 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 == the Bus ID as a string.
+  # $2 == the INPUTS dictionary key as a a string.
+  # $3 == the value to match as a string.
+  #
   function parse_this_device_match
   {
     if ! is_string "${1}" \
@@ -608,23 +650,37 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
-    local this_has_match=false
-    local this_has_unmatch=false
+    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    # echo -e "\$1\t\t== '$1'"
+    # echo -e "\$2\t\t== '$2'"
+    # echo -e "\$3\t\t== '$3'"
+    # echo
 
     parse_this_device_match_get_match_or_unmatch \
       "${2}" \
-      "${3}"
+      "${3}" \
+      "${4}"
 
     return 0
   }
 
+  #
+  # $1 == the INPUTS dictionary key as a a string.
+  # $2 == the value to match as a string.
+  #
   function parse_this_device_match_get_match_or_unmatch
   {
     if ! is_string "${1}"; then
       return 1
     fi
 
-    local this_has_reference=""
+    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    # echo -e "\$1\t\t== '$1'"
+    # echo -e "\$2\t\t== '$2'"
+    # echo -e "\$3\t\t== '$3'"
+    # echo
+
+    local this_has_reference=false
     local match_iommu_group_list_reference=""
 
     get_input_match_or_unmatch \
@@ -634,12 +690,18 @@ source "${SOURCE_PATH}debug_src"
       "match_iommu_group_list_reference" \
       "${1}"
 
+    # set -o xtrace
+
     is_matched_keyword \
-      "${this_has_reference}" \
+      "this_has_reference" \
       "INPUTS" \
       "${1}" \
+      "${3}" \
       "${match_iommu_group_list_reference}" \
       "${2}"
+
+    # set +o xtrace
+    print_var this_has_reference
 
     return 0
   }
@@ -697,20 +759,11 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
-    echo "'iommu_id' '${1}'"
-    echo "'bus_id' '${2}'"
-
     local hardware_id="${BUS_ID_AND_HARDWARE_ID[${2}]}"
     local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
     local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
     local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
     local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
-
-    print_var "hardware_id"
-    print_var "driver"
-    print_var "make"
-    print_var "name"
-    print_var "type"
 
     for input in "${ORDERED_INPUT_LIST[@]}"; do
       parse_many_device_matches \
@@ -809,12 +862,12 @@ source "${SOURCE_PATH}debug_src"
       OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
 
-    if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
-      OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
     if ! is_string "${OUTPUTS["SELECTED_DRIVER_LIST"]}"; then
       OUTPUTS["SELECTED_DRIVER_LIST"]="${NULL_VALUE}"
+    fi
+
+    if ! is_string "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}"; then
+      OUTPUTS["SELECTED_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
 
     if ! is_string "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}"; then
@@ -830,6 +883,36 @@ source "${SOURCE_PATH}debug_src"
 
   function sort_output_lists
   {
+    OUTPUTS["FOUND_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_HOST_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_PCIE_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_VFIO_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["FOUND_VGA_GROUP_ID_LIST"]}" \
+    )"
+
     OUTPUTS["SELECTED_DRIVER_LIST"]="$( \
       sort_comma_delimited_list \
         "${OUTPUTS["SELECTED_DRIVER_LIST"]}" \
@@ -838,6 +921,16 @@ source "${SOURCE_PATH}debug_src"
     OUTPUTS["SELECTED_HARDWARE_ID_LIST"]="$( \
       sort_comma_delimited_list \
         "${OUTPUTS["SELECTED_HARDWARE_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["SELECTED_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["SELECTED_GROUP_ID_LIST"]}" \
+    )"
+
+    OUTPUTS["UNSELECTED_GROUP_ID_LIST"]="$( \
+      sort_comma_delimited_list \
+        "${OUTPUTS["UNSELECTED_GROUP_ID_LIST"]}" \
     )"
 
     return 0
