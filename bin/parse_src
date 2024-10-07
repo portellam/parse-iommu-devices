@@ -6,8 +6,6 @@
 # Maintainer(s):  Alex Portell <github.com/portellam>
 #
 
-source "${SOURCE_PATH}debug_src"
-
 #
 # TODO:
 # - [ ] add validation for all inputs.
@@ -101,7 +99,7 @@ source "${SOURCE_PATH}debug_src"
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
-  declare -gr VFIO_DRIVER_LIST="pcie-stub,vfio-pci"
+  declare -gr VFIO_DRIVER_LIST="pci-stub,vfio-pci"
   declare -gr VGA_TYPE_LIST="graphics,vga,video"
 
 #
@@ -154,6 +152,10 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : the IOMMU group ID as an integer.
+  # $2 : comma delimited list of Bus ID as a string.
+  #
   function append_many_device_info_to_output_files
   {
     if ! is_positive_integer "${1}" \
@@ -215,6 +217,9 @@ source "${SOURCE_PATH}debug_src"
     done
   }
 
+  #
+  # $1 : the IOMMU group ID as an integer.
+  #
   function append_some_matches_to_output_lists
   {
     if ! is_positive_integer "${1}"; then
@@ -235,6 +240,9 @@ source "${SOURCE_PATH}debug_src"
     done
   }
 
+  #
+  # $1 : the Bus ID as a string.
+  #
   function append_some_device_info_to_output_lists
   {
     if ! is_string "${1}"; then
@@ -334,6 +342,9 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : comma delimited list of Bus ID as a string.
+  #
   function append_this_match_to_output_lists
   {
     if ! is_string "${1}"; then
@@ -341,7 +352,7 @@ source "${SOURCE_PATH}debug_src"
     fi
 
     local -a bus_id_list="$( \
-      echo -e "${2//,/\\n}" \
+      echo -e "${1//,/\\n}" \
     )"
 
     for bus_id in ${bus_id_list[@]}; do
@@ -351,10 +362,18 @@ source "${SOURCE_PATH}debug_src"
       local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
       local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
 
-      OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver}"
-      OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
+      if is_string "${driver}" \
+        && [[ "${driver^^}" != "N/A" ]]; then
+        OUTPUTS["SELECTED_DRIVER_LIST"]+="${driver},"
+      fi
+
+      if is_string "${hardware_id}" \
+        && [[ "${hardware_id^^}" != "N/A" ]]; then
+        OUTPUTS["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id},"
+      fi
     done
   }
+
 
   function create_logfile
   {
@@ -368,6 +387,9 @@ source "${SOURCE_PATH}debug_src"
     fi
   }
 
+  #
+  # $1 : the Bus ID as a string.
+  #
   function get_device_info
   {
     if ! is_string "${1}"; then
@@ -379,15 +401,12 @@ source "${SOURCE_PATH}debug_src"
     local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
     local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
     local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
-
-    print_var "hardware_id"
-    print_var "driver"
-    print_var "make"
-    print_var "name"
-    print_var "type"
     return 0
   }
 
+  #
+  # $1 : the Hardware ID as a string.
+  #
   function get_driver_list
   {
     if ! is_string "${1}"; then
@@ -407,6 +426,9 @@ source "${SOURCE_PATH}debug_src"
     done
   }
 
+  #
+  # $1 : the Hardware ID as a string.
+  #
   function modify_xml_drivers
   {
     if ! is_string "${1}"; then
@@ -472,13 +494,14 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 == IOMMU group ID as an integer.
-  # $2 == the INPUTS dictionary key as a a string.
-  # $3 == the Bus ID as a string.
-  # $4 == the make as a a string.
-  # $5 == the name as a a string.
-  # $6 == the type as a a string.
-  # $7 == the driver as a a string.
+  # $1 : IOMMU group ID as an integer.
+  # $2 : the boolean dictionary key as a string.
+  # $3 : the Bus ID as a string.
+  # $4 : the make as a a string.
+  # $5 : the name as a a string.
+  # $6 : the type as a a string.
+  # $7 : the driver as a a string.
+  #
   #
   function parse_many_device_matches
   {
@@ -491,16 +514,6 @@ source "${SOURCE_PATH}debug_src"
       || ! is_string "${7}"; then
       return 1
     fi
-
-    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    # echo -e "\$1\t\t== '$1'"
-    # echo -e "\$2\t\t== '$2'"
-    # echo -e "\$3\t\t== '$3'"
-    # echo -e "\$4\t\t== '$4'"
-    # echo -e "\$5\t\t== '$5'"
-    # echo -e "\$6\t\t== '$6'"
-    # echo -e "\$7\t\t== '$7'"
-    # echo
 
     local value_to_match=""
     local referenced_list=""
@@ -562,10 +575,10 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 == IOMMU group ID as an integer.
-  # $2 == the Bus ID as a string.
-  # $3 == the INPUTS dictionary key as a a string.
-  # $4 == the value to match as a string.
+  # $1 : IOMMU group ID as an integer.
+  # $2 : the Bus ID as a string.
+  # $3 : the boolean dictionary key as a string.
+  # $4 : the value to match as a string.
   #
   function parse_some_device_matches
   {
@@ -576,13 +589,6 @@ source "${SOURCE_PATH}debug_src"
     if ! is_string "${2}"; then
       return 1
     fi
-
-    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    # echo -e "\$1\t\t== '$1'"
-    # echo -e "\$2\t\t== '$2'"
-    # echo -e "\$3\t\t== '$3'"
-    # echo -e "\$4\t\t== '$4'"
-    # echo
 
     # NOTE: do not validate for $3 and $4.
 
@@ -602,15 +608,10 @@ source "${SOURCE_PATH}debug_src"
         "${5}"
     done
 
-    print_var this_has_match
-
     is_matched_keyword \
       "this_has_match" \
       "${VFIO_DRIVER_LIST}" \
       "${4}"
-
-    print_var this_has_match
-    print_var this_has_unmatch
 
     if "${this_has_match}"; then
       some_have_match=true
@@ -639,9 +640,10 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 == the Bus ID as a string.
-  # $2 == the INPUTS dictionary key as a a string.
-  # $3 == the value to match as a string.
+  # $1 : the Bus ID as a string.
+  # $2 : the boolean dictionary key as a string.
+  # $3 : the IOMMU group ID as an integer.
+  # $4 : the list dictionary key as a string.
   #
   function parse_this_device_match
   {
@@ -650,13 +652,8 @@ source "${SOURCE_PATH}debug_src"
       return 1
     fi
 
-    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    # echo -e "\$1\t\t== '$1'"
-    # echo -e "\$2\t\t== '$2'"
-    # echo -e "\$3\t\t== '$3'"
-    # echo
-
     parse_this_device_match_get_match_or_unmatch \
+      "${1}" \
       "${2}" \
       "${3}" \
       "${4}"
@@ -665,43 +662,31 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 == the INPUTS dictionary key as a a string.
-  # $2 == the value to match as a string.
+  # $1 : the Bus ID as a string.
+  # $2 : the boolean dictionary key as a string.
+  # $3 : the IOMMU group ID as an integer.
+  # $4 : the list dictionary key as a string.
   #
   function parse_this_device_match_get_match_or_unmatch
   {
-    if ! is_string "${1}"; then
+    if ! is_string "${1}" \
+    || ! is_string "${2}"; then
       return 1
     fi
 
-    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    # echo -e "\$1\t\t== '$1'"
-    # echo -e "\$2\t\t== '$2'"
-    # echo -e "\$3\t\t== '$3'"
-    # echo
-
-    local this_has_reference=false
+    local this_has_match=false
     local match_iommu_group_list_reference=""
 
     get_input_match_or_unmatch \
-      "${1}"
-
-    get_match_list_by_match_input \
-      "match_iommu_group_list_reference" \
-      "${1}"
-
-    # set -o xtrace
+      this_has_match
 
     is_matched_keyword \
-      "this_has_reference" \
+      "this_has_match" \
       "INPUTS" \
-      "${1}" \
-      "${3}" \
+      "${2}" \
+      "${4}" \
       "${match_iommu_group_list_reference}" \
-      "${2}"
-
-    # set +o xtrace
-    print_var this_has_reference
+      "${3}"
 
     return 0
   }
@@ -732,6 +717,10 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : the IOMMU group ID as an integer.
+  # $2 : the Bus ID as a string.
+  #
   function parse_some_group_matches
   {
     if ! is_positive_integer "${1}" \
@@ -752,6 +741,10 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : the IOMMU group ID as an integer.
+  # $2 : the Bus ID as a string.
+  #
   function parse_this_group_match
   {
     if ! is_positive_integer "${1}" \
@@ -1001,6 +994,7 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  # TODO: debug here.
   function verify_this_match
   {
     local this_has_host=false
