@@ -195,7 +195,7 @@ source "${SOURCE_PATH}debug_src"
     echo -e "\$3\t\t== '$3'"
     echo -e "\$4\t\t== '$4'"
     echo -e "\$5\t\t== '$5'"
-    echo -e "\$@\t\t== '$@'"
+    # echo -e "\$@\t\t== '$@'"
     echo
 
     local -n reference_is_matched="${1}"
@@ -222,7 +222,6 @@ source "${SOURCE_PATH}debug_src"
 
     if "${has_dict}"; then
       do_match="${is_matched_dict["${2}"]}"
-      print_var do_match
       shift
 
       if ! is_string "${2}"; then
@@ -250,18 +249,14 @@ source "${SOURCE_PATH}debug_src"
 
       things_to_match="${2}"
       shift
-    fi
-
-    if "${reference_is_matched}" \
-      || ! "${do_match}"; then
-      return 0
+      shift
     fi
 
     print_var do_match
     print_var things_to_match
 
-    shift
-    shift
+    # shift
+    # shift
     local things="$@"
     print_list things
 
@@ -269,13 +264,18 @@ source "${SOURCE_PATH}debug_src"
       echo "${things_to_match}" \
         | sed "s/,/ /g"
     ); do
+      print_var things
+      print_var this_thing
+
       if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
         reference_is_matched=true
+        print_var reference_is_matched
         return 0
       fi
     done
 
     reference_is_matched=false
+    print_var reference_is_matched
     return 1
   }
 
