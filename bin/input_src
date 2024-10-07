@@ -157,27 +157,6 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
-  function get_input_match_or_unmatch
-  {
-    if ! is_variable "${1}"; then
-      return 1
-    fi
-
-    local -n reference_get_input_match_or_unmatch="${1}"
-
-    case "${1}" in
-      "MATCH"* )
-        reference_get_input_match_or_unmatch="this_has_match"
-        ;;
-
-      "UNMATCH"* )
-        reference_get_input_match_or_unmatch="this_has_unmatch"
-        ;;
-    esac
-
-    return 0
-  }
-
   function is_argument_or_empty_string
   {
     if ! is_string "${1}"; then
@@ -197,8 +176,12 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 == the INPUTS dictionary key as a a string.
-  # $2 == the value to match as a string.
+  # $1 : the boolean as a reference.
+  # $2 : the do match boolean to match dictionary key as a string.
+  # $3 : the list dictionary key as a string.
+  # $2 : the do match flag as a boolean.
+  # $4 : the comma delimited list of valid matches as a string.
+  # $@ : the values to match as a list.
   #
   function is_matched_keyword
   {
@@ -206,12 +189,17 @@ source "${SOURCE_PATH}debug_src"
       return 2
     fi
 
-    local -n reference_is_matched="${1}"
-
     echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    print_var reference_is_matched
+    echo -e "\$1\t\t== '$1'"
     echo -e "\$2\t\t== '$2'"
+    echo -e "\$3\t\t== '$3'"
+    echo -e "\$4\t\t== '$4'"
+    echo -e "\$5\t\t== '$5'"
+    echo -e "\$@\t\t== '$@'"
     echo
+
+    local -n reference_is_matched="${1}"
+    print_var reference_is_matched
 
     if ! is_boolean "${reference_is_matched}"; then
       return 2
@@ -228,23 +216,20 @@ source "${SOURCE_PATH}debug_src"
     if is_dict "${2}"; then
       has_dict=true
       local -n is_matched_dict="${2}"
+      print_var is_matched_dict
       shift
     fi
 
-    echo -e "\$3\t\t== '$2'"
-
     if "${has_dict}"; then
       do_match="${is_matched_dict["${2}"]}"
+      print_var do_match
       shift
-      echo -e "\$4\t\t== '$2'"
 
       if ! is_string "${2}"; then
         return 2
       fi
 
       things_to_match="${is_matched_dict["${2}"]}"
-      print_var do_match
-      print_var things_to_match
 
       if ! is_boolean "${do_match}" \
         || ! is_string "${things_to_match}"; then
@@ -258,7 +243,6 @@ source "${SOURCE_PATH}debug_src"
 
       do_match="${2}"
       shift
-      echo -e "\$4\t\t== '$2'"
 
       if ! is_string "${2}"; then
         return 2
@@ -273,10 +257,13 @@ source "${SOURCE_PATH}debug_src"
       return 0
     fi
 
+    print_var do_match
+    print_var things_to_match
+
     shift
     shift
     local things="$@"
-    echo -e "\$@\t\t== '$@'"
+    print_list things
 
     for this_thing in $( \
       echo "${things_to_match}" \
