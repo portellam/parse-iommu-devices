@@ -1007,7 +1007,6 @@
   function verify_this_match
   {
     local this_has_host=false
-    local this_has_pcie=false
     local this_has_vfio=false
     local this_has_vga=false
 
@@ -1016,11 +1015,6 @@
       true \
       "00:" \
       "${bus_id}"
-
-    this_has_pcie="$( \
-      get_inverse_boolean \
-        "${this_has_host}"
-    )"
 
     is_matched_keyword \
       "this_has_vfio" \
@@ -1036,9 +1030,8 @@
 
     if "${this_has_host}"; then
       some_have_host=true
-    fi
 
-    if "${this_has_pcie}"; then
+    else
       some_have_pcie=true
     fi
 
