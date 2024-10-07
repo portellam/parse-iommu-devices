@@ -6,6 +6,8 @@
 # Maintainer(s):  Alex Portell <github.com/portellam>
 #
 
+source "${SOURCE_PATH}debug_src"
+
 #
 # params (1/2)
 #
@@ -194,6 +196,10 @@
     return 1
   }
 
+  #
+  # $1 == the INPUTS dictionary key as a a string.
+  # $2 == the value to match as a string.
+  #
   function is_matched_keyword
   {
     if ! is_variable "${1}"; then
@@ -201,6 +207,11 @@
     fi
 
     local -n reference_is_matched="${1}"
+
+    echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    print_var reference_is_matched
+    echo -e "\$2\t\t== '$2'"
+    echo
 
     if ! is_boolean "${reference_is_matched}"; then
       return 2
@@ -220,9 +231,20 @@
       shift
     fi
 
+    echo -e "\$3\t\t== '$2'"
+
     if "${has_dict}"; then
       do_match="${is_matched_dict["${2}"]}"
-      things_to_match="${is_matched_dict["${3}"]}"
+      shift
+      echo -e "\$4\t\t== '$2'"
+
+      if ! is_string "${2}"; then
+        return 2
+      fi
+
+      things_to_match="${is_matched_dict["${2}"]}"
+      print_var do_match
+      print_var things_to_match
 
       if ! is_boolean "${do_match}" \
         || ! is_string "${things_to_match}"; then
@@ -235,12 +257,14 @@
       fi
 
       do_match="${2}"
+      shift
+      echo -e "\$4\t\t== '$2'"
 
-      if ! is_string "${3}"; then
+      if ! is_string "${2}"; then
         return 2
       fi
 
-      things_to_match="${3}"
+      things_to_match="${2}"
       shift
     fi
 
@@ -252,6 +276,7 @@
     shift
     shift
     local things="$@"
+    echo -e "\$@\t\t== '$@'"
 
     for this_thing in $( \
       echo "${things_to_match}" \
