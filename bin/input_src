@@ -189,17 +189,7 @@ source "${SOURCE_PATH}debug_src"
       return 2
     fi
 
-    echo -e "\$FUNCNAME\t== '$FUNCNAME'"
-    echo -e "\$1\t\t== '$1'"
-    echo -e "\$2\t\t== '$2'"
-    echo -e "\$3\t\t== '$3'"
-    echo -e "\$4\t\t== '$4'"
-    echo -e "\$5\t\t== '$5'"
-    # echo -e "\$@\t\t== '$@'"
-    echo
-
     local -n reference_is_matched="${1}"
-    print_var reference_is_matched
 
     if ! is_boolean "${reference_is_matched}"; then
       return 2
@@ -216,7 +206,6 @@ source "${SOURCE_PATH}debug_src"
     if is_dict "${2}"; then
       has_dict=true
       local -n is_matched_dict="${2}"
-      print_var is_matched_dict
       shift
     fi
 
@@ -248,34 +237,24 @@ source "${SOURCE_PATH}debug_src"
       fi
 
       things_to_match="${2}"
-      shift
-      shift
     fi
 
-    print_var do_match
-    print_var things_to_match
-
-    # shift
-    # shift
+    shift
+    shift
     local things="$@"
-    print_list things
 
     for this_thing in $( \
       echo "${things_to_match}" \
         | sed "s/,/ /g"
     ); do
-      print_var things
-      print_var this_thing
 
       if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
         reference_is_matched=true
-        print_var reference_is_matched
         return 0
       fi
     done
 
     reference_is_matched=false
-    print_var reference_is_matched
     return 1
   }
 
