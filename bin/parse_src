@@ -113,6 +113,9 @@
     "${SOURCE_PATH}" \
     "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
+
+  source "${SOURCE_PATH}debug_src"
+
 #
 # logic
 #
@@ -602,7 +605,6 @@
 
     for bus_id in ${bus_id_list[@]}; do
       parse_this_device_match \
-        "${bus_id}" \
         "${3}" \
         "${4}" \
         "${5}"
@@ -640,10 +642,9 @@
   }
 
   #
-  # $1 : the Bus ID as a string.
-  # $2 : the boolean dictionary key as a string.
-  # $3 : the IOMMU group ID as an integer.
-  # $4 : the list dictionary key as a string.
+  # $1 : the boolean dictionary key as a string.
+  # $2 : the IOMMU group ID as an integer.
+  # $3 : the list dictionary key as a string.
   #
   function parse_this_device_match
   {
@@ -655,39 +656,51 @@
     parse_this_device_match_get_match_or_unmatch \
       "${1}" \
       "${2}" \
-      "${3}" \
-      "${4}"
+      "${3}"
 
     return 0
   }
 
   #
-  # $1 : the Bus ID as a string.
-  # $2 : the boolean dictionary key as a string.
-  # $3 : the IOMMU group ID as an integer.
-  # $4 : the list dictionary key as a string.
+  # $1 : the boolean dictionary key as a string.
+  # $2 : the IOMMU group ID as an integer.
+  # $3 : the list dictionary key as a string.
   #
   function parse_this_device_match_get_match_or_unmatch
   {
-    if ! is_string "${1}" \
-    || ! is_string "${2}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
-    local this_has_match=false
-    local match_iommu_group_list_reference=""
+    echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    echo -e "\$1\t\t== '$1'"
+    echo -e "\$2\t\t== '$2'"
+    echo -e "\$3\t\t== '$3'"
+    echo
 
-    get_input_match_or_unmatch \
-      this_has_match
+    if [[ "${1}" =~ "UNMATCH" ]]; then
+      is_matched_keyword \
+        "this_has_unmatch" \
+        "INPUTS" \
+        "${1}" \
+        "${3}" \
+        "${2}"
 
-    is_matched_keyword \
-      "this_has_match" \
-      "INPUTS" \
-      "${2}" \
-      "${4}" \
-      "${match_iommu_group_list_reference}" \
-      "${3}"
+    elif ! [[ "${1}" =~ "UNMATCH" ]] \
+      && [[ "${1}" =~ "MATCH" ]]; then
+      is_matched_keyword \
+        "this_has_match" \
+        "INPUTS" \
+        "${1}" \
+        "${3}" \
+        "${2}"
 
+    else
+      return 1
+    fi
+
+    print_var this_has_match
+    print_var this_has_unmatch
     return 0
   }
 
