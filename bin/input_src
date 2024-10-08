@@ -58,10 +58,12 @@ source "${SOURCE_PATH}debug_src"
   declare -gA INPUTS=(
     ["GROUPS_MATCH_LIST"]=""
     ["GROUPS_UNMATCH_LIST"]=""
+    ["MAKES_MATCH_LIST"]=""
+    ["MAKES_UNMATCH_LIST"]=""
     ["MATCH_GROUPS"]=false
     ["MATCH_HOST"]=false
     ["MATCH_NAME"]=false
-    ["MATCH_PCIE"]=false
+    ["UNMATCH_HOST"]=false
     ["MATCH_VGA"]=false
     ["MATCH_TYPE"]=false
     ["MATCH_MAKE"]=false
@@ -106,55 +108,6 @@ source "${SOURCE_PATH}debug_src"
       | sed 's:,*$::'
 
     echo
-  }
-
-  function get_match_list_by_match_input
-  {
-    if ! is_variable "${1}"; then
-      return 1
-    fi
-
-    local -n reference_get_match_list_by_match_input="${1}"
-
-    case "${1}" in
-      "MATCH_GROUPS" )
-        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
-        ;;
-
-      "MATCH_MAKE" )
-        reference_get_match_list_by_match_input="MATCH_MAKE_LIST"
-        ;;
-
-      "MATCH_NAME" )
-        reference_get_match_list_by_match_input="MATCH_NAME_LIST"
-        ;;
-
-      "MATCH_TYPE" )
-        reference_get_match_list_by_match_input="MATCH_TYPE_LIST"
-        ;;
-
-      "MATCH_VGA" )
-        reference_get_match_list_by_match_input="MATCH_GROUP_LIST"
-        ;;
-
-      "UNMATCH_GROUPS" )
-        reference_get_match_list_by_match_input="UNMATCH_GROUP_LIST"
-        ;;
-
-      "UNMATCH_MAKE" )
-        reference_get_match_list_by_match_input="UNMATCH_MAKE_LIST"
-        ;;
-
-      "UNMATCH_NAME" )
-        reference_get_match_list_by_match_input="UNMATCH_NAME_LIST"
-        ;;
-
-      "UNMATCH_TYPE" )
-        reference_get_match_list_by_match_input="UNMATCH_TYPE_LIST"
-        ;;
-    esac
-
-    return 0
   }
 
   function is_argument_or_empty_string
@@ -243,6 +196,9 @@ source "${SOURCE_PATH}debug_src"
     shift
     local things="$@"
 
+    print_var things_to_match
+    print_list things
+
     for this_thing in $( \
       echo "${things_to_match}" \
         | sed "s/,/ /g"
@@ -250,11 +206,15 @@ source "${SOURCE_PATH}debug_src"
 
       if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
         reference_is_matched=true
+        print_var reference_is_matched
+        echo
         return 0
       fi
     done
 
     reference_is_matched=false
+    print_var reference_is_matched
+    echo
     return 1
   }
 
@@ -286,7 +246,13 @@ source "${SOURCE_PATH}debug_src"
 
     if "${has_dict}"; then
       do_match="${is_matched_dict["${2}"]}"
-      things_to_match="${is_matched_dict["${3}"]}"
+      shift
+
+      if ! is_string "${2}"; then
+        return 2
+      fi
+
+      things_to_match="${is_matched_dict["${2}"]}"
 
       if ! is_boolean "${do_match}" \
         || ! is_string "${things_to_match}"; then
@@ -299,21 +265,15 @@ source "${SOURCE_PATH}debug_src"
       fi
 
       do_match="${2}"
+      shift
 
-      if ! is_string "${3}"; then
+      if ! is_string "${2}"; then
         return 2
       fi
 
-      things_to_match="${3}"
-      shift
+      things_to_match="${2}"
     fi
 
-    if "${reference_is_matched}" \
-      || ! "${do_match}"; then
-      return 0
-    fi
-
-    shift
     shift
     shift
     local things="$@"
@@ -322,6 +282,7 @@ source "${SOURCE_PATH}debug_src"
       echo "${things_to_match}" \
         | sed "s/,/ /g"
     ); do
+
       if [[ "${things,,}" == "${this_thing,,}" ]]; then
         reference_is_matched=true
         return 0
@@ -484,7 +445,7 @@ source "${SOURCE_PATH}debug_src"
           ;;
 
         "-p" | "--pci" | "--pcie" )
-          this_input_list=( "MATCH_PCIE" )
+          this_input_list=( "UNMATCH_HOST" )
           ;;
 
         "-t" | "--type" | "--types" )
