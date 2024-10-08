@@ -618,19 +618,19 @@
     local some_have_match=false
     local this_has_match=false
     local this_has_unmatch=false
-    local use_match_or_unmatch=false
+    # local use_match_or_unmatch=false
     local variable_name=""
 
     if [[ "${4}" =~ "UNMATCH" ]]; then
       variable_name="this_has_unmatch"
       some_have_match=true
-      use_match_or_unmatch=false
+      # use_match_or_unmatch=false
 
     elif ! [[ "${4}" =~ "UNMATCH" ]] \
       && [[ "${4}" =~ "MATCH" ]]; then
       variable_name="this_has_match"
       some_have_match=false
-      use_match_or_unmatch=true
+      # use_match_or_unmatch=true
 
     else
       return 1
@@ -641,9 +641,8 @@
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      parse_this_device_match \         #FIXME: the inpuits
+      parse_this_device_match \
         "${3}" \
-        "${use_match_or_unmatch}" \
         "${variable_name}" \
         "${4}" \
         "${5}" \
@@ -682,7 +681,7 @@
 
   #
   # $1 : true/false is list a value or a reference as a boolean.
-  # $2:  do match or unmatch as a boolean reference.
+  # $2 : this has match/unmatch as a variable reference.
   # $3 : the boolean dictionary key as a string.
   # $4 : the comma delimited list as a string.
   # $4 : the list dictionary key as a string.
@@ -692,8 +691,20 @@
   {
     #FIXME: the inputs
 
+    # echo -e "\$FUNCNAME\t== '$FUNCNAME'"
+    # echo -e "\$1\t\t== '$1'"
+    # echo -e "\$2\t\t== '$2'"
+    # echo -e "\$3\t\t== '$3'"
+    # echo -e "\$4\t\t== '$4'"
+    # echo -e "\$5\t\t== '$5'"
+    # echo -e "\$6\t\t== '$6'"
+    # echo
+
+    echo testing match
+    echo $1
+
     if ! is_boolean "${1}" \
-      || ! is_string "${2}" \
+      || ! is_variable "${2}" \
       || ! is_string "${3}" \
       || ! is_string "${4}" \
       || ! is_string "${5}"; then
@@ -701,16 +712,19 @@
     fi
 
     if "${1}"; then
+
+      #TODO: make sure this works as intended.
       is_matched_keyword \
         "${2}" \
+        true \
         "${4}" \
-        "${5}" \
+        "${5}"
 
-      if "${this_has_match}"; then
-        some_have_match=true
-      fi
+      echo $?
 
     else
+
+      #TODO: make sure this works as intended.
       is_matched_keyword \
         "${2}" \
         "INPUTS" \
@@ -718,11 +732,19 @@
         "${4}" \
         "${5}"
 
-      if "${this_has_unmatch}"; then
-        some_have_match=false
-      fi
+      echo $?
     fi
 
+    if "${this_has_match}"; then
+      some_have_match=true
+    fi
+
+    if "${this_has_unmatch}"; then
+      some_have_match=false
+    fi
+
+    print_var $2
+    echo
     return 0
   }
 
