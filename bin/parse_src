@@ -518,8 +518,10 @@
       return 1
     fi
 
+    local use_referenced_list=true
     local value_to_match=""
     local referenced_list=""
+    local valid_value_list=""
 
     case "${2}" in
       "MATCH_GROUPS" )
@@ -527,21 +529,20 @@
         referenced_list="GROUPS_MATCH_LIST"
         ;;
 
-      "MATCH_HOST" | "MATCH_PCIE" )
+      "MATCH_HOST" | "UNMATCH_HOST" )
         value_to_match="${3}"
+        valid_value_list="00:"
+        use_referenced_list=false
         ;;
 
       "MATCH_MAKE" )
         value_to_match="${4}"
+        referenced_list="MAKES_MATCH_LIST"
         ;;
 
       "MATCH_NAME" )
         value_to_match="${5}"
         referenced_list="NAMES_MATCH_LIST"
-        ;;
-
-      "MATCH_PCIE" )
-        value_to_match="${3}"
         ;;
 
       "MATCH_TYPE" )
@@ -551,11 +552,17 @@
 
       "MATCH_VGA" )
         value_to_match="${VGA_TYPE_LIST}"
+        referenced_list="VGA_GROUP_INDEX_MATCH_LIST"
         ;;
 
       "UNMATCH_GROUPS" )
         value_to_match="${1}"
         referenced_list="GROUPS_UNMATCH_LIST"
+        ;;
+
+      "UNMATCH_MAKE" )
+        value_to_match="${4}"
+        referenced_list="MAKES_UNMATCH_LIST"
         ;;
 
       "UNMATCH_NAME" )
@@ -569,62 +576,93 @@
         ;;
     esac
 
-    parse_some_device_matches \
-      "${1}" \
-      "${3}" \
-      "${2}" \
-      "${value_to_match}" \
-      "${referenced_list}"
+    if "${use_referenced_list}"; then
+      parse_some_device_matches \
+        "${1}" \
+        "${3}" \
+        false \
+        "${2}" \
+        "${referenced_list}" \
+        "${value_to_match}"
+
+    else
+      parse_some_device_matches \
+        "${1}" \
+        "${3}" \
+        true \
+        "${2}" \
+        "${valid_value_list}" \
+        "${value_to_match}"
+    fi
   }
 
   #
   # $1 : IOMMU group ID as an integer.
   # $2 : the Bus ID as a string.
-  # $3 : the boolean dictionary key as a string.
-  # $4 : the value to match as a string.
+  # $3 : true/false is list a value or a reference as a boolean.
+  # $4 : the boolean dictionary key as a string.
+  # $5 : the comma delimited list as a string.
+  # $5 : the list dictionary key as a string.
+  # $6 : the value to match as a string.
   #
   function parse_some_device_matches
   {
-    if ! is_positive_integer "${1}"; then
+    if ! is_positive_integer "${1}" \
+      || ! is_string "${2}" \
+      || ! is_boolean "${3}" \
+      || ! is_string "${4}" \
+      || ! is_string "${5}"; then
       return 1
     fi
 
-    if ! is_string "${2}"; then
-      return 1
-    fi
-
-    # NOTE: do not validate for $3 and $4.
-
-    local some_have_match=true
+    local some_have_match=false
     local this_has_match=false
     local this_has_unmatch=false
+    local use_match_or_unmatch=false
+    local variable_name=""
+
+    if [[ "${4}" =~ "UNMATCH" ]]; then
+      variable_name="this_has_unmatch"
+      some_have_match=true
+      use_match_or_unmatch=false
+
+    elif ! [[ "${4}" =~ "UNMATCH" ]] \
+      && [[ "${4}" =~ "MATCH" ]]; then
+      variable_name="this_has_match"
+      some_have_match=false
+      use_match_or_unmatch=true
+
+    else
+      return 1
+    fi
 
     local -a bus_id_list="$( \
       echo -e "${2//,/\\n}" \
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      parse_this_device_match \
-        "${1}" \
+      parse_this_device_match \         #FIXME: the inpuits
         "${3}" \
-        "${4}"
+        "${use_match_or_unmatch}" \
+        "${variable_name}" \
+        "${4}" \
+        "${5}" \
+        "${6}"
     done
 
+    local some_have_vfio=false
+
     is_matched_keyword \
-      "this_has_match" \
+      "some_have_vfio" \
       true \
       "${VFIO_DRIVER_LIST}" \
-      "${4}"
+      "${6}"
 
-    if "${this_has_match}"; then
-      some_have_match=true
-    fi
+    local bus_id=
+    print_var some_have_match
 
-    if "${this_has_unmatch}"; then
-      some_have_match=false
-    fi
-
-    if "${some_have_match}"; then
+    if "${some_have_match}" \
+      && ! "${some_have_vfio}"; then
       match_iommu_group_list+=( "${1}" )
 
       remove_value \
@@ -643,60 +681,48 @@
   }
 
   #
-  # $1 : the boolean dictionary key as a string.
-  # $2 : the IOMMU group ID as an integer.
-  # $3 : the list dictionary key as a string.
+  # $1 : true/false is list a value or a reference as a boolean.
+  # $2:  do match or unmatch as a boolean reference.
+  # $3 : the boolean dictionary key as a string.
+  # $4 : the comma delimited list as a string.
+  # $4 : the list dictionary key as a string.
+  # $5 : the value to match as a string.
   #
   function parse_this_device_match
   {
-    if ! is_string "${1}" \
-      || ! is_string "${2}"; then
+    #FIXME: the inputs
+
+    if ! is_boolean "${1}" \
+      || ! is_string "${2}" \
+      || ! is_string "${3}" \
+      || ! is_string "${4}" \
+      || ! is_string "${5}"; then
       return 1
     fi
 
-    parse_this_device_match_get_match_or_unmatch \
-      "${1}" \
-      "${2}" \
-      "${3}"
-
-    return 0
-  }
-
-  #
-  # $1 : the boolean dictionary key as a string.
-  # $2 : the IOMMU group ID as an integer.
-  # $3 : the list dictionary key as a string.
-  #
-  function parse_this_device_match_get_match_or_unmatch
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    if [[ "${1}" =~ "UNMATCH" ]]; then
+    if "${1}"; then
       is_matched_keyword \
-        "this_has_unmatch" \
-        "INPUTS" \
-        "${1}" \
-        "${3}" \
-        "${2}"
+        "${2}" \
+        "${4}" \
+        "${5}" \
 
-    elif ! [[ "${1}" =~ "UNMATCH" ]] \
-      && [[ "${1}" =~ "MATCH" ]]; then
-      is_matched_keyword \
-        "this_has_match" \
-        "INPUTS" \
-        "${1}" \
-        "${3}" \
-        "${2}"
+      if "${this_has_match}"; then
+        some_have_match=true
+      fi
 
     else
-      return 1
+      is_matched_keyword \
+        "${2}" \
+        "INPUTS" \
+        "${3}" \
+        "${4}" \
+        "${5}"
+
+      if "${this_has_unmatch}"; then
+        some_have_match=false
+      fi
     fi
 
-    # print_var this_has_match
-    # print_var this_has_unmatch
-    # echo
     return 0
   }
 
