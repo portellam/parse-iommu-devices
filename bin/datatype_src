@@ -432,7 +432,7 @@
       value=${reference_remove_value_list["${key}"]}
 
       if [[ "${value}" == "${2}" ]]; then
-        unset reference_remove_value_list["${key}"]
+        unset "reference_remove_value_list[${key}]"
       fi
     done
 
