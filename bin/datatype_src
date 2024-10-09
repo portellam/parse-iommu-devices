@@ -62,6 +62,55 @@
     return 0
   }
 
+  function has_value
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_has_value_list="${1}"
+
+    if "${is_array}"; then
+      for value in "${reference_has_value_list[@]}"; do
+
+        if [[ "${value}" == "${2}" ]]; then
+          return 0
+        fi
+      done
+
+    else
+      for key in "${!reference_has_value_list[@]}"; do
+        value=${reference_has_value_list["${key}"]}
+
+        if [[ "${value}" == "${2}" ]]; then
+          return 0
+        fi
+      done
+    fi
+
+    return 1
+  }
+
   function insert_value
   {
     if ! is_enum "${1}" \
@@ -309,24 +358,83 @@
     esac
   }
 
-  function remove_value
+  function remove_key
   {
-    if ! is_enum "${1}" \
-      || is_array "${1}" \
-      && ! is_integer "${2}" \
-      && ( \
-        ! is_positive_integer "${2}" \
-        || [[ "${2}" -eq -1 ]] \
-      ); then
+    if ! is_string "${1}"; then
       return 2
     fi
 
-    local -r reference_remove_value="${1}"
-    unset reference_remove_value["${2}"]
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if "${is_array}" \
+      && ! is_integer "${2}" \
+      && [[ "${2}" -lt -1 ]]; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_remove_key_list="${1}"
+    unset reference_remove_key_list["${2}"]
 
     if [[ "${?}" -ne 0 ]]; then
       return 1
     fi
+
+    return 0
+  }
+
+  function remove_value
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_remove_value_list="${1}"
+
+    for key in ${!reference_remove_value_list[@]}; do
+      value=${reference_remove_value_list["${key}"]}
+
+      if [[ "${value}" == "${2}" ]]; then
+        unset reference_remove_value_list["${key}"]
+      fi
+    done
 
     return 0
   }
