@@ -62,6 +62,8 @@
     ["MATCH_HOST"]=false
     ["MATCH_NAME"]=false
     ["UNMATCH_HOST"]=false
+    ["MAKES_MATCH_LIST"]=""
+    ["MAKES_UNMATCH_LIST"]=""
     ["MATCH_VGA"]=false
     ["MATCH_TYPE"]=false
     ["MATCH_MAKE"]=false
@@ -78,8 +80,6 @@
     ["MORE_VERBOSE"]=false
     ["WRITE_XML"]=false
     ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
-    ["MAKES_MATCH_LIST"]=""
-    ["MAKES_UNMATCH_LIST"]=""
     ["VGA_GROUP_INDEX_MATCH_LIST"]=""
   )
 
@@ -278,6 +278,7 @@
       return 1
     fi
 
+    trim_input_lists
     return 0
   }
 
@@ -306,11 +307,10 @@
               print_invalid_option "${1}"
             fi
 
-            if [[ "${1: -1}" == "," ]]; then
-              INPUTS["GROUPS_MATCH_LIST"]="${1::-1}"
-            else
-              INPUTS["GROUPS_MATCH_LIST"]="${1}"
-            fi
+            INPUTS["GROUPS_MATCH_LIST"]+="$( \
+              echo "${1}" \
+                | sed 's/,*$//' \
+            ),"
           fi
           ;;
 
@@ -333,11 +333,10 @@
               print_invalid_option "${1}"
             fi
 
-            if [[ "${1: -1}" == "," ]]; then
-              INPUTS["GROUPS_UNMATCH_LIST"]="${1::-1}"
-            else
-              INPUTS["GROUPS_UNMATCH_LIST"]="${1}"
-            fi
+            INPUTS["GROUPS_UNMATCH_LIST"]+="$( \
+              echo "${1}" \
+                | sed 's/,*$//' \
+            ),"
           fi
           ;;
 
@@ -349,7 +348,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["NAMES_UNMATCH_LIST"]="${1}"
+          INPUTS["NAMES_UNMATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "--ignore-type" | "--ignore-types" )
@@ -360,7 +362,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["TYPES_UNMATCH_LIST"]="${1}"
+          INPUTS["TYPES_UNMATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "--ignore-vendor" | "--ignore-vendors" )
@@ -371,7 +376,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MAKES_UNMATCH_LIST"]="${1}"
+          INPUTS["MAKES_UNMATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "-n" | "--name" | "--names" )
@@ -382,7 +390,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["NAMES_MATCH_LIST"]="${1}"
+          INPUTS["NAMES_MATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "-p" | "--pci" | "--pcie" )
@@ -397,7 +408,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["TYPES_MATCH_LIST"]="${1}"
+          INPUTS["TYPES_MATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "-V" | "--vendor" | "--vendors" )
@@ -408,7 +422,10 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MAKES_MATCH_LIST"]="${1}"
+          INPUTS["MAKES_MATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "-v" | "--verbose" )
@@ -433,11 +450,10 @@
             print_invalid_option "${1}"
           fi
 
-          if [[ "${1: -1}" == "," ]]; then
-            INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]="${1::-1}"
-          else
-            INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]="${1}"
-          fi
+          INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]+="$( \
+            echo "${1}" \
+              | sed 's/,*$//' \
+          ),"
           ;;
 
         "--x" | "--xml" )
@@ -842,6 +858,65 @@
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "${text}"
+  }
+
+  function trim_input_lists
+  {
+    INPUTS["GROUPS_MATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["GROUPS_MATCH_LIST"]}" \
+    )"
+
+    INPUTS["GROUPS_UNMATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["GROUPS_UNMATCH_LIST"]}" \
+    )"
+
+    INPUTS["MAKES_MATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["MAKES_MATCH_LIST"]}" \
+    )"
+
+    INPUTS["MAKES_UNMATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["MAKES_UNMATCH_LIST"]}" \
+    )"
+
+    INPUTS["NAMES_MATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["NAMES_MATCH_LIST"]}" \
+    )"
+
+    INPUTS["NAMES_UNMATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["NAMES_UNMATCH_LIST"]}" \
+    )"
+
+    INPUTS["TYPES_MATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["TYPES_MATCH_LIST"]}" \
+    )"
+
+    INPUTS["TYPES_UNMATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["TYPES_UNMATCH_LIST"]}" \
+    )"
+
+    INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]="$( \
+      truncate_index_from_delimited_list \
+        -1 \
+        "${INPUTS["VGA_GROUP_INDEX_MATCH_LIST"]}" \
+    )"
+
+    return 0
   }
 
   function verify_iommu_groups
