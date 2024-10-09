@@ -21,7 +21,7 @@
       echo -e "'${key}' '${value}'"
     done
 
-    echo
+    # echo
   }
 
   function print_list
@@ -34,11 +34,12 @@
       echo -e "'${value}'"
     done
 
-    echo
+    # echo
   }
 
   function print_var
   {
     local -n ref="${1}"
-    echo -e "'${1}' '${ref}'\n"
+    echo -e "'${1}' '${ref}'"
+    # echo
   }
