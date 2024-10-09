@@ -711,28 +711,47 @@
       return 1
     fi
 
-    if "${1}"; then
+    if [[ "${3}" =~ "MATCH_GROUPS" ]]; then
+      if "${1}"; then
+        is_matched_word \
+          "${2}" \
+          true \
+          "${4}" \
+          "${5}"
 
-      #TODO: make sure this works as intended.
-      is_matched_keyword \
-        "${2}" \
-        true \
-        "${4}" \
-        "${5}"
+        echo $?
 
-      echo $?
+      else
+        is_matched_word \
+          "${2}" \
+          "INPUTS" \
+          "${3}" \
+          "${4}" \
+          "${5}"
+
+        echo $?
+      fi
 
     else
+      if "${1}"; then
+        is_matched_keyword \
+          "${2}" \
+          true \
+          "${4}" \
+          "${5}"
 
-      #TODO: make sure this works as intended.
-      is_matched_keyword \
-        "${2}" \
-        "INPUTS" \
-        "${3}" \
-        "${4}" \
-        "${5}"
+        echo $?
 
-      echo $?
+      else
+        is_matched_keyword \
+          "${2}" \
+          "INPUTS" \
+          "${3}" \
+          "${4}" \
+          "${5}"
+
+        echo $?
+      fi
     fi
 
     if "${this_has_match}"; then
