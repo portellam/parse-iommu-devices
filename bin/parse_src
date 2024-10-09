@@ -705,6 +705,17 @@
       some_have_match=false
     fi
 
+    # if "${this_has_match}"; then
+    #   remove_value \
+    #     "unmatch_iommu_group_list" \
+    #     "${iommu_group_id}"
+
+    # else
+    #   remove_value \
+    #     "match_iommu_group_list" \
+    #     "${iommu_group_id}"
+    # fi
+
     return 0
   }
 
@@ -725,31 +736,6 @@
       parse_some_group_matches \
         "${iommu_group_id}" \
         "${bus_id_delim}"
-
-      if "${some_have_match}" \
-        && ! "${some_have_vfio}"; then
-
-        if ! has_value \
-            "match_iommu_group_list" \
-            "${iommu_group_id}"; then
-          match_iommu_group_list+=( "${iommu_group_id}" )
-        fi
-
-        remove_value \
-          "unmatch_iommu_group_list" \
-          "${iommu_group_id}"
-
-      else
-        if ! has_value \
-            "unmatch_iommu_group_list" \
-            "${iommu_group_id}"; then
-          unmatch_iommu_group_list+=( "${iommu_group_id}" )
-        fi
-
-        remove_value \
-          "match_iommu_group_list" \
-          "${iommu_group_id}"
-      fi
 
       append_many_device_info_to_output_files \
         "${iommu_group_id}" \
@@ -803,7 +789,9 @@
     local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
     local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
 
-    for input in "${ORDERED_INPUT_LIST[@]}"; do
+    for key in "${!ORDERED_INPUT_LIST[@]}"; do
+      local input=${ORDERED_INPUT_LIST["${key}"]}
+
       parse_many_device_matches \
         "${1}" \
         "${input}" \
@@ -812,6 +800,52 @@
         "${name}" \
         "${type}" \
         "${driver}"
+
+      local is_last_value_inverse_match=false
+      (( key-- ))
+      local last_input=${ORDERED_INPUT_LIST["${key}"]}
+
+      if [[ "${input}" =~ "UNMATCH" ]] \
+        && [[ "${last_input}" =~ "UNMATCH" ]]; then
+        is_last_value_inverse_match=false
+
+      elif ! [[ "${input}" =~ "UNMATCH" ]] \
+        && [[ "${input}" =~ "MATCH" ]] \
+        && ! [[ "${last_input}" =~ "UNMATCH" ]] \
+        && [[ "${last_input}" =~ "MATCH" ]]; then
+        is_last_value_inverse_match=false
+
+      else
+        is_last_value_inverse_match=true
+      fi
+
+      if "${some_have_match}" \
+        && ! "${some_have_vfio}"; then
+
+        if ! has_value \
+            "match_iommu_group_list" \
+            "${iommu_group_id}"; then
+          match_iommu_group_list+=( "${iommu_group_id}" )
+        fi
+
+        if ! "${is_last_value_inverse_match}"; then
+          remove_value \
+            "unmatch_iommu_group_list" \
+            "${iommu_group_id}"
+        fi
+      else
+        if ! has_value \
+            "unmatch_iommu_group_list" \
+            "${iommu_group_id}"; then
+          unmatch_iommu_group_list+=( "${iommu_group_id}" )
+        fi
+
+        if ! "${is_last_value_inverse_match}"; then
+          remove_value \
+            "match_iommu_group_list" \
+            "${iommu_group_id}"
+        fi
+      fi
     done
 
     return 0
