@@ -39,10 +39,12 @@
 #
 # logic
 #
+  #
+  # $1 : the number of whitespaces as an integer.
+  #
   function get_repeated_space
   {
-    if ! is_string "${1}" \
-      || ! is_positive_integer "${1}"; then
+    if ! is_positive_integer "${1}"; then
       return 1
     fi
 
@@ -56,33 +58,9 @@
     echo -e "${output}"
   }
 
-  function get_repeated_space_from_tabspace
-  {
-    if ! is_string "${1}" \
-      || ! is_positive_integer "${1}"; then
-      return 1
-    fi
-
-    local -i tabspace_count="$( get_space_count_from_tabspace_count "${1}" )"
-    local output=""
-
-    for index in $( seq 1 "${tabspace_count}" ); do
-      output+="\t"
-    done
-
-    echo -e "${output}"
-  }
-
-  function get_space_count
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    grep -o ' ' <<<"${1}" \
-      | grep -c .
-  }
-
+  #
+  # $1 : the number of tabspaces as an integer.
+  #
   function get_space_count_from_tabspace_count
   {
     if ! is_string "${1}" \
@@ -93,6 +71,9 @@
     echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
   }
 
+  #
+  # $1 : the comma delimited list as a string.
+  #
   function is_comma_delimited_list_of_positive_numbers
   {
     if echo "${1}" \
@@ -104,6 +85,9 @@
     fi
   }
 
+  #
+  # $1 : the log text as a string.
+  #
   function log
   {
     local -ir int_return_code="${?}"
@@ -118,6 +102,9 @@
     return "${int_return_code}"
   }
 
+  #
+  # $1 : the output text as a string.
+  #
   function print_and_log_output
   {
     local -ir int_return_code="${?}"
@@ -138,6 +125,9 @@
     return "${int_return_code}"
   }
 
+  #
+  # $1 : the output text as a string.
+  #
   function print_and_log_following_output
   {
     local -ir int_return_code="${?}"
@@ -179,6 +169,9 @@
     tabs "${TABSPACE_WHITESPACE_COUNT}"
   }
 
+  #
+  # $1 : the comma delimited list as a string.
+  #
   function sort_comma_delimited_list
   {
     if ! is_string "${1}"; then
@@ -191,7 +184,10 @@
       | sed 's/,$//'
   }
 
-
+  #
+  # $1 : the index as an integer.
+  # $@ : the list as an array.
+  #
   function truncate_index_from_delimited_list
   {
     if ! is_integer "${1}"; then
@@ -210,45 +206,49 @@
     return 0
   }
 
+  #
+  # $1 : do use tabspace as a boolean.
+  # $2 : do append newline on first line as a boolean.
+  # $3 : do append newline on all lines as a boolean.
+  # $4 : the prefix width as a string.
+  # $5 : the column width as an integer.
+  # $@ : the output text as an array.
+  #
   function wrap_text
   {
-    local -r use_tab_space="${1}"
-
-    if ! is_string "${1}"; then
+    if ! is_boolean "${1}"; then
       return 1
     fi
 
+    local -r use_tab_space="${1}"
     shift
+
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
 
     local -r do_append_newline_for_one_line="${1}"
+    shift
 
     if ! is_boolean "${1}"; then
       return 1
     fi
-
-    shift
 
     local -r do_append_newline_for_many_lines="${1}"
+    shift
 
-    if ! is_boolean "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
-
-    shift
 
     local prefix_width="${1}"
-
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
     shift
-    local -i column_width="${1}"
 
-    if ! is_string "${1}"; then
+    if ! is_integer "${1}"; then
       return 1
     fi
 
+    local -i column_width="${1}"
     shift
 
     if ! "${USE_WORD_WRAP}"\

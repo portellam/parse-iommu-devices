@@ -6,8 +6,6 @@
 # Maintainer(s):  Alex Portell <github.com/portellam>
 #
 
-source "${SOURCE_PATH}debug_src"
-
 #
 # params (1/2)
 #
@@ -110,6 +108,9 @@ source "${SOURCE_PATH}debug_src"
     echo
   }
 
+  #
+  # $1 : the argument as a string.
+  #
   function is_argument_or_empty_string
   {
     if ! is_string "${1}"; then
@@ -129,164 +130,83 @@ source "${SOURCE_PATH}debug_src"
   }
 
   #
-  # $1 : the boolean as a reference.
-  # $2 : the do match boolean to match dictionary key as a string.
-  # $3 : the list dictionary key as a string.
-  # $2 : the do match flag as a boolean.
-  # $4 : the comma delimited list of valid matches as a string.
+  # $1 : do match by keyword or fullword.
+  # $2 : the boolean as a reference.
+  # $2 : the list dictionary key as a string.
+  # $3 : the do match boolean to match dictionary key as a string.
+  # $5 : the do match flag as a boolean.
+  # $6 : the comma delimited list of valid matches as a string.
   # $@ : the values to match as a list.
   #
   function is_matched_keyword
   {
-    if ! is_variable "${1}"; then
+    if ! is_boolean "${1}" \
+      || ! is_variable "${2}" \
+      || ! is_string "${3}"; then
       return 2
     fi
 
-    local -n reference_is_matched="${1}"
+    local do_match_value_by_keyword="${1}"
+    local -n reference_is_matched="${2}"
 
     if ! is_boolean "${reference_is_matched}"; then
       return 2
     fi
 
-    local do_match=false
-    local things_to_match=""
-    local has_dict=false
+    local do_match_value=false
+    local match_delim=""
 
-    if ! is_string "${2}"; then
-      return 2
-    fi
+    if is_dict "${3}"; then
+      local -n matched_dictionary="${3}"
 
-    if is_dict "${2}"; then
-      has_dict=true
-      local -n is_matched_dict="${2}"
-      shift
-    fi
-
-    if "${has_dict}"; then
-      do_match="${is_matched_dict["${2}"]}"
-      shift
-
-      if ! is_string "${2}"; then
+      if ! is_string "${4}" \
+        || ! is_string "${5}"; then
         return 2
       fi
 
-      things_to_match="${is_matched_dict["${2}"]}"
+      do_match_value="${matched_dictionary["${4}"]}"
+      match_delim="${matched_dictionary["${5}"]}"
 
-      if ! is_boolean "${do_match}" \
-        || ! is_string "${things_to_match}"; then
+      if ! is_boolean "${do_match_value}" \
+        || ! is_string "${match_delim}"; then
         return 2
       fi
+
+      shift
 
     else
-      if ! is_boolean "${2}"; then
+      if ! is_boolean "${3}" \
+        || ! is_string "${4}"; then
         return 2
       fi
 
-      do_match="${2}"
-      shift
-
-      if ! is_string "${2}"; then
-        return 2
-      fi
-
-      things_to_match="${2}"
+      do_match_value="${3}"
+      match_delim="${4}"
     fi
 
     shift
     shift
-    local things="$@"
+    shift
+    shift
+    local value_list="$@"
 
-    print_var things_to_match
-    print_list things
-
-    for this_thing in $( \
-      echo "${things_to_match}" \
+    for this_match in $( \
+      echo "${match_delim}" \
         | sed "s/,/ /g"
     ); do
 
-      if [[ "${things,,}" =~ "${this_thing,,}" ]]; then
-        reference_is_matched=true
-        print_var reference_is_matched
-        echo
-        return 0
-      fi
-    done
-
-    reference_is_matched=false
-    print_var reference_is_matched
-    echo
-    return 1
-  }
-
-  function is_matched_word
-  {
-    if ! is_variable "${1}"; then
-      return 2
-    fi
-
-    local -n reference_is_matched="${1}"
-
-    if ! is_boolean "${reference_is_matched}"; then
-      return 2
-    fi
-
-    local do_match=false
-    local things_to_match=""
-    local has_dict=false
-
-    if ! is_string "${2}"; then
-      return 2
-    fi
-
-    if is_dict "${2}"; then
-      has_dict=true
-      local -n is_matched_dict="${2}"
-      shift
-    fi
-
-    if "${has_dict}"; then
-      do_match="${is_matched_dict["${2}"]}"
-      shift
-
-      if ! is_string "${2}"; then
-        return 2
-      fi
-
-      things_to_match="${is_matched_dict["${2}"]}"
-
-      if ! is_boolean "${do_match}" \
-        || ! is_string "${things_to_match}"; then
-        return 2
-      fi
-
-    else
-      if ! is_boolean "${2}"; then
-        return 2
-      fi
-
-      do_match="${2}"
-      shift
-
-      if ! is_string "${2}"; then
-        return 2
-      fi
-
-      things_to_match="${2}"
-    fi
-
-    shift
-    shift
-    local things="$@"
-
-    for this_thing in $( \
-      echo "${things_to_match}" \
-        | sed "s/,/ /g"
-    ); do
-
-      if [[ "${things,,}" == "${this_thing,,}" ]]; then
+      if "${do_match_value_by_keyword}" \
+        && [[ "${value_list,,}" =~ "${this_match,,}" ]]; then
         reference_is_matched=true
         return 0
       fi
+
+      if ! "${do_match_value_by_keyword}" \
+        && [[ "${value_list,,}" == "${this_match,,}" ]]; then
+        reference_is_matched=true
+        return 0
+      fi
+
     done
 
     reference_is_matched=false
@@ -318,6 +238,9 @@ source "${SOURCE_PATH}debug_src"
         "$( get_comma_list_of_iommu_group_ids )"
   }
 
+  #
+  # $@ : the argument(s) as an array.
+  #
   function parse_many_arguments
   {
     # echo "'${@}'"
@@ -358,6 +281,10 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : the argument as a string.
+  # $@ : the option(s) as an array.
+  #
   function parse_this_argument
   {
     while true; do
@@ -545,6 +472,9 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $@ : the argumen(s) as an array.
+  #
   function print_invalid_argument
   {
     if ! is_verbose; then
@@ -562,6 +492,9 @@ source "${SOURCE_PATH}debug_src"
     return 0
   }
 
+  #
+  # $1 : the option as a string.
+  #
   function print_invalid_option
   {
     if ! is_verbose; then
@@ -918,6 +851,9 @@ source "${SOURCE_PATH}debug_src"
     fi
   }
 
+  #
+  # $1 : the index of the group with VGA as an integer.
+  #
   function verify_vga_group_index
   {
     if ! is_positive_integer "${1}" \

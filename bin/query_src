@@ -133,6 +133,9 @@
       IOMMU_GROUP_ID_AND_BUS_ID
   }
 
+  #
+  # $1 : the Bus ID as a string.
+  #
   function get_driver
   {
     if ! is_string "${1}"; then
@@ -165,6 +168,9 @@
     echo "${driver}"
   }
 
+  #
+  # $1 : the driver as a string.
+  #
   function is_valid_driver
   {
     if ! is_string "${1}" \
@@ -176,6 +182,9 @@
     return 0
   }
 
+  #
+  # $1 : the start time in seconds as an integer.
+  #
   function prompt_time_duration
   {
     if ! is_positive_integer "${1}"; then
@@ -350,6 +359,9 @@
     return 0
   }
 
+  #
+  # $1 : the Bus ID as a string.
+  #
   function set_this_hardware_id_dictionaries
   {
     if ! is_string "${1}"; then
@@ -513,13 +525,20 @@
     return 0
   }
 
+  #
+  # $1 : the IOMMU group ID as an integer.
+  #
   function set_this_iommu_group_id_dictionaries
   {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
     local temp_list=""
 
     for bus_id in $( \
       ls \
-        "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
+        "/sys/kernel/iommu_groups/${1}/devices/" \
       | sort \
         --version-sort \
     ); do
@@ -529,5 +548,5 @@
       temp_list+="${bus_id},"
     done
 
-    IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]="${temp_list::-1}"
+    IOMMU_GROUP_ID_AND_BUS_ID["${1}"]="${temp_list::-1}"
   }
