@@ -615,22 +615,18 @@
       return 1
     fi
 
-    local some_have_match=false
     local this_has_match=false
     local this_has_unmatch=false
-    # local use_match_or_unmatch=false
     local variable_name=""
 
     if [[ "${4}" =~ "UNMATCH" ]]; then
       variable_name="this_has_unmatch"
       some_have_match=true
-      # use_match_or_unmatch=false
 
     elif ! [[ "${4}" =~ "UNMATCH" ]] \
       && [[ "${4}" =~ "MATCH" ]]; then
       variable_name="this_has_match"
       some_have_match=false
-      # use_match_or_unmatch=true
 
     else
       return 1
@@ -649,30 +645,12 @@
         "${6}"
     done
 
-    local some_have_vfio=false
-
     is_matched_keyword \
       true \
       "some_have_vfio" \
       true \
       "${VFIO_DRIVER_LIST}" \
       "${6}"
-
-    if "${some_have_match}" \
-      && ! "${some_have_vfio}"; then
-      match_iommu_group_list+=( "${1}" )
-
-      remove_value \
-        "unmatch_iommu_group_list" \
-        "${1}"
-
-    else
-      unmatch_iommu_group_list+=( "${1}" )
-
-      remove_value \
-        "match_iommu_group_list" \
-        "${1}"
-    fi
 
     return 0
   }
@@ -738,12 +716,40 @@
     local -ir min_vga_group_index=1
     local -i vga_group_index="${min_vga_group_index}"
 
+    local some_have_match=false
+    local some_have_vfio=false
+
     for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
       local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
 
       parse_some_group_matches \
         "${iommu_group_id}" \
         "${bus_id_delim}"
+
+      if "${some_have_match}" \
+        && ! "${some_have_vfio}"; then
+
+        if ! has_value \
+            "match_iommu_group_list" \
+            "${iommu_group_id}"; then
+          match_iommu_group_list+=( "${iommu_group_id}" )
+        fi
+
+        remove_value \
+          "unmatch_iommu_group_list" \
+          "${iommu_group_id}"
+
+      else
+        if ! has_value \
+            "unmatch_iommu_group_list" \
+            "${iommu_group_id}"; then
+          unmatch_iommu_group_list+=( "${iommu_group_id}" )
+        fi
+
+        remove_value \
+          "match_iommu_group_list" \
+          "${iommu_group_id}"
+      fi
 
       append_many_device_info_to_output_files \
         "${iommu_group_id}" \
