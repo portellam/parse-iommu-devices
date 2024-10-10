@@ -159,16 +159,17 @@
   #
   function append_many_device_info_to_output_files
   {
-    if ! is_positive_integer "${1}" \
-      || ! is_string "${2}"; then
+    if ! is_positive_integer "${1}"; then
       return 1
     fi
 
     local -i device_index=1
     group_output+=( "IOMMU Group ${1}:" )
 
+    local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
+
     local -a bus_id_list="$( \
-      echo -e "${2//,/\\n}" \
+      echo -e "${bus_id_delim//,/\\n}" \
     )"
 
     local some_have_host=false
@@ -617,12 +618,12 @@
     local this_has_unmatch=false
     local variable_name=""
 
-    if [[ "${4}" =~ "UNMATCH" ]]; then
+    if [[ "${4^^}" =~ "UNMATCH" ]]; then
       variable_name="this_has_unmatch"
       some_have_match=true
 
-    elif ! [[ "${4}" =~ "UNMATCH" ]] \
-      && [[ "${4}" =~ "MATCH" ]]; then
+    elif ! [[ "${4^^}" =~ "UNMATCH" ]] \
+      && [[ "${4^^}" =~ "MATCH" ]]; then
       variable_name="this_has_match"
       some_have_match=false
 
@@ -711,31 +712,32 @@
     local -a match_iommu_group_list=()
     local -a unmatch_iommu_group_list=()
 
+    local -ar actual_iommu_group_list="$( \
+      seq \
+        0 \
+        "${MAX_IOMMU_GROUP_ID}" \
+    )"
+
     local -ir min_vga_group_index=1
     local -i vga_group_index="${min_vga_group_index}"
 
     local some_have_match=false
     local some_have_vfio=false
 
-    for iommu_group_id in $( seq 0 "${MAX_IOMMU_GROUP_ID}" ); do
-      local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${iommu_group_id}"]}"
-
+    for iommu_group_id in "${actual_iommu_group_list[@]}"; do
       parse_some_group_matches \
-        "${iommu_group_id}" \
-        "${bus_id_delim}"
+        "${iommu_group_id}"
+    done
 
-      if ! "${some_have_match}" \
-        || "${some_have_vfio}"; then
-        remove_value \
+    for iommu_group_id in "${actual_iommu_group_list[@]}"; do
+      if ! has_value \
           "match_iommu_group_list" \
-          "${iommu_group_id}"
-
+          "${iommu_group_id}"; then
         unmatch_iommu_group_list+=( "${iommu_group_id}" )
       fi
 
       append_many_device_info_to_output_files \
-        "${iommu_group_id}" \
-        "${bus_id_delim}"
+        "${iommu_group_id}"
     done
 
     append_many_matches_to_output_lists
@@ -750,13 +752,14 @@
   #
   function parse_some_group_matches
   {
-    if ! is_positive_integer "${1}" \
-      || ! is_string "${2}"; then
+    if ! is_positive_integer "${1}"; then
       return 1
     fi
 
+    local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+
     local -a bus_id_list="$( \
-      echo -e "${2//,/\\n}" \
+      echo -e "${bus_id_delim//,/\\n}" \
     )"
 
     for bus_id in ${bus_id_list[@]}; do
