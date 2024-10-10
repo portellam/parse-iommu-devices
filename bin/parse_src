@@ -840,6 +840,17 @@
     #   fi
     # fi
 
+    #
+    # NOTES
+    #
+    # - combining positives leads to expected inclusive behavior.
+    # - combining negative after positive leads to unintended behavior
+    #
+    # TODO
+    #
+    # - add separate booleans for match, unmatch, and for MATCH_PCIE
+    #
+
     if "${is_match}"; then
       if ! "${some_have_match}"; then
         return 0
