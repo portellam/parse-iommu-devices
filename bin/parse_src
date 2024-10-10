@@ -496,19 +496,18 @@
   }
 
   #
-  # $1 : IOMMU group ID as an integer.
-  # $2 : the boolean dictionary key as a string.
+  # $1 : the boolean dictionary key as a string.
+  # $2 : IOMMU group ID as an integer.
   # $3 : the Bus ID as a string.
   # $4 : the make as a a string.
   # $5 : the name as a a string.
   # $6 : the type as a a string.
   # $7 : the driver as a a string.
   #
-  #
   function parse_many_device_matches
   {
-    if ! is_positive_integer "${1}" \
-      || ! is_string "${2}" \
+    if ! is_string "${1}" \
+      || ! is_positive_integer "${2}" \
       || ! is_string "${3}" \
       || ! is_string "${4}" \
       || ! is_string "${5}" \
@@ -522,9 +521,9 @@
     local referenced_list=""
     local valid_value_list=""
 
-    case "${2}" in
+    case "${1}" in
       "MATCH_GROUPS" )
-        value_to_match="${1}"
+        value_to_match="${2}"
         referenced_list="GROUPS_MATCH_LIST"
         ;;
 
@@ -555,7 +554,7 @@
         ;;
 
       "UNMATCH_GROUPS" )
-        value_to_match="${1}"
+        value_to_match="${2}"
         referenced_list="GROUPS_UNMATCH_LIST"
         ;;
 
@@ -577,19 +576,17 @@
 
     if "${use_referenced_list}"; then
       parse_some_device_matches \
-        "${1}" \
-        "${3}" \
-        false \
         "${2}" \
+        false \
+        "${1}" \
         "${referenced_list}" \
         "${value_to_match}"
 
     else
       parse_some_device_matches \
-        "${1}" \
-        "${3}" \
-        true \
         "${2}" \
+        true \
+        "${1}" \
         "${valid_value_list}" \
         "${value_to_match}"
     fi
@@ -597,20 +594,18 @@
 
   #
   # $1 : IOMMU group ID as an integer.
-  # $2 : the Bus ID as a string.
-  # $3 : true/false is list a value or a reference as a boolean.
-  # $4 : the boolean dictionary key as a string.
-  # $5 : the comma delimited list as a string.
-  # $5 : the list dictionary key as a string.
-  # $6 : the value to match as a string.
+  # $2 : true/false is list a value or a reference as a boolean.
+  # $3 : the boolean dictionary key as a string.
+  # $4 : the comma delimited list as a string.
+  # $4 : the list dictionary key as a string.
+  # $5 : the value to match as a string.
   #
   function parse_some_device_matches
   {
     if ! is_positive_integer "${1}" \
-      || ! is_string "${2}" \
-      || ! is_boolean "${3}" \
-      || ! is_string "${4}" \
-      || ! is_string "${5}"; then
+      || ! is_boolean "${2}" \
+      || ! is_string "${3}" \
+      || ! is_string "${4}"; then
       return 1
     fi
 
@@ -618,38 +613,46 @@
     local this_has_unmatch=false
     local variable_name=""
 
-    if [[ "${4^^}" =~ "UNMATCH" ]]; then
+    if [[ "${3^^}" =~ "UNMATCH" ]]; then
       variable_name="this_has_unmatch"
-      some_have_match=true
 
-    elif ! [[ "${4^^}" =~ "UNMATCH" ]] \
-      && [[ "${4^^}" =~ "MATCH" ]]; then
+    elif ! [[ "${3^^}" =~ "UNMATCH" ]] \
+      && [[ "${3^^}" =~ "MATCH" ]]; then
       variable_name="this_has_match"
-      some_have_match=false
 
     else
       return 1
     fi
 
-    local -a bus_id_list="$( \
-      echo -e "${2//,/\\n}" \
-    )"
+    echo \$this_has_match   == $this_has_match
+    echo \$this_has_unmatch == $this_has_unmatch
 
-    for bus_id in ${bus_id_list[@]}; do
-      parse_this_device_match \
-        "${3}" \
-        "${variable_name}" \
-        "${4}" \
-        "${5}" \
-        "${6}"
-    done
+    parse_this_device_match \
+      "${2}" \
+      "${variable_name}" \
+      "${3}" \
+      "${4}" \
+      "${5}"
+
+    echo \$this_has_match   == $this_has_match
+    echo \$this_has_unmatch == $this_has_unmatch
+    echo \$1 == $1
+    echo \$2 == $2
+    echo \$3 == $3
+    echo \$4 == $4
+    echo \$5 == $5
+    echo
 
     is_matched_keyword \
       true \
       "some_have_vfio" \
       true \
       "${VFIO_DRIVER_LIST}" \
-      "${6}"
+      "${5}"
+
+    if "${some_have_vfio}"; then
+      some_have_match=false
+    fi
 
     return 0
   }
@@ -724,12 +727,12 @@
     local some_have_match=false
     local some_have_vfio=false
 
-    for iommu_group_id in "${actual_iommu_group_list[@]}"; do
+    for input in "${ORDERED_INPUT_LIST[@]}"; do
       parse_some_group_matches \
-        "${iommu_group_id}"
+        "${input}"
     done
 
-    for iommu_group_id in "${actual_iommu_group_list[@]}"; do
+    for iommu_group_id in ${actual_iommu_group_list[@]}; do
       if ! has_value \
           "match_iommu_group_list" \
           "${iommu_group_id}"; then
@@ -747,67 +750,113 @@
   }
 
   #
-  # $1 : the IOMMU group ID as an integer.
-  # $2 : the Bus ID as a string.
+  # $1 : the match kind as a string.
   #
   function parse_some_group_matches
   {
-    if ! is_positive_integer "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
-    local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${1}"]}"
+    for iommu_group_id in ${actual_iommu_group_list[@]}; do
+      echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      echo \$some_have_match == $some_have_match
 
-    local -a bus_id_list="$( \
-      echo -e "${bus_id_delim//,/\\n}" \
-    )"
-
-    for bus_id in ${bus_id_list[@]}; do
       parse_this_group_match \
         "${1}" \
-        "${bus_id}"
+        "${iommu_group_id}"
+
+      echo \$some_have_match == $some_have_match
+      echo
     done
 
     return 0
   }
 
   #
-  # $1 : the IOMMU group ID as an integer.
-  # $2 : the Bus ID as a string.
+  # $1 : the match kind as a string.
+  # $2 : the IOMMU group ID as an integer.
   #
   function parse_this_group_match
   {
-    if ! is_positive_integer "${1}" \
-      || ! is_string "${2}"; then
+    if ! is_string "${1}" \
+      || ! is_positive_integer "${2}"; then
       return 1
     fi
 
-    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${2}]}"
-    local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
-    local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
-    local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
-    local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
+    local is_match=true
 
-    for input in "${ORDERED_INPUT_LIST[@]}"; do
+    if [[ "${1^^}" =~ "UNMATCH" ]]; then
+      some_have_match=true
+      is_match=false
+
+    elif ! [[ "${1^^}" =~ "UNMATCH" ]] \
+      && [[ "${1^^}" =~ "MATCH" ]]; then
+      some_have_match=false
+      is_match=true
+
+    else
+      return 1
+    fi
+
+    local bus_id_delim="${IOMMU_GROUP_ID_AND_BUS_ID["${2}"]}"
+
+    local -a bus_id_list="$( \
+      echo -e "${bus_id_delim//,/\\n}" \
+    )"
+
+    for bus_id in ${bus_id_list[@]}; do
+      local hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
+      local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
+      local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
+      local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
+      local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
+
       parse_many_device_matches \
         "${1}" \
-        "${input}" \
         "${2}" \
+        "${bus_id}" \
         "${make}" \
         "${name}" \
         "${type}" \
         "${driver}"
+    done
 
-      if ! "${some_have_match}" \
-        || "${some_have_vfio}" \
-        || has_value \
-          "match_iommu_group_list" \
-          "${1}"; then
-        continue
+    # if ! "${some_have_match}" \
+    #   && has_value \
+    #     "match_iommu_group_list" \
+    #     "${iommu_group_id}"; then
+    #     if ! "${is_match}"; then
+    #       remove_value \
+    #         "match_iommu_group_list" \
+    #        "${iommu_group_id}"
+    #     fi
+
+    #     return 0
+
+    # else
+    #   if "${is_match}"; then
+    #     match_iommu_group_list+=( "${iommu_group_id}" )
+    #   fi
+    # fi
+
+    if "${is_match}"; then
+      if ! "${some_have_match}"; then
+        return 0
       fi
 
-      match_iommu_group_list+=( "${1}" )
-    done
+      match_iommu_group_list+=( "${iommu_group_id}" )
+
+    else
+      if "${some_have_match}"; then
+        match_iommu_group_list+=( "${iommu_group_id}" )
+        return 0
+      fi
+
+      remove_value \
+        "match_iommu_group_list" \
+        "${iommu_group_id}"
+    fi
 
     return 0
   }
