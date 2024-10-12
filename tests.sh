@@ -47,7 +47,7 @@ declare -a INPUT_LIST=(
   ""
 )
 
-# set the key value pairs
+# set the key input_delim pairs
 INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
   echo \
     -e \
@@ -70,36 +70,136 @@ declare -a INPUT_LIST=(
 )
 
 for key in ${INPUT_LIST[@]}; do
-  value=${INPUT_DICT["${key}"]}
+  input_delim=${INPUT_DICT["${key}"]}
   echo $key
-  # echo $value
+  # echo $input_delim
+
+  has_match=false
+  match_iommu_group=false
+  match_name=false
+  match_type=false
+  match_vendor=false
+
+  case "${key}" in
+    *"GROUP"* )
+      match_iommu_group=true
+      ;;
+
+    *"NAME"* )
+      match_name=true
+      ;;
+
+    *"TYPE"* )
+      match_type=true
+      ;;
+
+    *"VENDOR"* )
+      match_vendor=true
+      ;;
+  esac
 
   for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
-    if ! [[ ",${value}," =~ ",${iommu_group_id}," ]]; then
-      echo false
-    else
-      echo true
-    fi
+    echo $iommu_group_id
+
+    this_bus_id_list="$( \
+      ls \
+        "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
+      | sort \
+        --version-sort
+    )"
+
+    this_bus_id_delim=""
+
+    for bus_id in ${this_bus_id_list[@]}; do
+      bus_id="${bus_id:5}"
+      # echo $bus_id
+
+      if "${match_iommu_group}" \
+        && [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
+        has_match=true
+      fi
+
+      name="$( \
+        lspci \
+          -m \
+          -s \
+            "${bus_id}" \
+        | cut \
+          --delimiter \
+            '"' \
+          --fields \
+            6 \
+      )"
+
+      type="$( \
+        lspci \
+          -m \
+          -s \
+            "${bus_id}" \
+        | cut \
+          --delimiter \
+            '"' \
+          --fields \
+            2 \
+      )"
+
+      vendor="$( \
+        lspci \
+          -m \
+          -s \
+            "${bus_id}" \
+        | cut \
+          --delimiter \
+            '"' \
+          --fields \
+            4 \
+      )"
+
+      if "${match_name}" \
+        && [[ ",${input_delim}," =~ ",${name}," ]]; then
+        has_match=true
+      fi
+
+      if "${match_type}" \
+        && [[ ",${input_delim}," =~ ",${type}," ]]; then
+        has_match=true
+      fi
+
+      if "${match_vendor}" \
+        && [[ ",${input_delim}," =~ ",${vendor}," ]]; then
+        has_match=true
+      fi
+
+    # driver="$( \
+    #   lspci \
+    #     -k \
+    #     -n \
+    #     -s \
+    #       "${bus_id}" \
+    #   | grep \
+    #     driver \
+    #   | awk \
+    #     'END {print $5}'
+    # )"
+
+    # hardware_id="$( \
+    #   lspci \
+    #     -n \
+    #     -s \
+    #       "${bus_id}" \
+    #   | awk \
+    #     'END {print $3}' \
+    # )"
+
+      if [[ "${key}" =~ "UNMATCH" ]]; then
+        if "${has_match}"; then
+          has_match=false
+        else
+          has_match=true
+        fi
+      fi
+    done
+
+    echo $has_match
   done
 done
-
-function get_iommu_groups_from_input
-{
-  echo
-}
-
-# for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
-
-# done
-
-# echo \
-#   -e \
-#     "${IOMMU_GROUP_ID_LIST//\n/\,}" \
-#   | sort \
-#     --unique \
-#     --version-sort \
-#   | tr \
-#     '\n' ',' \
-#   | sed \
-#     's/,$//'
-
