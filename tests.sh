@@ -29,6 +29,12 @@ declare -a IOMMU_GROUP_ID_LIST="$( \
     "${MAX_IOMMU_GROUP_ID}"
 )"
 
+declare -a MATCH_IOMMU_GROUP_ID_LIST=()
+
+for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
+  MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]=false
+done
+
 declare -A INPUT_DICT=(
   ["MATCH_GROUPS_LIST"]=""
   ["MATCH_MAKES_LIST"]=""
@@ -79,6 +85,7 @@ for key in ${INPUT_LIST[@]}; do
   match_name=false
   match_type=false
   match_vendor=false
+  previous_parse_has_match=false
 
   case "${key}" in
     *"GROUP"* )
@@ -198,8 +205,30 @@ for key in ${INPUT_LIST[@]}; do
           has_match=true
         fi
       fi
+
+      (( key-- ))
+      previous_parse_has_match=${INPUT_LIST["$key"]}
+
+      if ! "${has_match}"; then
+        INPUT_LIST["${key}"]="${has_match}"
+      fi
+
+      if ! "${previous_parse_has_match}"; then
+        has_match=false
+      fi
+  done
     done
 
     echo $has_match
-  done
+    echo
+
+
+
+  echo
+done
+
+for key in "${!MATCH_IOMMU_GROUP_ID_LIST[@]}"; do
+  value=${MATCH_IOMMU_GROUP_ID_LIST["${key}"]}
+
+  echo $key $value
 done
