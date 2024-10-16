@@ -50,12 +50,12 @@
     ["MATCH_MAKES_LIST"]=""
     ["MATCH_NAMES_LIST"]=""
     ["MATCH_TYPES_LIST"]=""
-    ["MATCH_VGA_GROUPS_LIST"]=""
+    ["MATCH_VIDEO_LIST"]=""
     ["UNMATCH_GROUPS_LIST"]=""
     ["UNMATCH_MAKES_LIST"]=""
     ["UNMATCH_NAMES_LIST"]=""
     ["UNMATCH_TYPES_LIST"]=""
-    ["UNMATCH_VGA_GROUPS_LIST"]=""
+    ["UNMATCH_VIDEO_LIST"]=""
   )
 
   # an ordered list of keys for INPUT_DICT.
@@ -92,6 +92,10 @@
 
       *"VENDOR"* )
         match_vendor=true
+        ;;
+
+      *"VIDEO"* )
+        match_video=true
         ;;
     esac
 
@@ -145,9 +149,12 @@
       local match_name=false
       local match_type=false
       local match_vendor=false
+      local match_video=false
 
       local previous_input=""
       local -i last_key=$(( ${key} - 1 ))
+
+      local -i vga_group_index=1
 
       initialize_iommu_group_match_flag
       parse_iommu_groups
@@ -158,6 +165,7 @@
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local has_match=false
+      local has_video=false
       local previous_has_match=false
 
       this_bus_id_list="$( \
@@ -168,6 +176,10 @@
       )"
 
       parse_devices
+
+      if "${has_video}"; then
+        (( vga_group_index++ ))
+      fi
 
       if [[ "${last_key}" -lt "${minimum_key}" ]]; then
         previous_input=""
@@ -292,6 +304,8 @@
       has_match=true
     fi
 
+    set_video_match_flag
+
     # echo -e "\${has_match}\t\t== ${has_match}"
     return 0
   }
@@ -320,6 +334,30 @@
     return 0
   }
 
+  function set_video_match_flag
+  {
+    if ! "${match_video}"; then
+      return 0
+    fi
+
+    if ! [[ "${type^^}" =~ "GRAPHIC" ]] \
+      && ! [[ "${type^^}" =~ "VGA" ]] \
+      && ! [[ "${type^^}" =~ "VIDEO" ]]; then
+      has_video=false
+      return 0
+    fi
+
+    has_video=true
+
+    if ! [[ "${vga_group_index^^}" =~ "${this_input^^}" ]]; then
+      has_match=false
+      return 0
+    fi
+
+    has_match=true
+    return 0
+  }
+
   function show_output
   {
     for input in ${INPUT_LIST[@]}; do
@@ -335,7 +373,7 @@
     echo
   }
 
-  function test1
+  function test01
   {
     INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
       echo \
@@ -358,7 +396,7 @@
     )
   }
 
-  function test2
+  function test02
   {
     INPUT_DICT["MATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
     INPUT_DICT["UNMATCH_GROUPS_LIST"]="1,9,10"
@@ -370,7 +408,7 @@
     )
   }
 
-  function test3
+  function test03
   {
     INPUT_DICT["MATCH_TYPES_LIST"]="vga"
 
@@ -379,7 +417,7 @@
     )
   }
 
-  function test4
+  function test04
   {
     INPUT_DICT["UNMATCH_TYPES_LIST"]="vga,usb"
 
@@ -388,7 +426,7 @@
     )
   }
 
-  function test5
+  function test05
   {
     INPUT_DICT["MATCH_NAMES_LIST"]="geforce"
 
@@ -397,7 +435,7 @@
     )
   }
 
-  function test6
+  function test06
   {
     INPUT_DICT["UNMATCH_NAMES_LIST"]="radeon"
 
@@ -406,7 +444,7 @@
     )
   }
 
-  function test7
+  function test07
   {
     INPUT_DICT["MATCH_VENDORS_LIST"]="amd"
 
@@ -415,7 +453,7 @@
     )
   }
 
-  function test8
+  function test08
   {
     INPUT_DICT["UNMATCH_VENDORS_LIST"]="nvidia"
 
@@ -424,31 +462,55 @@
     )
   }
 
+  function test09
+  {
+    INPUT_DICT["MATCH_VIDEO_LIST"]="0"
+
+    INPUT_LIST=(
+      "MATCH_VIDEO_LIST"
+    )
+  }
+
+  function test10
+  {
+    INPUT_DICT["UNMATCH_VIDEO_LIST"]="1"
+
+    INPUT_LIST=(
+      "UNMATCH_VIDEO_LIST"
+    )
+  }
+
 #
 # main
 #
-  # test1
+  # test01
   # main
 
-  # test2
+  # test02
   # main
 
-  # test3
+  # test03
   # main
 
-  # test4
+  # test04
   # main
 
-  test5
+  # test05
+  # main
+
+  # test06
+  # main
+
+  # test07
+  # main
+
+  # test08
+  # main
+
+  test09
   main
 
-  test6
-  main
-
-  test7
-  main
-
-  test8
+  test10
   main
 
 #
