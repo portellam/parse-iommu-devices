@@ -63,28 +63,6 @@
     ""
   )
 
-  # set the key input_delim pairs
-  INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
-    echo \
-      -e \
-        "${IOMMU_GROUP_ID_LIST//\n/\,}" \
-    | sort \
-      --unique \
-      --version-sort \
-    | tr \
-      '\n' ',' \
-    | sed \
-      's/,$//'
-  )"
-
-  INPUT_DICT["UNMATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
-
-  # set the ordered list
-  declare -a INPUT_LIST=(
-    "MATCH_GROUPS_LIST"
-    "UNMATCH_GROUPS_LIST"
-  )
-
   declare -a MATCHED_IOMMU_GROUPS_LIST=()
   declare -a UNMATCHED_IOMMU_GROUPS_LIST=()
 
@@ -93,17 +71,8 @@
 #
   function main
   {
-    echo \${INPUT_DICT["MATCH_GROUPS_LIST"]}   == ${INPUT_DICT["MATCH_GROUPS_LIST"]}
-    echo \${INPUT_DICT["UNMATCH_GROUPS_LIST"]} == ${INPUT_DICT["UNMATCH_GROUPS_LIST"]}
-    echo
-
     parse_inputs
-
-    for key in "${!MATCH_IOMMU_GROUP_ID_LIST[@]}"; do
-      value=${MATCH_IOMMU_GROUP_ID_LIST["${key}"]}
-
-      echo $key $value
-    done
+    show_output
   }
 
   function initialize_iommu_group_match_flag
@@ -138,12 +107,12 @@
       name=""
       type=""
       vendor=""
-      # echo $bus_id
 
       set_device_properties
       set_iommu_group_match_flag
-      set_iommu_group_unmatch_flag
     done
+
+    set_iommu_group_unmatch_flag
   }
 
   function parse_inputs
@@ -158,23 +127,17 @@
     for key in ${!INPUT_LIST[@]}; do
       local input=${INPUT_LIST["${key}"]}
       local input_delim=${INPUT_DICT["${input}"]}
-      # echo $key
-      # echo $input_delim
 
       local match_iommu_group=false
       local match_name=false
       local match_type=false
       local match_vendor=false
+
       local previous_input=""
       local -i last_key=$(( ${key} - 1 ))
 
       initialize_iommu_group_match_flag
       parse_iommu_groups
-
-      #
-      # TODO:
-      # - move previous input logic to iommu group layer.
-      #
     done
   }
 
@@ -183,8 +146,6 @@
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local has_match=false
       local previous_has_match=false
-
-      echo -e "\${iommu_group_id}\t== ${iommu_group_id}"
 
       this_bus_id_list="$( \
         ls \
@@ -208,19 +169,11 @@
       previous_has_match=${previous_match_list["${iommu_group_id}"]}
       previous_input=${INPUT_LIST["${last_key}"]}
 
-      echo -e "\${has_match}\t\t== ${has_match}"
-      echo -e "\${previous_input}\t== ${previous_input}"
-      echo -e "\${previous_has_match}\t== ${previous_has_match}"
-
       if [[ "${previous_input}" =~ "UNMATCH" ]] \
         && [[ "${input_delim}" =~ "UNMATCH" ]]; then
         if ! "${previous_has_match}"; then
           has_match="${previous_has_match}"
         fi
-
-      # else
-      #   has_match="${previous_has_match}"
-      # fi
 
       elif [[ "${previous_input}" =~ "MATCH" ]] \
         && ! [[ "${previous_input}" =~ "UNMATCH" ]] \
@@ -237,8 +190,6 @@
       MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
       previous_input=${INPUT_LIST["${last_key}"]}
       previous_match_list["${last_key}"]="${has_match}"
-
-      echo
     done
   }
 
@@ -342,9 +293,63 @@
     return 0
   }
 
+  function show_output
+  {
+    for input in ${INPUT_LIST[@]}; do
+      echo -e "$\{INPUT_DICT[\"${input}\"]}\t== ${INPUT_DICT[${input}]}"
+    done
+
+
+    for key in "${!MATCH_IOMMU_GROUP_ID_LIST[@]}"; do
+      value=${MATCH_IOMMU_GROUP_ID_LIST["${key}"]}
+      echo -e "\${key},\t\${value}\t== ${key},\t${value}"
+    done
+
+    echo
+  }
+
+  function test1
+  {
+    INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
+      echo \
+        -e \
+          "${IOMMU_GROUP_ID_LIST//\n/\,}" \
+      | sort \
+        --unique \
+        --version-sort \
+      | tr \
+        '\n' ',' \
+      | sed \
+        's/,$//'
+    )"
+
+    INPUT_DICT["UNMATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
+
+    INPUT_LIST=(
+      "MATCH_GROUPS_LIST"
+      "UNMATCH_GROUPS_LIST"
+    )
+  }
+
+  function test2
+  {
+    INPUT_DICT["MATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
+    INPUT_DICT["UNMATCH_GROUPS_LIST"]="1,9,10"
+
+
+    INPUT_LIST=(
+      "MATCH_GROUPS_LIST"
+      "UNMATCH_GROUPS_LIST"
+    )
+  }
+
 #
 # main
 #
+  test1
+  main
+
+  test2
   main
 
 #
