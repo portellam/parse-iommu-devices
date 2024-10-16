@@ -257,26 +257,34 @@
 
   function set_iommu_group_match_flag
   {
+    # echo -e "\${has_match}\t\t== ${has_match}"
+    # echo -e "\${input_delim}\t\t== ${input_delim}"
+    # echo -e "\${name}\t\t\t== ${name}"
+    # echo -e "\${type}\t\t\t== ${type}"
+    # echo -e "\${vendor}\t\t== ${vendor}"
+    # echo
+
     if "${match_iommu_group}" \
       && [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
       has_match=true
     fi
 
     if "${match_name}" \
-      && [[ ",${input_delim}," =~ ",${name}," ]]; then
+      && [[ "${name^^}" =~ "${input_delim^^}" ]]; then
       has_match=true
     fi
 
     if "${match_type}" \
-      && [[ ",${input_delim}," =~ ",${type}," ]]; then
+      && [[ "${type^^}" =~ "${input_delim^^}" ]]; then
       has_match=true
     fi
 
     if "${match_vendor}" \
-      && [[ ",${input_delim}," =~ ",${vendor}," ]]; then
+      && [[ "${vendor^^}" =~ "${input_delim^^}" ]]; then
       has_match=true
     fi
 
+    # echo -e "\${has_match}\t\t== ${has_match}"
     return 0
   }
 
@@ -343,14 +351,52 @@
     )
   }
 
+  function test3
+  {
+    INPUT_DICT["MATCH_TYPES_LIST"]="vga"
+
+    INPUT_LIST=(
+      "MATCH_TYPES_LIST"
+    )
+  }
+
+  function test4
+  {
+    INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
+      echo \
+        -e \
+          "${IOMMU_GROUP_ID_LIST//\n/\,}" \
+      | sort \
+        --unique \
+        --version-sort \
+      | tr \
+        '\n' ',' \
+      | sed \
+        's/,$//'
+    )"
+
+    INPUT_DICT["UNMATCH_TYPES_LIST"]="vga,usb"
+
+    INPUT_LIST=(
+      "MATCH_GROUPS_LIST"
+      "UNMATCH_TYPES_LIST"
+    )
+  }
+
 #
 # main
 #
-  test1
+  # test1
+  # main
+
+  # test2
+  # main
+
+  test3
   main
 
-  test2
-  main
+  # test4
+  # main
 
 #
 # NOTES
