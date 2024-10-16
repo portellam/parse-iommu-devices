@@ -65,12 +65,15 @@
 
   declare -a MATCHED_IOMMU_GROUPS_LIST=()
   declare -a UNMATCHED_IOMMU_GROUPS_LIST=()
+  declare -i MAX_VIDEO_IOMMU_GROUP_INDEX=0
+  declare -ir MIN_VIDEO_IOMMU_GROUP_INDEX=1
 
 #
 # logic
 #
   function main
   {
+    set_video_iommu_group_count
     parse_inputs
     show_output
   }
@@ -102,6 +105,35 @@
     return 0
   }
 
+  function is_match_video_input_valid
+  {
+    if ! "${match_video}"; then
+      return 0
+    fi
+
+    local -a input_list=$( \
+      echo \
+        "${input_delim}" \
+      | tr \
+        , \
+        "\n" \
+    )
+
+    for this_input in ${input_list[@]}; do
+      if [[ "${this_input}" -lt "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
+        || [[  "${this_input}" -gt "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+        echo -e \
+          "Invalid option '${input_delim}'.\n" \
+          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX}" \
+          "and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
+
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
   function parse_devices
   {
     for bus_id in ${this_bus_id_list[@]}; do
@@ -113,6 +145,7 @@
       vendor=""
 
       set_device_properties
+      set_has_video_flag
 
       local -a input_list=$( \
         echo \
@@ -142,6 +175,8 @@
     done
 
     for key in ${!INPUT_LIST[@]}; do
+      local has_video=false
+
       local input=${INPUT_LIST["${key}"]}
       local input_delim=${INPUT_DICT["${input}"]}
 
@@ -157,6 +192,7 @@
       local -i vga_group_index=1
 
       initialize_iommu_group_match_flag
+      is_match_video_input_valid
       parse_iommu_groups
     done
   }
@@ -165,7 +201,6 @@
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local has_match=false
-      local has_video=false
       local previous_has_match=false
 
       this_bus_id_list="$( \
@@ -280,6 +315,18 @@
     return 0
   }
 
+  function set_has_video_flag
+  {
+    if ! [[ "${type^^}" =~ "GRAPHIC" ]] \
+      && ! [[ "${type^^}" =~ "VGA" ]] \
+      && ! [[ "${type^^}" =~ "VIDEO" ]]; then
+      return 0
+    fi
+
+    has_video=true
+    return 0
+  }
+
   function set_match_flag_by_device
   {
     # echo -e "\${has_match}\t\t== ${has_match}"
@@ -334,20 +381,32 @@
     return 0
   }
 
+  function set_video_iommu_group_count
+  {
+    local has_video=false
+
+    local input="MATCH_VIDEO_LIST"
+    local input_delim=1
+
+    local match_iommu_group=false
+    local match_name=false
+    local match_type=false
+    local match_vendor=false
+    local match_video=true
+
+    local -i vga_group_index=1
+
+    parse_iommu_groups
+
+    declare -ir MAX_VIDEO_IOMMU_GROUP_INDEX=$(( vga_group_index - 1 ))
+  }
+
   function set_video_match_flag
   {
-    if ! "${match_video}"; then
+    if ! "${match_video}" \
+      || ! "${has_video}"; then
       return 0
     fi
-
-    if ! [[ "${type^^}" =~ "GRAPHIC" ]] \
-      && ! [[ "${type^^}" =~ "VGA" ]] \
-      && ! [[ "${type^^}" =~ "VIDEO" ]]; then
-      has_video=false
-      return 0
-    fi
-
-    has_video=true
 
     if ! [[ "${vga_group_index^^}" =~ "${this_input^^}" ]]; then
       has_match=false
@@ -464,7 +523,7 @@
 
   function test09
   {
-    INPUT_DICT["MATCH_VIDEO_LIST"]="0"
+    INPUT_DICT["MATCH_VIDEO_LIST"]="1"
 
     INPUT_LIST=(
       "MATCH_VIDEO_LIST"
@@ -473,7 +532,25 @@
 
   function test10
   {
-    INPUT_DICT["UNMATCH_VIDEO_LIST"]="1"
+    INPUT_DICT["UNMATCH_VIDEO_LIST"]="2"
+
+    INPUT_LIST=(
+      "UNMATCH_VIDEO_LIST"
+    )
+  }
+
+  function test11
+  {
+    INPUT_DICT["MATCH_VIDEO_LIST"]="0"
+
+    INPUT_LIST=(
+      "MATCH_VIDEO_LIST"
+    )
+  }
+
+  function test12
+  {
+    INPUT_DICT["UNMATCH_VIDEO_LIST"]="-1"
 
     INPUT_LIST=(
       "UNMATCH_VIDEO_LIST"
@@ -511,6 +588,12 @@
   main
 
   test10
+  main
+
+  test11
+  main
+
+  test12
   main
 
 #
