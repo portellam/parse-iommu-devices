@@ -149,6 +149,7 @@
   function parse_inputs
   {
     local -a previous_match_list=()
+    local -ir minimum_key=0
 
     for key in ${!IOMMU_GROUP_ID_LIST[@]}; do
       previous_match_list+=( false )
@@ -166,10 +167,6 @@
       local match_vendor=false
       local previous_input=""
       local -i last_key=$(( ${key} - 1 ))
-
-      if [[ "${last_key}" -lt 0 ]]; then
-        previous_input=${INPUT_LIST["$last_key"]}
-      fi
 
       initialize_iommu_group_match_flag
       parse_iommu_groups
@@ -196,30 +193,22 @@
           --version-sort
       )"
 
-      if [[ "${last_key}" -lt 0 ]]; then
+      parse_devices
+
+      if [[ "${last_key}" -lt "${minimum_key}" ]]; then
         previous_input=""
         previous_match_list["${iommu_group_id}"]="${has_match}"
 
       else
-        previous_input=${INPUT_LIST["$last_key"]}
+        previous_input=${INPUT_LIST["${last_key}"]}
         previous_has_match=${previous_match_list["${iommu_group_id}"]}
       fi
 
-      echo -e "\${has_match}\t\t== ${has_match}"
-
-      parse_devices
       MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
+      previous_has_match=${previous_match_list["${iommu_group_id}"]}
+      previous_input=${INPUT_LIST["${last_key}"]}
 
       echo -e "\${has_match}\t\t== ${has_match}"
-
-      if [[ "${last_key}" -lt 0 ]]; then
-        echo
-        continue
-      fi
-
-      previous_input=${INPUT_LIST["$last_key"]}
-      previous_has_match=${previous_match_list["${iommu_group_id}"]}
-
       echo -e "\${previous_input}\t== ${previous_input}"
       echo -e "\${previous_has_match}\t== ${previous_has_match}"
 
@@ -246,8 +235,8 @@
       fi
 
       MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
+      previous_input=${INPUT_LIST["${last_key}"]}
       previous_match_list["${last_key}"]="${has_match}"
-      previous_input=${INPUT_LIST["$last_key"]}
 
       echo
     done
