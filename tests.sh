@@ -108,7 +108,7 @@
 
   function initialize_iommu_group_match_flag
   {
-    case "${input}" in
+    case "${input^^}" in
       *"GROUP"* )
         match_iommu_group=true
         ;;
@@ -155,44 +155,70 @@
     done
 
     for key in ${!INPUT_LIST[@]}; do
-      input=${INPUT_LIST["${key}"]}
-      input_delim=${INPUT_DICT["${input}"]}
+      local input=${INPUT_LIST["${key}"]}
+      local input_delim=${INPUT_DICT["${input}"]}
       # echo $key
       # echo $input_delim
 
-      has_match=false
-      match_iommu_group=false
-      match_name=false
-      match_type=false
-      match_vendor=false
-      previous_has_match=false
-      previous_input=""
+      local match_iommu_group=false
+      local match_name=false
+      local match_type=false
+      local match_vendor=false
+      local previous_input=""
+      local -i last_key=$(( ${key} - 1 ))
+
+      if [[ "${last_key}" -lt 0 ]]; then
+        previous_input=${INPUT_LIST["$last_key"]}
+      fi
 
       initialize_iommu_group_match_flag
       parse_iommu_groups
-
-      echo -e "\${has_match}\t\t== ${has_match}"
-      echo -e "\${input_delim}\t\t== ${input_delim}"
 
       #
       # TODO:
       # - move previous input logic to iommu group layer.
       #
+    done
+  }
 
+  function parse_iommu_groups
+  {
+    for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
+      local has_match=false
+      local previous_has_match=false
 
-      if [[ "${key}" -eq 0 ]]; then
-        previous_input=${INPUT_LIST["$key"]}
-        previous_match_list["${key}"]="${has_match}"
+      echo -e "\${iommu_group_id}\t== ${iommu_group_id}"
 
+      this_bus_id_list="$( \
+        ls \
+          "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
+        | sort \
+          --version-sort
+      )"
+
+      if [[ "${last_key}" -lt 0 ]]; then
+        previous_input=""
+        previous_match_list["${iommu_group_id}"]="${has_match}"
+
+      else
+        previous_input=${INPUT_LIST["$last_key"]}
+        previous_has_match=${previous_match_list["${iommu_group_id}"]}
+      fi
+
+      echo -e "\${has_match}\t\t== ${has_match}"
+
+      parse_devices
+      MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
+
+      echo -e "\${has_match}\t\t== ${has_match}"
+
+      if [[ "${last_key}" -lt 0 ]]; then
         echo
-
         continue
       fi
 
-      (( key-- ))
-
-      previous_input=${INPUT_LIST["$key"]}
-      previous_has_match=${previous_match_list["${key}"]}
+      previous_input=${INPUT_LIST["$last_key"]}
+      previous_has_match=${previous_match_list["${iommu_group_id}"]}
 
       echo -e "\${previous_input}\t== ${previous_input}"
       echo -e "\${previous_has_match}\t== ${previous_has_match}"
@@ -203,46 +229,27 @@
           has_match="${previous_has_match}"
         fi
 
-      else
-        has_match="${previous_has_match}"
-      fi
-
-      # elif [[ "${previous_input}" =~ "MATCH" ]] \
-      #   && ! [[ "${previous_input}" =~ "UNMATCH" ]] \
-      #   && [[ "${input_delim}" =~ "MATCH" ]] \
-      #   && ! [[ "${input_delim}" =~ "UNMATCH" ]]; then
-      #   has_match="${previous_has_match}"
-
       # else
-      #   if ! "${previous_has_match}"; then
-      #     has_match="${previous_has_match}"
-      #   fi
+      #   has_match="${previous_has_match}"
       # fi
 
-      (( key++ ))
-      previous_match_list["${key}"]="${has_match}"
-      previous_input=${INPUT_LIST["$key"]}
+      elif [[ "${previous_input}" =~ "MATCH" ]] \
+        && ! [[ "${previous_input}" =~ "UNMATCH" ]] \
+        && [[ "${input_delim}" =~ "MATCH" ]] \
+        && ! [[ "${input_delim}" =~ "UNMATCH" ]]; then
+        has_match="${previous_has_match}"
 
-      echo -e "\${has_match}\t\t== ${has_match}"
-      echo -e "\${previous_input}\t== ${previous_input}"
+      else
+        if ! "${previous_has_match}"; then
+          has_match="${previous_has_match}"
+        fi
+      fi
+
+      MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
+      previous_match_list["${last_key}"]="${has_match}"
+      previous_input=${INPUT_LIST["$last_key"]}
+
       echo
-    done
-  }
-
-  function parse_iommu_groups
-  {
-    for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
-      # echo $iommu_group_id
-
-      this_bus_id_list="$( \
-        ls \
-          "/sys/kernel/iommu_groups/${iommu_group_id}/devices/" \
-        | sort \
-          --version-sort
-      )"
-
-      this_bus_id_delim=""
-      parse_devices
     done
   }
 
@@ -335,7 +342,7 @@
 
   function set_iommu_group_unmatch_flag
   {
-    if [[ "${key}" =~ "UNMATCH" ]]; then
+    if [[ "${input}" =~ "UNMATCH" ]]; then
       if "${has_match}"; then
         has_match=false
       else
