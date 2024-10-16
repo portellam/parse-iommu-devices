@@ -388,19 +388,67 @@
     )
   }
 
+  function test5
+  {
+    INPUT_DICT["MATCH_NAMES_LIST"]="geforce"
+
+    INPUT_LIST=(
+      "MATCH_NAMES_LIST"
+    )
+  }
+
+  function test6
+  {
+    INPUT_DICT["UNMATCH_NAMES_LIST"]="radeon"
+
+    INPUT_LIST=(
+      "UNMATCH_NAMES_LIST"
+    )
+  }
+
+  function test7
+  {
+    INPUT_DICT["MATCH_VENDORS_LIST"]="amd"
+
+    INPUT_LIST=(
+      "MATCH_VENDORS_LIST"
+    )
+  }
+
+  function test8
+  {
+    INPUT_DICT["UNMATCH_VENDORS_LIST"]="nvidia"
+
+    INPUT_LIST=(
+      "UNMATCH_VENDORS_LIST"
+    )
+  }
+
 #
 # main
 #
-  test1
+  # test1
+  # main
+
+  # test2
+  # main
+
+  # test3
+  # main
+
+  # test4
+  # main
+
+  test5
   main
 
-  test2
+  test6
   main
 
-  test3
+  test7
   main
 
-  test4
+  test8
   main
 
 #
