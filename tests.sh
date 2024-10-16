@@ -93,6 +93,10 @@
 #
   function main
   {
+    echo \${INPUT_DICT["MATCH_GROUPS_LIST"]}   == ${INPUT_DICT["MATCH_GROUPS_LIST"]}
+    echo \${INPUT_DICT["UNMATCH_GROUPS_LIST"]} == ${INPUT_DICT["UNMATCH_GROUPS_LIST"]}
+    echo
+
     parse_inputs
 
     for key in "${!MATCH_IOMMU_GROUP_ID_LIST[@]}"; do
@@ -104,7 +108,7 @@
 
   function initialize_iommu_group_match_flag
   {
-    case "${key}" in
+    case "${input}" in
       *"GROUP"* )
         match_iommu_group=true
         ;;
@@ -129,6 +133,11 @@
   {
     for bus_id in ${this_bus_id_list[@]}; do
       bus_id="${bus_id:5}"
+      # driver=""
+      # hardware_id=""
+      name=""
+      type=""
+      vendor=""
       # echo $bus_id
 
       set_device_properties
@@ -139,9 +148,16 @@
 
   function parse_inputs
   {
+    local -a previous_match_list=()
+
+    for key in ${!IOMMU_GROUP_ID_LIST[@]}; do
+      previous_match_list+=( false )
+    done
+
     for key in ${!INPUT_LIST[@]}; do
-      input_delim=${INPUT_DICT["${key}"]}
-      echo $key
+      input=${INPUT_LIST["${key}"]}
+      input_delim=${INPUT_DICT["${input}"]}
+      # echo $key
       # echo $input_delim
 
       has_match=false
@@ -149,26 +165,66 @@
       match_name=false
       match_type=false
       match_vendor=false
-      previous_parse_has_match=false
+      previous_has_match=false
+      previous_input=""
 
       initialize_iommu_group_match_flag
       parse_iommu_groups
 
-      (( key-- ))
-      echo $key
+      echo -e "\${has_match}\t\t== ${has_match}"
+      echo -e "\${input_delim}\t\t== ${input_delim}"
 
-      previous_parse_has_match=${INPUT_LIST["$key"]}
+      #
+      # TODO:
+      # - move previous input logic to iommu group layer.
+      #
 
-      if ! "${has_match}"; then
-        INPUT_LIST["${key}"]="${has_match}"
-      fi
 
-      if ! "${previous_parse_has_match}" &> /dev/null; then
-        has_match=false
-      fi
+      if [[ "${key}" -eq 0 ]]; then
+        previous_input=${INPUT_LIST["$key"]}
+        previous_match_list["${key}"]="${has_match}"
 
-        echo $has_match
         echo
+
+        continue
+      fi
+
+      (( key-- ))
+
+      previous_input=${INPUT_LIST["$key"]}
+      previous_has_match=${previous_match_list["${key}"]}
+
+      echo -e "\${previous_input}\t== ${previous_input}"
+      echo -e "\${previous_has_match}\t== ${previous_has_match}"
+
+      if [[ "${previous_input}" =~ "UNMATCH" ]] \
+        && [[ "${input_delim}" =~ "UNMATCH" ]]; then
+        if ! "${previous_has_match}"; then
+          has_match="${previous_has_match}"
+        fi
+
+      else
+        has_match="${previous_has_match}"
+      fi
+
+      # elif [[ "${previous_input}" =~ "MATCH" ]] \
+      #   && ! [[ "${previous_input}" =~ "UNMATCH" ]] \
+      #   && [[ "${input_delim}" =~ "MATCH" ]] \
+      #   && ! [[ "${input_delim}" =~ "UNMATCH" ]]; then
+      #   has_match="${previous_has_match}"
+
+      # else
+      #   if ! "${previous_has_match}"; then
+      #     has_match="${previous_has_match}"
+      #   fi
+      # fi
+
+      (( key++ ))
+      previous_match_list["${key}"]="${has_match}"
+      previous_input=${INPUT_LIST["$key"]}
+
+      echo -e "\${has_match}\t\t== ${has_match}"
+      echo -e "\${previous_input}\t== ${previous_input}"
       echo
     done
   }
@@ -176,7 +232,7 @@
   function parse_iommu_groups
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
-      echo $iommu_group_id
+      # echo $iommu_group_id
 
       this_bus_id_list="$( \
         ls \
