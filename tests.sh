@@ -109,10 +109,23 @@
       vendor=""
 
       set_device_properties
-      set_iommu_group_match_flag
+
+      local -a input_list=$( \
+        echo \
+          "${input_delim}" \
+        | tr \
+          , \
+          "\n" \
+      )
+
+      set_match_flag_by_iommu_group
+
+      for this_input in ${input_list[@]}; do
+        set_match_flag_by_device
+      done
     done
 
-    set_iommu_group_unmatch_flag
+    set_unmatch_flag
   }
 
   function parse_inputs
@@ -255,7 +268,7 @@
     return 0
   }
 
-  function set_iommu_group_match_flag
+  function set_match_flag_by_device
   {
     # echo -e "\${has_match}\t\t== ${has_match}"
     # echo -e "\${input_delim}\t\t== ${input_delim}"
@@ -264,23 +277,18 @@
     # echo -e "\${vendor}\t\t== ${vendor}"
     # echo
 
-    if "${match_iommu_group}" \
-      && [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
-      has_match=true
-    fi
-
     if "${match_name}" \
-      && [[ "${name^^}" =~ "${input_delim^^}" ]]; then
+      && [[ "${name^^}" =~ "${this_input^^}" ]]; then
       has_match=true
     fi
 
     if "${match_type}" \
-      && [[ "${type^^}" =~ "${input_delim^^}" ]]; then
+      && [[ "${type^^}" =~ "${this_input^^}" ]]; then
       has_match=true
     fi
 
     if "${match_vendor}" \
-      && [[ "${vendor^^}" =~ "${input_delim^^}" ]]; then
+      && [[ "${vendor^^}" =~ "${this_input^^}" ]]; then
       has_match=true
     fi
 
@@ -288,7 +296,18 @@
     return 0
   }
 
-  function set_iommu_group_unmatch_flag
+  function set_match_flag_by_iommu_group
+  {
+    if ! "${match_iommu_group}" \
+      || ! [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
+      return 0
+    fi
+
+    has_match=true
+    return 0
+  }
+
+  function set_unmatch_flag
   {
     if [[ "${input}" =~ "UNMATCH" ]]; then
       if "${has_match}"; then
@@ -362,23 +381,9 @@
 
   function test4
   {
-    INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
-      echo \
-        -e \
-          "${IOMMU_GROUP_ID_LIST//\n/\,}" \
-      | sort \
-        --unique \
-        --version-sort \
-      | tr \
-        '\n' ',' \
-      | sed \
-        's/,$//'
-    )"
-
     INPUT_DICT["UNMATCH_TYPES_LIST"]="vga,usb"
 
     INPUT_LIST=(
-      "MATCH_GROUPS_LIST"
       "UNMATCH_TYPES_LIST"
     )
   }
@@ -386,17 +391,17 @@
 #
 # main
 #
-  # test1
-  # main
+  test1
+  main
 
-  # test2
-  # main
+  test2
+  main
 
   test3
   main
 
-  # test4
-  # main
+  test4
+  main
 
 #
 # NOTES
