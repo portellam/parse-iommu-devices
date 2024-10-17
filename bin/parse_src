@@ -124,13 +124,13 @@
 
     print_and_log_output \
       "${message}" \
-      "${INPUTS["VERBOSE"]}"
+      "${INPUTS["VERBOSE_SINGLE"]}"
 
     if [[ "${#ORDERED_INPUT_LIST[@]}" -le 0 ]] \
       && ! match_all_groups; then
       print_and_log_output \
         "${message} Failed." \
-        "${INPUTS["VERBOSE"]}"
+        "${INPUTS["VERBOSE_SINGLE"]}"
 
       return 1
     fi
@@ -139,14 +139,14 @@
       || ! parse_many_group_matches; then
       print_and_log_output \
         "${message} Failed." \
-        "${INPUTS["VERBOSE"]}"
+        "${INPUTS["VERBOSE_SINGLE"]}"
 
       return 1
     fi
 
     print_and_log_output \
       "${message} Successful.\n" \
-      "${INPUTS["VERBOSE"]}"
+      "${INPUTS["VERBOSE_SINGLE"]}"
 
     sort_output_lists
     print_output_lists
@@ -444,8 +444,8 @@
         "${hardware_id}" \
     )"
 
-    if "${INPUTS["WRITE_XML"]}" \
-      && ! "${INPUTS["READ_XML"]}" \
+    if "${INPUTS["XML_WRITE"]}" \
+      && ! "${INPUTS["XML_READ"]}" \
       && ! set_xml_driver_list "${hardware_id}" "${modify_xml_drivers_list}"; then
       return 1
     fi
@@ -522,9 +522,9 @@
     local valid_value_list=""
 
     case "${1}" in
-      "MATCH_GROUPS" )
+      "MATCH_GROUP" )
         value_to_match="${2}"
-        referenced_list="GROUPS_MATCH_LIST"
+        referenced_list="MATCH_GROUP_LIST"
         ;;
 
       "MATCH_HOST" | "UNMATCH_HOST" )
@@ -535,42 +535,42 @@
 
       "MATCH_MAKE" )
         value_to_match="${4}"
-        referenced_list="MAKES_MATCH_LIST"
+        referenced_list="MATCH_MAKE_LIST"
         ;;
 
       "MATCH_NAME" )
         value_to_match="${5}"
-        referenced_list="NAMES_MATCH_LIST"
+        referenced_list="MATCH_NAME_LIST"
         ;;
 
       "MATCH_TYPE" )
         value_to_match="${6}"
-        referenced_list="TYPES_MATCH_LIST"
+        referenced_list="MATCH_TYPE_LIST"
         ;;
 
-      "MATCH_VGA" )
+      "MATCH_VIDEO" )
         value_to_match="${VGA_TYPE_LIST}"
-        referenced_list="VGA_GROUP_INDEX_MATCH_LIST"
+        referenced_list="MATCH_VIDEO_LIST"
         ;;
 
-      "UNMATCH_GROUPS" )
+      "UNMATCH_GROUP" )
         value_to_match="${2}"
-        referenced_list="GROUPS_UNMATCH_LIST"
+        referenced_list="UNMATCH_GROUP_LIST"
         ;;
 
       "UNMATCH_MAKE" )
         value_to_match="${4}"
-        referenced_list="MAKES_UNMATCH_LIST"
+        referenced_list="UNMATCH_MAKE_LIST"
         ;;
 
       "UNMATCH_NAME" )
         value_to_match="${5}"
-        referenced_list="NAMES_UNMATCH_LIST"
+        referenced_list="UNMATCH_NAME_LIST"
         ;;
 
       "UNMATCH_TYPE" )
         value_to_match="${6}"
-        referenced_list="TYPES_UNMATCH_LIST"
+        referenced_list="UNMATCH_TYPE_LIST"
         ;;
     esac
 
@@ -677,7 +677,7 @@
 
     local do_match_by_keyword=true
 
-    if [[ "${3}" =~ "MATCH_GROUPS" ]]; then
+    if [[ "${3}" =~ "MATCH_GROUP" ]]; then
       do_match_by_keyword=false
     fi
 
@@ -1142,8 +1142,8 @@
 
   function write_hardware_ids_to_xml
   {
-    if "${INPUTS["WRITE_XML"]}" \
-      && ! "${INPUTS["READ_XML"]}" \
+    if "${INPUTS["XML_WRITE"]}" \
+      && ! "${INPUTS["XML_READ"]}" \
       && ! set_xml_hardware_id_list \
         true \
         ${hardware_id_list[@]}; then

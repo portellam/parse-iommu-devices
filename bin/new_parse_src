@@ -33,15 +33,15 @@
   done
 
   declare -A INPUT_DICT=(
-    ["MATCH_GROUPS_LIST"]=""
-    ["MATCH_MAKES_LIST"]=""
-    ["MATCH_NAMES_LIST"]=""
-    ["MATCH_TYPES_LIST"]=""
+    ["MATCH_GROUP_LIST"]=""
+    ["MATCH_MAKE_LIST"]=""
+    ["MATCH_NAME_LIST"]=""
+    ["MATCH_TYPE_LIST"]=""
     ["MATCH_VIDEO_LIST"]=""
-    ["UNMATCH_GROUPS_LIST"]=""
-    ["UNMATCH_MAKES_LIST"]=""
-    ["UNMATCH_NAMES_LIST"]=""
-    ["UNMATCH_TYPES_LIST"]=""
+    ["UNMATCH_GROUP_LIST"]=""
+    ["UNMATCH_MAKE_LIST"]=""
+    ["UNMATCH_NAME_LIST"]=""
+    ["UNMATCH_TYPE_LIST"]=""
     ["UNMATCH_VIDEO_LIST"]=""
   )
 
@@ -50,8 +50,8 @@
     ""
   )
 
-  declare -a MATCHED_IOMMU_GROUPS_LIST=()
-  declare -a UNMATCHED_IOMMU_GROUPS_LIST=()
+  declare -a MATCHED_IOMMU_GROUP_LIST=()
+  declare -a UNMATCHED_IOMMU_GROUP_LIST=()
   declare -i MAX_VIDEO_IOMMU_GROUP_INDEX=0
   declare -ir MIN_VIDEO_IOMMU_GROUP_INDEX=1
 
