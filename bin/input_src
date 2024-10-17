@@ -46,16 +46,14 @@
 
   declare -g ARGUMENT_MATCH_GROUP="-g"
 
-  declare -gir MAX_IOMMU_GROUP_ID="$( \
-  ls \
-    /sys/kernel/iommu_groups/ \
-  | sort \
-    --reverse \
-    --version-sort \
-  | head \
-    --lines \
-      1 \
-)"
+
+  declare -a IOMMU_GROUP_ID_LIST="$( \
+    seq \
+      0 \
+      "${MAX_IOMMU_GROUP_ID}"
+  )"
+
+  declare -ga ORDERED_INPUT_LIST
 
   declare -gA INPUTS=(
     ["MATCH_GROUP"]=false
@@ -85,8 +83,6 @@
     ["XML_READ"]=false
     ["XML_WRITE"]=false
   )
-
-  declare -ga ORDERED_INPUT_LIST
 
 #
 # sources (2/2)
