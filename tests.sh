@@ -74,6 +74,7 @@
   function main
   {
     set_video_iommu_group_index_maximum
+    reset_match_list
     parse_inputs
     show_output
   }
@@ -200,6 +201,7 @@
   function parse_iommu_groups
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
+      # echo -e "\${iommu_group_id}\t== ${iommu_group_id}"
       local has_match=false
       has_video=false
       local previous_has_match=false
@@ -250,6 +252,11 @@
       previous_input=${INPUT_LIST["${last_key}"]}
       previous_match_list["${last_key}"]="${has_match}"
     done
+  }
+
+  function reset_match_list
+  {
+    MATCH_IOMMU_GROUP_ID_LIST=()
   }
 
   function set_device_properties
@@ -562,11 +569,11 @@
 #
 # main
 #
-  # test01
-  # main
+  test01
+  main
 
-  # test02
-  # main
+  test02
+  main
 
   # test03
   # main
@@ -589,14 +596,14 @@
   test09
   main
 
-  test10
-  main
+  # test10
+  # main
 
-  test11
-  main
+  # test11
+  # main
 
-  test12
-  main
+  # test12
+  # main
 
 #
 # NOTES
