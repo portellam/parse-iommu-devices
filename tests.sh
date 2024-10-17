@@ -73,7 +73,7 @@
 #
   function main
   {
-    set_video_iommu_group_index_maximum
+    # set_video_iommu_group_index_maximum
     reset_match_list
     parse_inputs
     show_output
@@ -201,7 +201,6 @@
   function parse_iommu_groups
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
-      # echo -e "\${iommu_group_id}\t== ${iommu_group_id}"
       local has_match=false
       has_video=false
       local previous_has_match=true
@@ -335,13 +334,6 @@
 
   function set_match_flag_by_device
   {
-    # echo -e "\${has_match}\t\t== ${has_match}"
-    # echo -e "\${input_delim}\t\t== ${input_delim}"
-    # echo -e "\${name}\t\t\t== ${name}"
-    # echo -e "\${type}\t\t\t== ${type}"
-    # echo -e "\${vendor}\t\t== ${vendor}"
-    # echo
-
     if "${match_name}" \
       && [[ "${name^^}" =~ "${this_input^^}" ]]; then
       has_match=true
@@ -358,8 +350,6 @@
     fi
 
     set_video_match_flag
-
-    # echo -e "\${has_match}\t\t== ${has_match}"
     return 0
   }
 
@@ -565,41 +555,43 @@
 #
 # main
 #
+  set_video_iommu_group_index_maximum
+
   test01
   main
 
   test02
   main
 
-  # test03
-  # main
+  test03
+  main
 
-  # test04
-  # main
+  test04
+  main
 
-  # test05
-  # main
+  test05
+  main
 
-  # test06
-  # main
+  test06
+  main
 
-  # test07
-  # main
+  test07
+  main
 
-  # test08
-  # main
+  test08
+  main
 
   test09
   main
 
-  # test10
-  # main
+  test10
+  main
 
-  # test11
-  # main
+  test11
+  main
 
-  # test12
-  # main
+  test12
+  main
 
 #
 # NOTES
