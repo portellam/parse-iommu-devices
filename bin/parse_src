@@ -8,6 +8,13 @@
 
 #
 # TODO:
+#
+# - [ ] vfio scan support.
+# - [ ] import refactored logic.
+#
+#
+
+
 # - [ ] add validation for all inputs.
 # - [x] fix output to show every IOMMU group and it's device info.
 # - [x] fix lists?
@@ -99,8 +106,13 @@
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
+  declare -a MATCHED_IOMMU_GROUP_LIST=()
+
   declare -gr VFIO_DRIVER_LIST="pci-stub,vfio-pci"
   declare -gr VGA_TYPE_LIST="graphics,vga,video"
+
+  declare -i MAX_VIDEO_IOMMU_GROUP_INDEX=0
+  declare -ir MIN_VIDEO_IOMMU_GROUP_INDEX=1
 
 #
 # sources (2/2)
@@ -135,8 +147,11 @@
       return 1
     fi
 
+    set_video_iommu_group_index_maximum
+    reset_match_list
+
     if [[ "${#ORDERED_INPUT_LIST[@]}" -le 0 ]] \
-      || ! parse_many_group_matches; then
+      || ! parse_inputs; then
       print_and_log_output \
         "${message} Failed." \
         "${INPUTS["VERBOSE_SINGLE"]}"
