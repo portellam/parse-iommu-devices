@@ -204,7 +204,7 @@
       # echo -e "\${iommu_group_id}\t== ${iommu_group_id}"
       local has_match=false
       has_video=false
-      local previous_has_match=false
+      local previous_has_match=true
 
       this_bus_id_list="$( \
         ls \
@@ -413,12 +413,8 @@
   function set_video_match_flag
   {
     if ! "${match_video}" \
-      || ! "${has_video}"; then
-      return 0
-    fi
-
-    if ! [[ "${vga_group_index^^}" =~ "${this_input^^}" ]]; then
-      has_match=false
+      || ! "${has_video}" \
+      || ! [[ "${vga_group_index^^}" =~ "${this_input^^}" ]]; then
       return 0
     fi
 
