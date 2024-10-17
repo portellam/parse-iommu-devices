@@ -226,8 +226,6 @@
       fi
 
       MATCH_IOMMU_GROUP_ID_LIST["${iommu_group_id}"]="${has_match}"
-      previous_has_match=${previous_match_list["${iommu_group_id}"]}
-      previous_input=${INPUT_LIST["${last_key}"]}
 
       if [[ "${previous_input}" =~ "UNMATCH" ]] \
         && [[ "${input_delim}" =~ "UNMATCH" ]]; then
@@ -394,11 +392,14 @@
     local match_vendor=false
     local match_video=true
 
+    local previous_input=""
+
+    local -i last_key=$(( ${key} - 1 ))
     local -i vga_group_index=1
 
     parse_iommu_groups
 
-    declare -ir MAX_VIDEO_IOMMU_GROUP_INDEX=$(( vga_group_index - 1 ))
+    MAX_VIDEO_IOMMU_GROUP_INDEX=$(( ${vga_group_index} - 1 ))
   }
 
   function set_video_match_flag
