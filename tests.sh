@@ -73,7 +73,7 @@
 #
   function main
   {
-    set_video_iommu_group_count
+    set_video_iommu_group_index_maximum
     parse_inputs
     show_output
   }
@@ -123,7 +123,7 @@
       if [[ "${this_input}" -lt "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
         || [[  "${this_input}" -gt "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
         echo -e \
-          "Invalid option '${input_delim}'.\n" \
+          "Invalid option '${input_delim}'." \
           "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX}" \
           "and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
 
@@ -201,6 +201,7 @@
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local has_match=false
+      has_video=false
       local previous_has_match=false
 
       this_bus_id_list="$( \
@@ -379,7 +380,7 @@
     return 0
   }
 
-  function set_video_iommu_group_count
+  function set_video_iommu_group_index_maximum
   {
     local has_video=false
 
