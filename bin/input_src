@@ -53,9 +53,9 @@
       "${MAX_IOMMU_GROUP_ID}"
   )"
 
-  declare -ga ORDERED_INPUT_LIST
+  declare -ga INPUT_LIST
 
-  declare -gA INPUTS=(
+  declare -gA INPUT_DICT=(
     ["MATCH_GROUP"]=false
     ["MATCH_GROUP_LIST"]=""
     ["MATCH_HOST"]=false
@@ -212,7 +212,7 @@
 
   function is_verbose
   {
-    if ! "${INPUTS["VERBOSE_SINGLE"]}"; then
+    if ! "${INPUT_DICT["VERBOSE_SINGLE"]}"; then
       return 1
     fi
 
@@ -221,7 +221,7 @@
 
   function is_verbose_doubled
   {
-    if ! "${INPUTS["VERBOSE_DOUBLE"]}"; then
+    if ! "${INPUT_DICT["VERBOSE_DOUBLE"]}"; then
       return 1
     fi
 
@@ -294,7 +294,7 @@
           shift
 
           if [[ "${1}" == "all" ]]; then
-            INPUTS["MATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
+            INPUT_DICT["MATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
           else
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
               || (
@@ -304,7 +304,7 @@
               print_invalid_option "${1}"
             fi
 
-            INPUTS["MATCH_GROUP_LIST"]+="$( \
+            INPUT_DICT["MATCH_GROUP_LIST"]+="$( \
               echo "${1}" \
                 | sed 's/,*$//' \
             ),"
@@ -320,7 +320,7 @@
           shift
 
           if [[ "${1}" == "all" ]]; then
-            INPUTS["UNMATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
+            INPUT_DICT["UNMATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
           else
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
               || (
@@ -330,7 +330,7 @@
               print_invalid_option "${1}"
             fi
 
-            INPUTS["UNMATCH_GROUP_LIST"]+="$( \
+            INPUT_DICT["UNMATCH_GROUP_LIST"]+="$( \
               echo "${1}" \
                 | sed 's/,*$//' \
             ),"
@@ -345,7 +345,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["UNMATCH_NAME_LIST"]+="$( \
+          INPUT_DICT["UNMATCH_NAME_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -359,7 +359,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["UNMATCH_TYPE_LIST"]+="$( \
+          INPUT_DICT["UNMATCH_TYPE_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -373,7 +373,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["UNMATCH_MAKE_LIST"]+="$( \
+          INPUT_DICT["UNMATCH_MAKE_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -387,7 +387,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MATCH_NAME_LIST"]+="$( \
+          INPUT_DICT["MATCH_NAME_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -405,7 +405,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MATCH_TYPE_LIST"]+="$( \
+          INPUT_DICT["MATCH_TYPE_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -419,20 +419,20 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MATCH_MAKE_LIST"]+="$( \
+          INPUT_DICT["MATCH_MAKE_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
           ;;
 
         "-v" | "--verbose" )
-          INPUTS["VERBOSE_SINGLE"]=true
-          INPUTS["VERBOSE_DOUBLE"]=false
+          INPUT_DICT["VERBOSE_SINGLE"]=true
+          INPUT_DICT["VERBOSE_DOUBLE"]=false
           ;;
 
         "-vv" )
-          INPUTS["VERBOSE_SINGLE"]=true
-          INPUTS["VERBOSE_DOUBLE"]=true
+          INPUT_DICT["VERBOSE_SINGLE"]=true
+          INPUT_DICT["VERBOSE_DOUBLE"]=true
           ;;
 
         "--vga-index" | "--vga-indexes" )
@@ -447,7 +447,7 @@
             print_invalid_option "${1}"
           fi
 
-          INPUTS["MATCH_VIDEO_LIST"]+="$( \
+          INPUT_DICT["MATCH_VIDEO_LIST"]+="$( \
             echo "${1}" \
               | sed 's/,*$//' \
           ),"
@@ -473,7 +473,7 @@
           shift
 
           if is_string "${1}"; then
-            INPUTS["XML_FILE"]="${1}"
+            INPUT_DICT["XML_FILE"]="${1}"
           fi
 
           set_sources
@@ -484,7 +484,7 @@
           ;;
 
         "-h" | "--help" )
-          INPUTS["VERBOSE_SINGLE"]=true
+          INPUT_DICT["VERBOSE_SINGLE"]=true
           print_usage
           exit 2
           ;;
@@ -496,8 +496,8 @@
       esac
 
       for this_input in "${this_input_list[@]}"; do
-        INPUTS["${this_input}"]=true
-        ORDERED_INPUT_LIST+=( "${this_input}" )
+        INPUT_DICT["${this_input}"]=true
+        INPUT_LIST+=( "${this_input}" )
       done
 
       shift
@@ -824,7 +824,7 @@
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "FILE is the XML file name as text. Leave FILE empty to use default file"\
-      "name (\"${INPUTS["XML_FILE"]}\")."
+      "name (\"${INPUT_DICT["XML_FILE"]}\")."
 
     echo -e "Examples:"
 
@@ -859,58 +859,58 @@
 
   function trim_input_lists
   {
-    INPUTS["MATCH_GROUP_LIST"]="$( \
+    INPUT_DICT["MATCH_GROUP_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["MATCH_GROUP_LIST"]}" \
+        "${INPUT_DICT["MATCH_GROUP_LIST"]}" \
     )"
 
-    INPUTS["UNMATCH_GROUP_LIST"]="$( \
+    INPUT_DICT["UNMATCH_GROUP_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["UNMATCH_GROUP_LIST"]}" \
+        "${INPUT_DICT["UNMATCH_GROUP_LIST"]}" \
     )"
 
-    INPUTS["MATCH_MAKE_LIST"]="$( \
+    INPUT_DICT["MATCH_MAKE_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["MATCH_MAKE_LIST"]}" \
+        "${INPUT_DICT["MATCH_MAKE_LIST"]}" \
     )"
 
-    INPUTS["UNMATCH_MAKE_LIST"]="$( \
+    INPUT_DICT["UNMATCH_MAKE_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["UNMATCH_MAKE_LIST"]}" \
+        "${INPUT_DICT["UNMATCH_MAKE_LIST"]}" \
     )"
 
-    INPUTS["MATCH_NAME_LIST"]="$( \
+    INPUT_DICT["MATCH_NAME_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["MATCH_NAME_LIST"]}" \
+        "${INPUT_DICT["MATCH_NAME_LIST"]}" \
     )"
 
-    INPUTS["UNMATCH_NAME_LIST"]="$( \
+    INPUT_DICT["UNMATCH_NAME_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["UNMATCH_NAME_LIST"]}" \
+        "${INPUT_DICT["UNMATCH_NAME_LIST"]}" \
     )"
 
-    INPUTS["MATCH_TYPE_LIST"]="$( \
+    INPUT_DICT["MATCH_TYPE_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["MATCH_TYPE_LIST"]}" \
+        "${INPUT_DICT["MATCH_TYPE_LIST"]}" \
     )"
 
-    INPUTS["UNMATCH_TYPE_LIST"]="$( \
+    INPUT_DICT["UNMATCH_TYPE_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["UNMATCH_TYPE_LIST"]}" \
+        "${INPUT_DICT["UNMATCH_TYPE_LIST"]}" \
     )"
 
-    INPUTS["MATCH_VIDEO_LIST"]="$( \
+    INPUT_DICT["MATCH_VIDEO_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${INPUTS["MATCH_VIDEO_LIST"]}" \
+        "${INPUT_DICT["MATCH_VIDEO_LIST"]}" \
     )"
 
     return 0
@@ -922,9 +922,9 @@
     warning+="number between '${MIN_IOMMU_VALUE}' and '${MAX_IOMMU_GROUP_ID}'."
 
     if ! is_comma_delimited_list_of_positive_numbers \
-        "${INPUTS["MATCH_GROUP_LIST"]}" \
+        "${INPUT_DICT["MATCH_GROUP_LIST"]}" \
       || [[ "$( \
-        echo "${INPUTS["MATCH_GROUP_LIST"]}" \
+        echo "${INPUT_DICT["MATCH_GROUP_LIST"]}" \
           | sort --reverse --version-sort \
           | head --lines 1 \
         )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
@@ -933,9 +933,9 @@
     fi
 
     if ! is_comma_delimited_list_of_positive_numbers \
-        "${INPUTS["UNMATCH_GROUP_LIST"]}" \
+        "${INPUT_DICT["UNMATCH_GROUP_LIST"]}" \
       || [[ "$( \
-        echo "${INPUTS["UNMATCH_GROUP_LIST"]}" \
+        echo "${INPUT_DICT["UNMATCH_GROUP_LIST"]}" \
           | sort --reverse --version-sort \
           | head --lines 1 \
         )" -gt "${MAX_IOMMU_GROUP_ID}" ]]; then
@@ -956,12 +956,12 @@
 
     vga_group_index="${1}"
 
-    if ! is_string "${INPUTS["MATCH_VIDEO_LIST"]}"; then
+    if ! is_string "${INPUT_DICT["MATCH_VIDEO_LIST"]}"; then
       return 0
     fi
 
     for this_vga_group_index in $( \
-      echo "${INPUTS["MATCH_VIDEO_LIST"]}" \
+      echo "${INPUT_DICT["MATCH_VIDEO_LIST"]}" \
         | sed "s/,/ /g"
     ); do
       if [[ "${this_vga_group_index}" -le "${vga_group_index}" ]]; then
