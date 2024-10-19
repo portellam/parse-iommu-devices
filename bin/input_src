@@ -46,7 +46,7 @@
 
   declare -g ARGUMENT_MATCH_GROUP="-g"
 
-  declare -ga INPUT_LIST
+  declare -ga INPUT_LIST=()
 
   declare -gA INPUT_DICT=(
     ["MATCH_GROUP"]=false
