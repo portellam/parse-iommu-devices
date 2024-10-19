@@ -150,18 +150,46 @@
 
     set_video_iommu_group_index_maximum
     parse_many_inputs
+    format_many_outputs
+    trim_many_output_lists
+    sort_many_output_lists
 
     print_and_log_output \
       "${message} Successful.\n" \
       "${INPUT_DICT["VERBOSE_SINGLE"]}"
 
-    trim_many_output_lists
-    sort_many_output_lists
     print_many_output_lists
     return 0
   }
 
-  function format_this_iommu_group_output
+  function create_logfile
+  {
+    if [[ -e "${LOG_FILE}" ]] \
+      && ! rm --force "${LOG_FILE}" &> /dev/null; then
+      echo -e "Failed to delete logfile."
+    fi
+
+    if ! touch "${LOG_FILE}" &> /dev/null; then
+      echo -e "Failed to create logfile."
+    fi
+
+    return 0
+  }
+
+  function format_many_outputs
+  {
+    for iommu_group_id in ${!matched_iommu_group_id_list[@]}; do
+      local has_match=${matched_iommu_group_id_list["${iommu_group_id}"]}
+
+      parse_this_matched_iommu_group \
+          "${iommu_group_id}" \
+          "${has_match}"
+    done
+
+    return 0
+  }
+
+  function format_this_output
   {
     if ! is_verbose; then
       return 0
@@ -243,37 +271,6 @@
     return 0
   }
 
-  function create_logfile
-  {
-    if [[ -e "${LOG_FILE}" ]] \
-      && ! rm --force "${LOG_FILE}" &> /dev/null; then
-      echo -e "Failed to delete logfile."
-    fi
-
-    if ! touch "${LOG_FILE}" &> /dev/null; then
-      echo -e "Failed to create logfile."
-    fi
-
-    return 0
-  }
-
-  #
-  # $1 : the Bus ID as a string.
-  #
-  function get_device_info
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    local hardware_id="${BUS_ID_AND_HARDWARE_ID[${1}]}"
-    local driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
-    local make=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
-    local name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
-    local type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
-    return 0
-  }
-
   #
   # $1 : the Hardware ID as a string.
   #
@@ -293,6 +290,35 @@
       fi
 
       echo "${driver}"
+    done
+
+    return 0
+  }
+
+  function is_match_video_input_valid
+  {
+    if ! "${match_video}"; then
+      return 0
+    fi
+
+    local -a input_list=$( \
+      echo \
+        "${input_delim}" \
+      | tr \
+        , \
+        "\n" \
+    )
+
+    for this_input in ${input_list[@]}; do
+      if [[ "${this_input}" -lt "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
+        || [[  "${this_input}" -gt "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+        print_and_log_output \
+          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX}" \
+          "and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
+
+        print_invalid_option \
+          "${input_delim}"
+      fi
     done
 
     return 0
@@ -399,19 +425,6 @@
     return 0
   }
 
-  function format_many_outputs
-  {
-    for iommu_group_id in ${!matched_iommu_group_id_list[@]}; do
-      local has_match=${matched_iommu_group_id_list["${iommu_group_id}"]}
-
-      parse_this_matched_iommu_group \
-          "${iommu_group_id}" \
-          "${has_match}"
-    done
-
-    return 0
-  }
-
   function parse_many_unmatched_iommu_groups
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
@@ -505,7 +518,7 @@
         OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]+="${iommu_group_id},"
       fi
 
-      format_this_iommu_group_output
+      format_this_output
     done
 
     return 0
@@ -878,6 +891,7 @@
     return 0
   }
 
+  # FIXME
   function write_hardware_ids_to_xml
   {
     if "${INPUT_DICT["XML_WRITE"]}" \
