@@ -46,15 +46,15 @@
   done
 
   declare -A INPUT_DICT=(
-    ["MATCH_GROUPS_LIST"]=""
-    ["MATCH_MAKES_LIST"]=""
-    ["MATCH_NAMES_LIST"]=""
-    ["MATCH_TYPES_LIST"]=""
+    ["MATCH_GROUP_LIST"]=""
+    ["MATCH_MAKE_LIST"]=""
+    ["MATCH_NAME_LIST"]=""
+    ["MATCH_TYPE_LIST"]=""
     ["MATCH_VIDEO_LIST"]=""
-    ["UNMATCH_GROUPS_LIST"]=""
-    ["UNMATCH_MAKES_LIST"]=""
-    ["UNMATCH_NAMES_LIST"]=""
-    ["UNMATCH_TYPES_LIST"]=""
+    ["UNMATCH_GROUP_LIST"]=""
+    ["UNMATCH_MAKE_LIST"]=""
+    ["UNMATCH_NAME_LIST"]=""
+    ["UNMATCH_TYPE_LIST"]=""
     ["UNMATCH_VIDEO_LIST"]=""
   )
 
@@ -63,8 +63,8 @@
     ""
   )
 
-  declare -a MATCHED_IOMMU_GROUPS_LIST=()
-  declare -a UNMATCHED_IOMMU_GROUPS_LIST=()
+  declare -a MATCHED_IOMMU_GROUP_LIST=()
+  declare -a UNMATCHED_IOMMU_GROUP_LIST=()
   declare -i MAX_VIDEO_IOMMU_GROUP_INDEX=0
   declare -ir MIN_VIDEO_IOMMU_GROUP_INDEX=1
 
@@ -429,7 +429,7 @@
 
   function test01
   {
-    INPUT_DICT["MATCH_GROUPS_LIST"]="$( \
+    INPUT_DICT["MATCH_GROUP_LIST"]="$( \
       echo \
         -e \
           "${IOMMU_GROUP_ID_LIST//\n/\,}" \
@@ -442,77 +442,77 @@
         's/,$//'
     )"
 
-    INPUT_DICT["UNMATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
+    INPUT_DICT["UNMATCH_GROUP_LIST"]="0,2,3,4,5,6,7,8,9,10"
 
     INPUT_LIST=(
-      "MATCH_GROUPS_LIST"
-      "UNMATCH_GROUPS_LIST"
+      "MATCH_GROUP_LIST"
+      "UNMATCH_GROUP_LIST"
     )
   }
 
   function test02
   {
-    INPUT_DICT["MATCH_GROUPS_LIST"]="0,2,3,4,5,6,7,8,9,10"
-    INPUT_DICT["UNMATCH_GROUPS_LIST"]="1,9,10"
+    INPUT_DICT["MATCH_GROUP_LIST"]="0,2,3,4,5,6,7,8,9,10"
+    INPUT_DICT["UNMATCH_GROUP_LIST"]="1,9,10"
 
 
     INPUT_LIST=(
-      "MATCH_GROUPS_LIST"
-      "UNMATCH_GROUPS_LIST"
+      "MATCH_GROUP_LIST"
+      "UNMATCH_GROUP_LIST"
     )
   }
 
   function test03
   {
-    INPUT_DICT["MATCH_TYPES_LIST"]="vga"
+    INPUT_DICT["MATCH_TYPE_LIST"]="vga"
 
     INPUT_LIST=(
-      "MATCH_TYPES_LIST"
+      "MATCH_TYPE_LIST"
     )
   }
 
   function test04
   {
-    INPUT_DICT["UNMATCH_TYPES_LIST"]="vga,usb"
+    INPUT_DICT["UNMATCH_TYPE_LIST"]="vga,usb"
 
     INPUT_LIST=(
-      "UNMATCH_TYPES_LIST"
+      "UNMATCH_TYPE_LIST"
     )
   }
 
   function test05
   {
-    INPUT_DICT["MATCH_NAMES_LIST"]="geforce"
+    INPUT_DICT["MATCH_NAME_LIST"]="geforce"
 
     INPUT_LIST=(
-      "MATCH_NAMES_LIST"
+      "MATCH_NAME_LIST"
     )
   }
 
   function test06
   {
-    INPUT_DICT["UNMATCH_NAMES_LIST"]="radeon"
+    INPUT_DICT["UNMATCH_NAME_LIST"]="radeon"
 
     INPUT_LIST=(
-      "UNMATCH_NAMES_LIST"
+      "UNMATCH_NAME_LIST"
     )
   }
 
   function test07
   {
-    INPUT_DICT["MATCH_VENDORS_LIST"]="amd"
+    INPUT_DICT["MATCH_VENDOR_LIST"]="amd"
 
     INPUT_LIST=(
-      "MATCH_VENDORS_LIST"
+      "MATCH_VENDOR_LIST"
     )
   }
 
   function test08
   {
-    INPUT_DICT["UNMATCH_VENDORS_LIST"]="nvidia"
+    INPUT_DICT["UNMATCH_VENDOR_LIST"]="nvidia"
 
     INPUT_LIST=(
-      "UNMATCH_VENDORS_LIST"
+      "UNMATCH_VENDOR_LIST"
     )
   }
 
