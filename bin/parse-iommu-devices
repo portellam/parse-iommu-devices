@@ -41,7 +41,7 @@
     "${SOURCE_PATH}" \
     "${SCRIPT_FILE}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}" \
-    "${INPUTS["XML_FILE"]}"
+    "${INPUT_DICT["XML_FILE"]}"
 
 #
 # logic
