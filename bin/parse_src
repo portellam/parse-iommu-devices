@@ -93,6 +93,17 @@
 
   declare -g LOG_EXTENSION=".log"
 
+  declare -gi MAX_IOMMU_GROUP_ID="$( \
+    ls \
+      /sys/kernel/iommu_groups/ \
+    | sort \
+      --reverse \
+      --version-sort \
+    | head \
+      --lines \
+        1 \
+  )"
+
   declare -gA OUTPUT_DICT=(
     ["FOUND_GROUP_ID_LIST"]=""
     ["FOUND_HOST_GROUP_ID_LIST"]=""
@@ -106,6 +117,11 @@
     ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
+  declare -a IOMMU_GROUP_ID_LIST="$( \
+    seq \
+      0 \
+      "${MAX_IOMMU_GROUP_ID}"
+  )"
 
   declare -gr VFIO_DRIVER_LIST="pci-stub,vfio-pci"
   declare -gr VGA_TYPE_LIST="graphics,vga,video"
@@ -128,6 +144,7 @@
 #
 # logic
 #
+  # FIXME
   function parse_src_main
   {
     local -a iommu_group_output_list=()
@@ -139,13 +156,17 @@
       "${message}" \
       "${INPUT_DICT["VERBOSE_SINGLE"]}"
 
-    if [[ "${#INPUT_LIST[@]}" -le 0 ]] \
-      && ! match_all_iommu_groups; then
-      print_and_log_output \
-        "${message} Failed." \
-        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+    # if false; then
+    #   print_and_log_output \
+    #     "${message} Failed." \
+    #     "${INPUT_DICT["VERBOSE_SINGLE"]}"
 
-      return 1
+    #   return 1
+    # fi
+
+    # TODO: look here to fix blank output!
+    if [[ "${#INPUT_LIST[@]}" -eq 0 ]]; then
+      match_all_groups
     fi
 
     set_video_iommu_group_index_maximum
@@ -291,6 +312,33 @@
 
       echo "${driver}"
     done
+
+    return 0
+  }
+
+  function initialize_iommu_group_match_flag
+  {
+    case "${input^^}" in
+      *"GROUP"* )
+        match_iommu_group=true
+        ;;
+
+      *"NAME"* )
+        match_name=true
+        ;;
+
+      *"TYPE"* )
+        match_type=true
+        ;;
+
+      *"VENDOR"* )
+        match_vendor=true
+        ;;
+
+      *"VIDEO"* )
+        match_video=true
+        ;;
+    esac
 
     return 0
   }
@@ -458,12 +506,11 @@
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      bus_id="${bus_id:5}"
       local name=""
       local type=""
       local vendor=""
 
-      set_device_properties_for_parse
+      set_device_properties
       set_has_video_flag
 
       local -a input_list=$( \
@@ -499,15 +546,13 @@
     )"
 
     for bus_id in ${bus_id_list[@]}; do
-      bus_id="${bus_id:5}"
       local driver=""
       local hardware_id=""
       local name=""
       local type=""
       local vendor=""
 
-      set_device_properties_for_match
-      set_device_properties_for_parse
+      set_device_properties
 
       if "${2}"; then
         OUTPUT_DICT["SELECTED_DRIVER_LIST"]+="${driver}"
@@ -626,15 +671,10 @@
     return 0
   }
 
-  function set_device_properties_for_match
+  function set_device_properties
   {
-    hardware_id="${BUS_ID_AND_HARDWARE_ID[${bus_id}]}"
+    hardware_id=${BUS_ID_AND_HARDWARE_ID["${bus_id}"]}
     driver=${HARDWARE_ID_AND_DRIVER["${hardware_id}"]}
-    return 0
-  }
-
-  function set_device_properties_for_parse
-  {
     name=${HARDWARE_ID_AND_NAME["${hardware_id}"]}
     type=${HARDWARE_ID_AND_TYPE["${hardware_id}"]}
     vendor=${HARDWARE_ID_AND_MAKE["${hardware_id}"]}
