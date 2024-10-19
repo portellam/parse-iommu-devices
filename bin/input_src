@@ -38,20 +38,13 @@
 
   declare -gi COLUMN_SIZE="$( tput cols )"
   declare -gi MIN_VGA_INDEX_VALUE=1
-  declare -gi MIN_IOMMU_VALUE=0
+  declare -gi MIN_IOMMU_GROUP_ID=0
 
   declare -g LOG_EXTENSION=".log"
   declare -g XML_EXTENSION=".xml"
   declare -g ETC_PATH="/usr/local/etc/"
 
   declare -g ARGUMENT_MATCH_GROUP="-g"
-
-
-  declare -a IOMMU_GROUP_ID_LIST="$( \
-    seq \
-      0 \
-      "${MAX_IOMMU_GROUP_ID}"
-  )"
 
   declare -ga INPUT_LIST
 
@@ -98,9 +91,14 @@
 #
   function get_comma_list_of_iommu_group_ids
   {
-    seq "${MIN_IOMMU_VALUE}" "${MAX_IOMMU_GROUP_ID}" \
-      | tr '\n' ',' \
-      | sed 's:,*$::'
+    seq \
+      "${MIN_IOMMU_GROUP_ID}" \
+      "${MAX_IOMMU_GROUP_ID}" \
+    | tr \
+      '\n' \
+      ',' \
+    | sed \
+      's:,*$::'
 
     echo
   }
@@ -299,7 +297,7 @@
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
               || (
                 [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_IOMMU_VALUE}" ]] \
+                && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
               ); then
               print_invalid_option "${1}"
             fi
@@ -325,7 +323,7 @@
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
               || (
                 [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_IOMMU_VALUE}" ]] \
+                && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
               ); then
               print_invalid_option "${1}"
             fi
@@ -919,7 +917,7 @@
   function verify_iommu_groups
   {
     local warning="Error: Invalid IOMMU group ID(s) specified. Please enter a "
-    warning+="number between '${MIN_IOMMU_VALUE}' and '${MAX_IOMMU_GROUP_ID}'."
+    warning+="number between '${MIN_IOMMU_GROUP_ID}' and '${MAX_IOMMU_GROUP_ID}'."
 
     if ! is_comma_delimited_list_of_positive_numbers \
         "${INPUT_DICT["MATCH_GROUP_LIST"]}" \
