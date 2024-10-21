@@ -109,7 +109,7 @@
     ["FOUND_HOST_GROUP_ID_LIST"]=""
     ["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]=""
     ["FOUND_PCIE_GROUP_ID_LIST"]=""
-    ["FOUND_VGA_GROUP_ID_LIST"]=""
+    ["FOUND_VIDEO_GROUP_ID_LIST"]=""
     ["SELECTED_DRIVER_LIST"]=""
     ["SELECTED_GROUP_ID_LIST"]=""
     ["SELECTED_HARDWARE_ID_LIST"]=""
@@ -122,9 +122,6 @@
       0 \
       "${MAX_IOMMU_GROUP_ID}"
   )"
-
-  declare -gr VFIO_DRIVER_LIST="pci-stub,vfio-pci"
-  declare -gr VGA_TYPE_LIST="graphics,vga,video"
 
   declare -i MAX_VIDEO_IOMMU_GROUP_INDEX=0
   declare -ir MIN_VIDEO_IOMMU_GROUP_INDEX=1
@@ -148,7 +145,7 @@
   function parse_src_main
   {
     local -a iommu_group_output_list=()
-    local -a matched_iommu_group_id_list=()
+    local -A matched_iommu_group_id_dict=()
 
     local -r message="Parsing hardware devices..."
 
@@ -199,12 +196,12 @@
 
   function format_many_outputs
   {
-    for iommu_group_id in ${!matched_iommu_group_id_list[@]}; do
-      local has_match=${matched_iommu_group_id_list["${iommu_group_id}"]}
+    for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
+      local has_match=${matched_iommu_group_id_dict["${iommu_group_id}"]}
 
-      parse_this_matched_iommu_group \
-          "${iommu_group_id}" \
-          "${has_match}"
+      format_some_outputs \
+        "${iommu_group_id}" \
+        "${has_match}"
     done
 
     return 0
@@ -273,7 +270,7 @@
     )"
 
     iommu_group_output_list+=(
-      "\t${device_index}:"
+      "\t${1}:"
       "${tab_prefix}Slot ID:      ${bus_id}"
       "${make_output}"
       "${name_output}"
@@ -284,11 +281,9 @@
     )
 
     if [[ "${driver}" == "${NULL_VALUE}" ]]; then
-      local +r driver
-      local -r driver=""
+      driver=""
     fi
 
-    (( device_index++ ))
     return 0
   }
 
@@ -318,9 +313,19 @@
 
   function initialize_iommu_group_match_flag
   {
+    local is_unmatch=false
+
+    if [[ "${input^^}" =~ "UNMATCH" ]]; then
+      is_unmatch=true
+    fi
+
     case "${input^^}" in
       *"GROUP"* )
         match_iommu_group=true
+        ;;
+
+      *"HOST"* )
+        match_host=true
         ;;
 
       *"NAME"* )
@@ -339,6 +344,61 @@
         match_video=true
         ;;
     esac
+
+    if "${is_unmatch}"; then
+      case true in
+        "${match_host}" )
+          match_host=false
+          match_pcie=true
+          ;;
+
+        "${match_iommu_group}" )
+          input_delim=${INPUT_DICT["UNMATCH_GROUP_LIST"]}
+          ;;
+
+        "${match_name}" )
+          input_delim=${INPUT_DICT["UNMATCH_NAME_LIST"]}
+          ;;
+
+        "${match_type}" )
+          input_delim=${INPUT_DICT["UNMATCH_TYPE_LIST"]}
+          ;;
+
+        "${match_vendor}" )
+          input_delim=${INPUT_DICT["UNMATCH_VENDOR_LIST"]}
+          ;;
+
+        "${match_video}" )
+          input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
+          ;;
+      esac
+    else
+      case true in
+        "${match_host}" )
+          match_pcie=false
+          ;;
+
+        "${match_iommu_group}" )
+          input_delim=${INPUT_DICT["MATCH_GROUP_LIST"]}
+          ;;
+
+        "${match_name}" )
+          input_delim=${INPUT_DICT["MATCH_NAME_LIST"]}
+          ;;
+
+        "${match_type}" )
+          input_delim=${INPUT_DICT["MATCH_TYPE_LIST"]}
+          ;;
+
+        "${match_vendor}" )
+          input_delim=${INPUT_DICT["MATCH_VENDOR_LIST"]}
+          ;;
+
+        "${match_video}" )
+          input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
+          ;;
+      esac
+    fi
 
     return 0
   }
@@ -441,21 +501,32 @@
 
   function parse_many_inputs
   {
-    local -a previous_match_list=()
+    iommu_group_output_list=()
+    local -a previous_match_dict=()
     local -ir minimum_key=0
 
     for key in ${!IOMMU_GROUP_ID_LIST[@]}; do
-      previous_match_list+=( false )
+      previous_match_dict+=( false )
+      matched_iommu_group_id_dict+=( false )
     done
 
     for key in ${!INPUT_LIST[@]}; do
+      local has_host=false
+      local has_iommu_group=false
+      local has_name=false
+      local has_pcie=false
+      local has_type=false
+      local has_vendor=false
+      local has_vfio=false
       local has_video=false
 
       local input=${INPUT_LIST["${key}"]}
-      local input_delim=${INPUT_DICT["${input}"]}
+      local input_delim=""
 
       local match_iommu_group=false
+      local match_host=false
       local match_name=false
+      local match_pcie=false
       local match_type=false
       local match_vendor=false
       local match_video=false
@@ -477,6 +548,7 @@
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local has_match=false
+      local has_vfio=false
       has_video=false
       local previous_has_match=true
 
@@ -487,11 +559,11 @@
       fi
 
       set_previous_match_flags
-      set_match_flag_by_previous_match
+      set_match_flag_for_previous_match
 
-      matched_iommu_group_id_list["${iommu_group_id}"]="${has_match}"
+      matched_iommu_group_id_dict["${iommu_group_id}"]="${has_match}"
       previous_input=${INPUT_LIST["${last_key}"]}
-      previous_match_list["${last_key}"]="${has_match}"
+      previous_match_dict["${last_key}"]="${has_match}"
     done
 
     return 0
@@ -505,13 +577,30 @@
       echo -e "${bus_id_delim//,/\\n}" \
     )"
 
+    local had_pcie=false
+
     for bus_id in ${bus_id_list[@]}; do
+      local has_host=false
+      local has_iommu_group=false
+      local has_name=false
+      local has_pcie=false
+      local has_type=false
+      local has_vendor=false
+      local has_vfio=false
+      local has_video=false
+
       local name=""
       local type=""
       local vendor=""
 
       set_device_properties
       set_has_video_flag
+      set_match_flag_for_vfio
+
+      if "${has_vfio}"; then
+        has_match=false
+        return 0
+      fi
 
       local -a input_list=$( \
         echo \
@@ -521,18 +610,26 @@
           "\n" \
       )
 
-      set_match_flag_by_iommu_group
+      set_match_flag_for_iommu_group
+      set_match_flag_for_host
+      set_match_flag_for_pcie
 
       for this_input in ${input_list[@]}; do
-        set_match_flag_by_device
+        set_match_flag_for_device
       done
+
+      set_match_flag
     done
+
+    if "${had_pcie}"; then
+      has_match=true
+    fi
 
     set_unmatch_flag
     return 0
   }
 
-  function parse_this_matched_iommu_group
+  function format_some_outputs
   {
     if ! is_positive_integer "${1}" \
       || ! is_boolean "${2}"; then
@@ -545,7 +642,35 @@
       echo -e "${bus_id_delim//,/\\n}" \
     )"
 
+    local -i device_index=1
+
+    iommu_group_output_list+=(
+      "IOMMU Group ${1}:"
+    )
+
+    local had_host=false
+    local had_pcie=false
+    local had_vfio=false
+    local had_video=false
+
     for bus_id in ${bus_id_list[@]}; do
+      local has_host=false
+      local has_iommu_group=false
+      local has_name=false
+      local has_pcie=false
+      local has_type=false
+      local has_vendor=false
+      local has_vfio=false
+      local has_video=false
+
+      local match_iommu_group=true
+      local match_host=true
+      local match_name=true
+      local match_pcie=true
+      local match_type=true
+      local match_vendor=true
+      local match_video=true
+
       local driver=""
       local hardware_id=""
       local name=""
@@ -553,18 +678,75 @@
       local vendor=""
 
       set_device_properties
+      set_match_flag_for_host
+      set_match_flag_for_pcie
+      set_match_flag_for_vfio
+      set_has_video_flag
 
-      if "${2}"; then
-        OUTPUT_DICT["SELECTED_DRIVER_LIST"]+="${driver}"
-        OUTPUT_DICT["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id}"
-        OUTPUT_DICT["SELECTED_GROUP_ID_LIST"]+="${iommu_group_id},"
+      format_this_output \
+        "${device_index}"
+
+      (( device_index++ ))
+
+      OUTPUT_DICT["FOUND_GROUP_ID_LIST"]+="${1},"
+
+      if ! "${2}"; then
+        OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]+="${1},"
 
       else
-        OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]+="${iommu_group_id},"
+
+        if is_string "${driver}"; then
+          OUTPUT_DICT["SELECTED_DRIVER_LIST"]+="${driver},"
+        fi
+
+        OUTPUT_DICT["SELECTED_HARDWARE_ID_LIST"]+="${hardware_id},"
+        OUTPUT_DICT["SELECTED_GROUP_ID_LIST"]+="${1},"
       fi
 
-      format_this_output
+      case true in
+        "${has_vfio}" )
+          had_vfio=true
+          ;;
+
+        "${has_video}" )
+          had_video=true
+          ;;
+
+        "${has_host}" )
+          had_host=true
+          ;;
+
+        "${has_pcie}" )
+          had_pcie=true
+          ;;
+      esac
     done
+
+    case true in
+      "${had_vfio}" )
+        OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
+        ;;
+
+      "${had_video}" )
+        OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]+="${1},"
+        ;;
+    esac
+
+    if "${had_host}" \
+      && "${had_pcie}"; then
+      OUTPUT_DICT["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]+="${1},"
+      return 0
+    fi
+
+    case true in
+    "${had_host}" )
+      OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]+="${1},"
+      ;;
+
+    "${had_pcie}" )
+      OUTPUT_DICT["FOUND_PCIE_GROUP_ID_LIST"]+="${1},"
+      ;;
+    esac
 
     return 0
   }
@@ -589,7 +771,7 @@
 
     set_null_value_to_empty_output_lists
 
-    print_and_log_output "Found Groups:\n${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}\n"
+    # print_and_log_output "Found Groups:\n${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with only Host device(s):\n${OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]}\n"
@@ -601,7 +783,7 @@
       "Found Groups with Host/PCIe device(s):\n${OUTPUT_DICT["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with VGA device(s):\n${OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]}\n"
+      "Found Groups with Video device(s):\n${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Groups with VFIO device(s):\n${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}\n"
@@ -648,8 +830,8 @@
       OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
 
-    if ! is_string "${OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]}"; then
-      OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]="${NULL_VALUE}"
+    if ! is_string "${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}"; then
+      OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
 
     if ! is_string "${OUTPUT_DICT["SELECTED_DRIVER_LIST"]}"; then
@@ -683,9 +865,9 @@
 
   function set_has_video_flag
   {
-    if ! [[ "${type^^}" =~ "GRAPHIC" ]] \
-      && ! [[ "${type^^}" =~ "VGA" ]] \
-      && ! [[ "${type^^}" =~ "VIDEO" ]]; then
+    if ! [[ "${type,,}" =~ "graphic" ]] \
+      && ! [[ "${type,,}" =~ "video" ]] \
+      && ! [[ "${type,,}" =~ "vga" ]]; then
       return 0
     fi
 
@@ -693,8 +875,28 @@
     return 0
   }
 
-  function set_match_flag_by_previous_match
+  function set_match_flag
   {
+    if ! "${has_host}" \
+      && ! "${has_iommu_group}" \
+      && ! "${has_name}" \
+      && ! "${has_pcie}" \
+      && ! "${has_type}" \
+      && ! "${has_vendor}" \
+      && ! "${has_video}"; then
+      return 0
+    fi
+
+    has_match=true
+    return 0
+  }
+
+  function set_match_flag_for_previous_match
+  {
+    if ! "${has_vfio}"; then
+      return 0
+    fi
+
     if [[ "${previous_input}" =~ "UNMATCH" ]] \
       && [[ "${input_delim}" =~ "UNMATCH" ]]; then
       if ! "${previous_has_match}"; then
@@ -716,54 +918,94 @@
     return 0
   }
 
-  function set_match_flag_by_device
+  function set_match_flag_for_device
   {
     if "${match_name}" \
       && [[ "${name^^}" =~ "${this_input^^}" ]]; then
-      has_match=true
+      has_name=true
     fi
 
     if "${match_type}" \
       && [[ "${type^^}" =~ "${this_input^^}" ]]; then
-      has_match=true
+      has_type=true
     fi
 
     if "${match_vendor}" \
       && [[ "${vendor^^}" =~ "${this_input^^}" ]]; then
-      has_match=true
+      has_vendor=true
     fi
 
     set_video_match_flag
     return 0
   }
 
-  function set_match_flag_by_iommu_group
+  function set_match_flag_for_host
+  {
+    if ! "${match_host}" \
+      || ! [[ "${bus_id}" =~ "00:" ]]; then
+      return 0
+    fi
+
+    has_host=true
+    return 0
+  }
+
+  function set_match_flag_for_iommu_group
   {
     if ! "${match_iommu_group}" \
       || ! [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
       return 0
     fi
 
-    has_match=true
+    has_iommu_group=true
     return 0
   }
+
+  function set_match_flag_for_pcie
+  {
+    if ! "${match_pcie}" \
+      || [[ "${bus_id}" =~ "00:" ]]; then
+      return 0
+    fi
+
+    has_pcie=true
+    had_pcie=true
+    return 0
+  }
+
+  function set_match_flag_for_vfio
+  {
+    if ! [[ "${driver,,}" =~ "vfio-pci" ]] \
+      && ! [[ "${driver,,}" =~ "pci-stub" ]]; then
+      return 0
+    fi
+
+    has_vfio=true
+    return 0
+  }
+
 
   function set_previous_match_flags
   {
     if [[ "${last_key}" -lt "${minimum_key}" ]]; then
       previous_input=""
-      previous_match_list["${iommu_group_id}"]="${has_match}"
+      previous_has_match="${has_match}"
 
     else
       previous_input=${INPUT_LIST["${last_key}"]}
-      previous_has_match=${previous_match_list["${iommu_group_id}"]}
+      previous_match_dict["${iommu_group_id}"]="${previous_has_match}"
     fi
 
+    # previous_match_dict["${iommu_group_id}"]="${previous_has_match}"  #FIXME
     return 0
   }
 
   function set_unmatch_flag
   {
+    if [[ "${input}" =~ "HOST" ]]; then
+      return 0
+    fi
+
     if [[ "${input}" =~ "UNMATCH" ]]; then
       if "${has_match}"; then
         has_match=false
@@ -838,9 +1080,9 @@
         "${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}" \
     )"
 
-    OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]="$( \
+    OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]="$( \
       sort_comma_delimited_list \
-        "${OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]}" \
+        "${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}" \
     )"
 
     OUTPUT_DICT["SELECTED_DRIVER_LIST"]="$( \
@@ -898,10 +1140,10 @@
         "${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}" \
     )"
 
-    OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]="$( \
+    OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
-        "${OUTPUT_DICT["FOUND_VGA_GROUP_ID_LIST"]}" \
+        "${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}" \
     )"
 
     OUTPUT_DICT["SELECTED_DRIVER_LIST"]="$( \
