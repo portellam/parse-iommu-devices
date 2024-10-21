@@ -418,15 +418,26 @@
     )
 
     for this_input in ${input_list[@]}; do
-      if [[ "${this_input}" -lt "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
-        || [[  "${this_input}" -gt "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
-        print_and_log_output \
-          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX}" \
-          "and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
+      if [[ "${MIN_VIDEO_IOMMU_GROUP_INDEX}" -ge "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+        if [[ "${this_input}" -eq "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+          continue
+        fi
 
-        print_invalid_option \
-          "${input_delim}"
+        print_and_log_output \
+          "Please enter a value of ${MIN_VIDEO_IOMMU_GROUP_INDEX}."
+
+      else
+        if [[ "${this_input}" -ge "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
+          && [[  "${this_input}" -le "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+          continue
+        fi
+
+        print_and_log_output \
+          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX} and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
       fi
+
+      print_invalid_option \
+        "${input_delim}"
     done
 
     return 0
@@ -502,39 +513,14 @@
   function parse_many_inputs
   {
     iommu_group_output_list=()
-    local -a previous_match_dict=()
-    local -ir minimum_key=0
 
-    for key in ${!IOMMU_GROUP_ID_LIST[@]}; do
-      previous_match_dict+=( false )
-      matched_iommu_group_id_dict+=( false )
+    for key in ${IOMMU_GROUP_ID_LIST[@]}; do
+      matched_iommu_group_id_dict["${key}"]=true
     done
 
-    for key in ${!INPUT_LIST[@]}; do
-      local has_host=false
-      local has_iommu_group=false
-      local has_name=false
-      local has_pcie=false
-      local has_type=false
-      local has_vendor=false
-      local has_vfio=false
-      local has_video=false
-
-      local input=${INPUT_LIST["${key}"]}
+    for input in ${INPUT_LIST[@]}; do
       local input_delim=""
-
-      local match_iommu_group=false
-      local match_host=false
-      local match_name=false
-      local match_pcie=false
-      local match_type=false
-      local match_vendor=false
       local match_video=false
-
-      local previous_input=""
-      local -i last_key=$(( ${key} - 1 ))
-
-      local -i vga_iommu_group_index=1
 
       initialize_iommu_group_match_flag
       is_match_video_input_valid
@@ -547,10 +533,25 @@
   function parse_many_unmatched_iommu_groups
   {
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
+      local value=${matched_iommu_group_id_dict["${iommu_group_id}"]}
+
       local has_match=false
+
+      local has_host=false
+      local has_iommu_group=false
+      local has_name=false
+      local has_pcie=false
+      local has_type=false
+      local has_vendor=false
       local has_vfio=false
-      has_video=false
-      local previous_has_match=true
+      local has_video=false
+
+      local match_iommu_group=false
+      local match_host=false
+      local match_name=false
+      local match_pcie=false
+      local match_type=false
+      local match_vendor=false
 
       parse_this_unmatched_iommu_group
 
@@ -558,12 +559,13 @@
         (( vga_iommu_group_index++ ))
       fi
 
-      set_previous_match_flags
-      set_match_flag_for_previous_match
+      if is_boolean "${value}" \
+        && ! "${value}"; then
+        matched_iommu_group_id_dict["${iommu_group_id}"]=false
+        continue
+      fi
 
       matched_iommu_group_id_dict["${iommu_group_id}"]="${has_match}"
-      previous_input=${INPUT_LIST["${last_key}"]}
-      previous_match_dict["${last_key}"]="${has_match}"
     done
 
     return 0
@@ -580,15 +582,6 @@
     local had_pcie=false
 
     for bus_id in ${bus_id_list[@]}; do
-      local has_host=false
-      local has_iommu_group=false
-      local has_name=false
-      local has_pcie=false
-      local has_type=false
-      local has_vendor=false
-      local has_vfio=false
-      local has_video=false
-
       local name=""
       local type=""
       local vendor=""
@@ -891,33 +884,6 @@
     return 0
   }
 
-  function set_match_flag_for_previous_match
-  {
-    if ! "${has_vfio}"; then
-      return 0
-    fi
-
-    if [[ "${previous_input}" =~ "UNMATCH" ]] \
-      && [[ "${input_delim}" =~ "UNMATCH" ]]; then
-      if ! "${previous_has_match}"; then
-        has_match="${previous_has_match}"
-      fi
-
-    elif [[ "${previous_input}" =~ "MATCH" ]] \
-      && ! [[ "${previous_input}" =~ "UNMATCH" ]] \
-      && [[ "${input_delim}" =~ "MATCH" ]] \
-      && ! [[ "${input_delim}" =~ "UNMATCH" ]]; then
-      has_match="${previous_has_match}"
-
-    else
-      if ! "${previous_has_match}"; then
-        has_match="${previous_has_match}"
-      fi
-    fi
-
-    return 0
-  }
-
   function set_match_flag_for_device
   {
     if "${match_name}" \
@@ -984,22 +950,6 @@
     return 0
   }
 
-
-  function set_previous_match_flags
-  {
-    if [[ "${last_key}" -lt "${minimum_key}" ]]; then
-      previous_input=""
-      previous_has_match="${has_match}"
-
-    else
-      previous_input=${INPUT_LIST["${last_key}"]}
-      previous_match_dict["${iommu_group_id}"]="${previous_has_match}"
-    fi
-
-    # previous_match_dict["${iommu_group_id}"]="${previous_has_match}"  #FIXME
-    return 0
-  }
-
   function set_unmatch_flag
   {
     if [[ "${input}" =~ "HOST" ]]; then
@@ -1019,23 +969,24 @@
 
   function set_video_iommu_group_index_maximum
   {
-    local has_video=false
-
-    local input="MATCH_VIDEO_LIST"
-    local input_delim=1
-
     local match_iommu_group=false
     local match_name=false
     local match_type=false
     local match_vendor=false
     local match_video=true
 
-    local previous_input=""
-
-    local -i last_key=$(( ${key} - 1 ))
     local -i vga_iommu_group_index=1
 
-    parse_many_inputs
+    for key in ${IOMMU_GROUP_ID_LIST[@]}; do
+      matched_iommu_group_id_dict["${key}"]=true
+    done
+
+    local input="MATCH_VIDEO_LIST"
+    local input_delim="${vga_iommu_group_index}"
+    local match_video=true
+
+    parse_many_unmatched_iommu_groups
+    is_match_video_input_valid
 
     MAX_VIDEO_IOMMU_GROUP_INDEX=$(( ${vga_iommu_group_index} - 1 ))
     return 0
