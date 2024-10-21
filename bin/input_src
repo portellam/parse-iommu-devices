@@ -45,6 +45,7 @@
   declare -g ETC_PATH="/usr/local/etc/"
 
   declare -g ARGUMENT_MATCH_GROUP="-g"
+  declare -g OPTION_ALL="all"
 
   declare -ga INPUT_LIST=()
 
@@ -230,7 +231,7 @@
   {
     parse_this_argument \
       "${ARGUMENT_MATCH_GROUP}" \
-        "$( get_comma_list_of_iommu_group_ids )"
+      "${OPTION_ALL}"
   }
 
   #
@@ -291,7 +292,7 @@
           this_input_list=( "MATCH_GROUP" )
           shift
 
-          if [[ "${1}" == "all" ]]; then
+          if [[ "${1}" == "${OPTION_ALL}" ]]; then
             INPUT_DICT["MATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
           else
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
@@ -317,7 +318,7 @@
           this_input_list=( "UNMATCH_GROUP" )
           shift
 
-          if [[ "${1}" == "all" ]]; then
+          if [[ "${1}" == "${OPTION_ALL}" ]]; then
             INPUT_DICT["UNMATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
           else
             if ! is_comma_delimited_list_of_positive_numbers "${1}" \
@@ -940,42 +941,4 @@
       print_and_log_output "${warning}"
       return 1
     fi
-  }
-
-  #
-  # $1 : the index of the group with VGA as an integer.
-  #
-  function verify_vga_group_index
-  {
-    if ! is_positive_integer "${1}" \
-      || [[ "${MIN_VGA_INDEX_VALUE}" -lt "${1}" ]]; then
-      return 1
-    fi
-
-    vga_group_index="${1}"
-
-    if ! is_string "${INPUT_DICT["MATCH_VIDEO_LIST"]}"; then
-      return 0
-    fi
-
-    for this_vga_group_index in $( \
-      echo "${INPUT_DICT["MATCH_VIDEO_LIST"]}" \
-        | sed "s/,/ /g"
-    ); do
-      if [[ "${this_vga_group_index}" -le "${vga_group_index}" ]]; then
-        continue
-      fi
-
-      if ! is_verbose; then
-        return 1
-      fi
-
-      print_and_log_output "Error: Invalid index specified."
-
-      print_and_log_output \
-        "Please enter a value between '${MIN_VGA_INDEX_VALUE}' and" \
-        "'${vga_group_index}'."
-
-      return 1
-    done
   }
