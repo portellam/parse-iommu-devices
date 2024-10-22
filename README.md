@@ -1,7 +1,19 @@
 # Parse IOMMU Devices
-### v1.0.2
+### v1.0.2-dev
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
+
+### What does NOT work:
+- all unmatches.
+- match by vendor.
+- match by video.
+- logger.
+- xml file support.
+
+### What DOES works:
+- everything else!
+  - you may be able to get a full list drivers and hardware IDs.
+  - if you know what groups to select for, use the `--groups` command.
 
 ### [Download](#5-download)
 
@@ -17,7 +29,6 @@ and return the device drivers and hardware IDs as output.
     - [6.3. XML file](#63-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
-- [9. Special Thanks](#9-special-thanks)
 
 ## Contents
 ### 1. Why?
@@ -115,13 +126,22 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -v, --verbose             Show more output including query
-                            output and IOMMU groups.
+  -v, --verbose             Show more output including queries
+                            and IOMMU groups.
 
   -vv                       Show all output.
   -g, --group=GROUPS        Match IOMMU group ID(s);
                             GROUPS is a comma delimited list of
                             positive numbers.
+
+  -G, --graphics=INDEX      Match all IOMMU groups without a
+                            graphics device, and any IOMMU group
+                            (with a graphics device) whose INDEX
+                            matches the expected INDEX value(s).
+                            INDEX is not an IOMMU group ID;
+                            INDEX is a comma delimited list of
+                            postive non-zero numbers.
+
 
   --ignore-group=GROUPS     Reverse match IOMMU group ID(s),
                             overrides "--group";
@@ -228,7 +248,3 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
-
-### 9. Special Thanks
-- Peer Reviewers:
-  - `u/psyblade42`
