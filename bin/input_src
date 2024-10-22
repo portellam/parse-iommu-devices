@@ -37,7 +37,7 @@
   declare -g SCRIPT_VERSION="${3}"
 
   declare -gi COLUMN_SIZE="$( tput cols )"
-  declare -gi MIN_VGA_INDEX_VALUE=1
+  declare -gi MIN_VIDEO_INDEX_VALUE=1
   declare -gi MIN_IOMMU_GROUP_ID=0
 
   declare -g LOG_EXTENSION=".log"
@@ -434,14 +434,14 @@
           INPUT_DICT["VERBOSE_DOUBLE"]=true
           ;;
 
-        "--vga-index" | "--vga-indexes" )
+        "-G" | "--graphics" )
           this_input_list=( "MATCH_VIDEO" )
           shift
 
           if ! is_comma_delimited_list_of_positive_numbers "${1}" \
               || (
                 [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_VGA_INDEX_VALUE}" ]] \
+                && [[ "${1::-1}" -lt "${MIN_VIDEO_INDEX_VALUE}" ]] \
               ); then
             print_invalid_option "${1}"
           fi
@@ -590,7 +590,7 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "Show more output including query output and IOMMU groups."
+      "Show more output including queries and IOMMU groups."
 
     echo -en "  -vv                       "
 
@@ -641,6 +641,28 @@
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
       "GROUPS is a comma delimited list of positive numbers."
+
+    echo -en "  -G, --graphics=INDEX      "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Match all IOMMU groups without a graphics device," \
+      "and any IOMMU group (with a graphics device) whose INDEX matches the" \
+      "expected INDEX value(s). INDEX is not an IOMMU group ID;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "INDEX is a comma delimited list of postive non-zero numbers."
 
     echo -en "  -H, --host                "
 
@@ -782,27 +804,6 @@
       "${COLUMN_SIZE}" \
       "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
 
-    echo -en "  --vga-index=INDEX         "
-
-    wrap_text \
-      false \
-      false \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Match all IOMMU groups without VGA," \
-      "and any with VGA which match the index value(s) (not an IOMMU group ID);"
-
-    echo -en "$( get_repeated_space 28 )"
-
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "INDEX is a comma delimited list of postive non-zero numbers."
-
     echo -en "  -x, --xml, --xml=FILE     "
 
     wrap_text \
@@ -837,13 +838,13 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "--ignore-name ether --pcie --vga-index 2"
+      "--ignore-name ether --pcie --graphics 2"
 
     echo -en "$( get_repeated_space 28 )"
 
     column_prefix_count=28
     text="Standard output of comma-delimited lists hardware IDs and drivers "
-    text+="(of IOMMU groups with PCI/e devices), exclude IOMMU groups with VGA "
+    text+="(of IOMMU groups with PCI/e devices), exclude IOMMU groups with graphics "
     text+="device(s) before and after the second matched group, and exclude any "
     text+="wired ethernet devices (Host and PCI/e)."
 

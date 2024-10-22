@@ -88,7 +88,7 @@ Linux.
         `F6`.
             - **To return to the desktop,** press `CTRL` + `ALT` + `F7`.
             - `F1` is reserved for debug output of the Linux kernel.
-            - `F7` is reserved for video output of the desktop environment.
+            - `F7` is reserved for graphics output of the desktop environment.
             - `F8` and above are unused.
     2. Change your directory to your home folder or anywhere safe:
         - `cd ~`
@@ -164,8 +164,8 @@ sudo bash installer.sh
   -p, --pci, --pcie         Match IOMMU groups with at least one
                             (1) or more PCI/PCIe bus devices.
 
-  --vga-index=INDEX         Match all IOMMU groups without VGA,
-                            and any with VGA which match the
+  --vga-index=INDEX         Match all IOMMU groups without graphics,
+                            and any with graphics which match the
                             index value(s) (not an IOMMU group
                             ID);
                             INDEX is a comma delimited list of
@@ -185,7 +185,7 @@ Examples:
                             Standard output of comma-delimited
                             lists hardware IDs and drivers (of
                             IOMMU groups with PCI/e devices),
-                            exclude IOMMU groups with VGA
+                            exclude IOMMU groups with graphics
                             device(s) before and after the
                             second matched group, and exclude
                             any wired ethernet devices (Host and
