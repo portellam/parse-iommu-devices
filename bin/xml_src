@@ -1,0 +1,345 @@
+#!/bin/false
+
+#
+# Filename:       xml_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+#
+
+#
+# params (1/2)
+#
+  declare -g SOURCE_PATH="${1}"
+
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src"
+
+#
+# params (2/2)
+#
+  declare -g XML_FILE="${2}"
+  declare -g KEY_A="devices"
+  declare -g KEY_B="hardware"
+  declare -g KEY_C="driver"
+  declare -g ATTRIBUTE="@id"
+
+#
+# logic
+#
+  function append_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    if ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -r driver="${2}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "/${KEY_B}" \
+    #       --value "" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]" \
+    #     --type --nl "${KEY_C}" \
+    #       --value "${hardware_id}" \
+    #       --append "/${KEY_A}/${KEY_B}[last()]" \
+    #         --insert "${ATTRIBUTE}" \
+    #         --value "${driver}" \
+    #   "${XML_FILE}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "${KEY_B}" \
+    #       --value "" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]" \
+    #         --type --nl "${ATTRIBUTE:1}" \
+    #           --value "${1}" \
+    #   --subnode "/${KEY_A}/${KEY_B}[last()]" \
+    #     --type --nl "${KEY_C}" \
+    #       --value "${2}" \
+    #       --insert "/${KEY_A}/${KEY_B}[last()]/${KEY_C}[last()]" \
+    #         --type --nl "${ATTRIBUTE:1}" \
+    #         --value "${2}" \
+    #   "${XML_FILE}"
+
+    local -ar driver_list="$( \
+      get_driver_list \
+        "${hardware_id}"
+    )"
+
+    local -ir index="${#driver_list[@]}"
+
+    xmlstarlet edit \
+      --subnode "/${KEY_A}/${KEY_B}[${ATTRIBUTE:1}='${1}']" \
+        --type --nl "${KEY_C}" \
+          --value "${driver}" \
+          --insert "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${hardware_id}']/${KEY_C}[last()]" \
+            --type --nl "${ATTRIBUTE:1}" \
+              --value "${index}" \
+      "${XML_FILE}"
+
+    exit 1
+  }
+
+  function append_hardware_id
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    # xmlstarlet edit \
+    #   --subnode "/${KEY_A}" \
+    #     --type --nl "/${KEY_B}" \
+    #       --value "" \
+    #       --append "/${KEY_A}/${KEY_B}[last()]" \
+    #   "${XML_FILE}"
+
+    xmlstarlet edit \
+      --subnode "/${KEY_A}" \
+        --type --nl "${KEY_B}" \
+          --value "" \
+          --insert "/${KEY_A}/${KEY_B}[last()]" \
+            --type --nl "${ATTRIBUTE:1}" \
+              --value "${1}" \
+      "${XML_FILE}"
+
+    exit 1
+  }
+
+  function get_xml_hardware_id_list
+  {
+    xmlstarlet select \
+      --template \
+        --match "//${KEY_A}/${KEY_B}" \
+        --match "${ATTRIBUTE}" \
+          --value-of "." --nl \
+      "${XML_FILE}"
+  }
+
+  function get_driver_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    xmlstarlet select \
+      --template \
+        --match "/${KEY_B} [${ATTRIBUTE}=\"${hardware_id}\"]" \
+        --match "/${KEY_C}" \
+          --value-of "." --nl \
+      "${XML_FILE}"
+  }
+
+  function get_first_good_driver
+  {
+    if ! is_positive_integer "${2}"; then
+      return 1
+    fi
+
+    local -i index="${2}"
+    local -i count=0
+
+    for driver in $( get_driver_list "${1}" ); do
+      if is_driver_installed "${driver}"; then
+        break
+      fi
+
+      if [[ "${count}" -eq "${index}" ]]; then
+        driver=""
+        break
+      fi
+
+      (( index++ ))
+    done
+
+    echo "${driver}"
+    return 0
+  }
+
+  function insert_xml_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    if ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -r driver="${2}"
+
+    xmlstarlet edit \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]" \
+        --insert @version \
+          --value "${driver}" --nl \
+      "${XML_FILE}"
+  }
+
+  function is_driver_installed
+  {
+    lsmod \
+      | grep --quiet --word-regexp "${1}"
+  }
+
+  function set_xml_hardware_id_list
+  {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    local do_delete_any_unused_hardware_id="${1}"
+    shift
+
+    echo "Hello world"
+
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    local -ar hardware_id_list=( "${@}" )
+    echo -e "${hardware_id_list[*]}"
+
+    for hardware_id in $( get_xml_hardware_id_list ); do
+      echo -e "${hardware_id}"
+
+      if [[ "${hardware_id_list[*]}" =~ "${hardware_id}" ]]; then
+        continue
+      fi
+
+      if "${do_delete_any_unused_hardware_id}" \
+        && ! unset_xml_hardware_id "${hardware_id}"; then
+        return 1
+      fi
+    done
+
+    local -a xml_hardware_id_list="$( get_xml_hardware_id_list )"
+
+    for hardware_id in ${hardware_id_list[@]}; do
+      if ! [[ "${xml_hardware_id_list[*]}" =~ "${hardware_id}" ]]; then
+        continue
+      fi
+
+      if ! append_hardware_id "${hardware_id}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function set_xml_driver_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local hardware_id="${1}"
+    shift
+    local -ar driver_list="${@}"
+
+    for driver in $( get_driver_list "${hardware_id}" ); do
+      if [[ "${driver_list[*]}" =~ "${driver}" ]]; then
+        continue
+      fi
+
+      if ! insert_xml_driver "${driver}"; then
+        return 1
+      fi
+    done
+
+    local -a xml_driver_list="$( get_driver_list "${hardware_id}" )"
+
+    for driver in ${driver_list[@]}; do
+      if ! [[ "${xml_driver_list[*]}" =~ "${driver}" ]]; then
+        continue
+      fi
+
+      if ! append_driver "${driver}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function unset_xml_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    if ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -r driver="${2}"
+
+    xmlstarlet edit \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}='${hardware_id}']/${KEY_C}" \
+          --value "${driver}" --nl \
+      "${XML_FILE}"
+  }
+
+  function unset_xml_hardware_id
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    xmlstarlet edit \
+      --delete "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]" \
+      "${XML_FILE}"
+  }
+
+  function update_xml_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local -r hardware_id="${1}"
+
+    if ! is_string "${2}"; then
+      return 1
+    fi
+
+    local -r driver="${2}"
+
+    xmlstarlet edit \
+      --update "/${KEY_A}/${KEY_B}[${ATTRIBUTE}=\"${hardware_id}\"]/${KEY_C}" \
+          --value "${driver}" --nl \
+      "${XML_FILE}"
+  }
+
+  function validate_xml
+  {
+    xmlstarlet validate \
+      --quiet \
+      --well-formed \
+      "${XML_FILE}"
+  }
+
+  function write_xml_template_to_file
+  {
+    echo -e \
+      "<?xml version=\"1.0\"?>\n<${KEY_A}>\n</${KEY_A}>" \
+      > "${XML_FILE}"
+  }
