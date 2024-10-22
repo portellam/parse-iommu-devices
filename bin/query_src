@@ -14,7 +14,6 @@
 #   - [ ] hardware id (optionally delete).
 #   - [ ] driver.
 # - [ ] passthrough XML file name.
-# - [x] add time elapsed for all devices count.
 #
 
 #

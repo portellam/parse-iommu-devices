@@ -10,7 +10,22 @@
 # Version:        1.0.2
 #
 
-# set -o xtrace  # uncomment to debug.
+#
+# NOTES:
+# - what is not working in this build:
+#   - arguments
+#     - by vendor
+#     - by video
+#     - unmatches?
+#   - logger
+#   - xml file support
+#
+# - what is working in this build:
+#   - all else.
+#   - you may be able to get a full list drivers and hardware IDs.
+#   - if you know what groups to select for, use the "--groups" command.
+#
+
 
 #
 # params

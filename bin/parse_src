@@ -8,21 +8,27 @@
 
 #
 # TODO:
-#
 # - [ ] parse number ranges in inputs.
-# - [ ] fix
-#   - vendor
-#   - unmatch
-#   - vga
-# - [ ] make options exclusive. This makes project similar to 'grep' command and other
-#   Bash commands, and easier to develop. A user may just run command more than once.
+# - [ ] make options exclusive.
+#   - This makes project similar to 'grep' command and other Bash commands.
+#   - and easier to develop.
+#   - A user may just run command more than once.
 # - [x] vfio scan support.
 # - [x] import refactored logic.
-#
+# - [ ] use this script inside deploy-VFIO.
+# - [ ] create logger.
+# - [ ] xml file support.
 #
 
+#
+# FIXME:
+# - [ ] all unmatches.
+# - [ ] vendor
+# - [ ] video
+#
 
-# - [ ] xml file
+#
+# NOTES:
 #   - hardware ID as primary key.
 #   - record one or more driver(s).
 #   - if `lspcie` differs and is not binded to vfio, update or append.
@@ -37,8 +43,6 @@
 #  - [ ] get next valid value if current is not available (driver is not installed).
 #  - [ ] make a command line operator.
 #  - [ ] append usage
-#  - use this script inside deploy-VFIO.
-# - [ ] create logger.
 #
 
 #
