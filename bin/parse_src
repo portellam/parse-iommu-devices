@@ -105,7 +105,6 @@
   )"
 
   declare -gA OUTPUT_DICT=(
-    ["FOUND_GROUP_ID_LIST"]=""
     ["FOUND_HOST_GROUP_ID_LIST"]=""
     ["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]=""
     ["FOUND_PCIE_GROUP_ID_LIST"]=""
@@ -141,7 +140,6 @@
 #
 # logic
 #
-  # FIXME
   function parse_src_main
   {
     local -a iommu_group_output_list=()
@@ -153,21 +151,17 @@
       "${message}" \
       "${INPUT_DICT["VERBOSE_SINGLE"]}"
 
-    # if false; then
-    #   print_and_log_output \
-    #     "${message} Failed." \
-    #     "${INPUT_DICT["VERBOSE_SINGLE"]}"
-
-    #   return 1
-    # fi
-
-    # TODO: look here to fix blank output!
     if [[ "${#INPUT_LIST[@]}" -eq 0 ]]; then
       match_all_groups
     fi
 
     set_video_iommu_group_index_maximum
+
+    unset matched_iommu_group_id_dict
+    local -A matched_iommu_group_id_dict=()
+
     parse_many_inputs
+
     format_many_outputs
     trim_many_output_lists
     sort_many_output_lists
@@ -264,9 +258,11 @@
       format_this_output \
         "${device_index}"
 
-      (( device_index++ ))
+      if [[ "${driver}" == "${NULL_VALUE}" ]]; then
+        driver=""
+      fi
 
-      OUTPUT_DICT["FOUND_GROUP_ID_LIST"]+="${1},"
+      (( device_index++ ))
 
       if ! "${2}"; then
         OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]+="${1},"
@@ -402,10 +398,6 @@
       ""
     )
 
-    if [[ "${driver}" == "${NULL_VALUE}" ]]; then
-      driver=""
-    fi
-
     return 0
   }
 
@@ -525,44 +517,70 @@
     return 0
   }
 
-  function is_match_video_input_valid
+  #
+  # $1 : the input list as a string.
+  # $2 : do exit on fail as a boolean.
+  #
+  function is_many_video_indexes_valid
   {
-    if ! "${match_video}"; then
+    if ! is_string "${1}" \
+      || ! is_boolean "${2}"; then
       return 0
     fi
 
     local -a input_list=$( \
       echo \
-        "${input_delim}" \
+        "${1}" \
       | tr \
         , \
         "\n" \
     )
 
     for this_input in ${input_list[@]}; do
-      if [[ "${MIN_VIDEO_IOMMU_GROUP_INDEX}" -ge "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
-        if [[ "${this_input}" -eq "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
-          continue
+      if ! is_this_video_index_valid \
+          "${this_input}"; then
+
+        if ! "${2}"; then
+          return 1
         fi
 
-        print_and_log_output \
-          "Please enter a value of ${MIN_VIDEO_IOMMU_GROUP_INDEX}."
-
-      else
-        if [[ "${this_input}" -ge "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
-          && [[  "${this_input}" -le "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
-          continue
-        fi
-
-        print_and_log_output \
-          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX} and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
+        print_invalid_option \
+          "${1}"
       fi
-
-      print_invalid_option \
-        "${input_delim}"
     done
 
     return 0
+  }
+
+  function is_this_video_index_valid
+  {
+    if ! is_positive_integer "${1}"; then
+      return 0
+    fi
+
+    if [[ "${MIN_VIDEO_IOMMU_GROUP_INDEX}" -ge "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+      if [[ "${1}" -eq "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+        return 0
+      fi
+
+      if is_verbose; then
+        print_and_log_output \
+          "Please enter a value of ${MIN_VIDEO_IOMMU_GROUP_INDEX}."
+      fi
+
+    else
+      if [[ "${1}" -ge "${MIN_VIDEO_IOMMU_GROUP_INDEX}" ]] \
+        && [[  "${1}" -le "${MAX_VIDEO_IOMMU_GROUP_INDEX}" ]]; then
+        return 0
+      fi
+
+      if is_verbose; then
+        print_and_log_output \
+          "Please enter a value between ${MIN_VIDEO_IOMMU_GROUP_INDEX} and ${MAX_VIDEO_IOMMU_GROUP_INDEX}."
+      fi
+    fi
+
+    return 1
   }
 
   #
@@ -634,7 +652,6 @@
 
   function parse_many_inputs
   {
-    iommu_group_output_list=()
     local -r default_value=true
 
     for key in ${IOMMU_GROUP_ID_LIST[@]}; do
@@ -646,14 +663,25 @@
       local match_video=false
 
       initialize_iommu_group_match_flag
-      parse_many_unmatched_iommu_groups
+
+      parse_many_unmatched_iommu_groups \
+        true
     done
 
     return 0
   }
 
+  #
+  # $1 : do exit on fail as a boolean.
+  #
   function parse_many_unmatched_iommu_groups
   {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    local do_exit_on_fail="${1}"
+
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local value=${matched_iommu_group_id_dict["${iommu_group_id}"]}
 
@@ -677,13 +705,18 @@
 
       parse_this_unmatched_iommu_group
 
+      set_match_flag_for_video_again \
+        "${do_exit_on_fail}"
+
+      set_unmatch_flag
+
       if "${has_video}"; then
         (( vga_iommu_group_index++ ))
       fi
 
       if is_boolean "${value}" \
         && ! "${value}"; then
-        matched_iommu_group_id_dict["${iommu_group_id}"]=false
+        matched_iommu_group_id_dict["${iommu_group_id}"]="${value}"
         continue
       fi
 
@@ -741,13 +774,18 @@
       has_match=true
     fi
 
-    set_match_flag_for_video_again
-    set_unmatch_flag
     return 0
   }
 
+  #
+  # $1 : do exit on fail as a boolean.
+  #
   function set_match_flag_for_video_again
   {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
     if ! "${match_video}"; then
      return 0
     fi
@@ -763,6 +801,10 @@
       video_input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
     fi
 
+    is_many_video_indexes_valid \
+      "${video_input_delim}" \
+      "${1}"
+
     if ! [[ ",${video_input_delim}," =~ ",${vga_iommu_group_index}," ]]; then
       if "${has_unmatch}"; then
         has_match=true
@@ -771,7 +813,14 @@
         has_match=false
       fi
 
-      return 0
+    else
+
+      if "${has_unmatch}"; then
+        has_match=false
+
+      else
+        has_match=true
+      fi
     fi
 
     return 0
@@ -786,6 +835,7 @@
 
       print_and_log_output "${OUTPUT_DICT["SELECTED_HARDWARE_ID_LIST"]}"
       print_and_log_output "${OUTPUT_DICT["SELECTED_DRIVER_LIST"]}"
+      print_and_log_output "${OUTPUT_DICT["SELECTED_GROUP_ID_LIST"]}"
       return 0
     fi
 
@@ -797,28 +847,23 @@
 
     set_null_value_to_empty_output_lists
 
-    # print_and_log_output "Found Groups:\n${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}\n"
+    print_and_log_output \
+      "Found Group(s) with only Host devices:\n${OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with only Host device(s):\n${OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]}\n"
+      "Found Group(s) with only PCIe devices:\n${OUTPUT_DICT["FOUND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with only PCIe device(s):\n${OUTPUT_DICT["FOUND_PCIE_GROUP_ID_LIST"]}\n"
+      "Found Group(s) with Host/PCIe devices:\n${OUTPUT_DICT["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with Host/PCIe device(s):\n${OUTPUT_DICT["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
+      "Found Group(s) with Video devices:\n${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with Video device(s):\n${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}\n"
+      "Found Group(s) with VFIO devices:\n${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Groups with VFIO device(s):\n${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Unselected Groups:\n${OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]}\n"
-
-    print_and_log_output \
-      "Selected Groups:\n${OUTPUT_DICT["SELECTED_GROUP_ID_LIST"]}\n"
+      "Unselected Group(s):\n${OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]}\n"
 
     #
     # NOTE: Print hardware IDs first, as this value is never null, but drivers
@@ -830,16 +875,16 @@
     print_and_log_output \
       "Selected Hardware IDs:\n${OUTPUT_DICT["SELECTED_HARDWARE_ID_LIST"]}\n"
 
-    print_and_log_output "Selected Drivers:\n${OUTPUT_DICT["SELECTED_DRIVER_LIST"]}"
+    print_and_log_output "Selected Drivers:\n${OUTPUT_DICT["SELECTED_DRIVER_LIST"]}\n"
+
+    print_and_log_output \
+      "Selected Groups:\n${OUTPUT_DICT["SELECTED_GROUP_ID_LIST"]}"
+
     return 0
   }
 
   function set_null_value_to_empty_output_lists
   {
-    if ! is_string "${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}"; then
-      OUTPUT_DICT["FOUND_GROUP_ID_LIST"]="${NULL_VALUE}"
-    fi
-
     if ! is_string "${OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]}"; then
       OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]="${NULL_VALUE}"
     fi
@@ -1028,20 +1073,21 @@
     local input="MATCH_VIDEO_LIST"
     local input_delim="${vga_iommu_group_index}"
 
-    parse_many_unmatched_iommu_groups
-    is_match_video_input_valid
+    parse_many_unmatched_iommu_groups \
+      false \
+      &> /dev/null
 
     MAX_VIDEO_IOMMU_GROUP_INDEX=$(( ${vga_iommu_group_index} - 1 ))
+
+    is_many_video_indexes_valid \
+      "${input_delim}" \
+      true
+
     return 0
   }
 
   function sort_many_output_lists
   {
-    OUTPUT_DICT["FOUND_GROUP_ID_LIST"]="$( \
-      sort_comma_delimited_list \
-        "${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}" \
-    )"
-
     OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]="$( \
       sort_comma_delimited_list \
         "${OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]}" \
@@ -1092,12 +1138,6 @@
 
   function trim_many_output_lists
   {
-    OUTPUT_DICT["FOUND_GROUP_ID_LIST"]="$( \
-      truncate_index_from_delimited_list \
-        -1 \
-        "${OUTPUT_DICT["FOUND_GROUP_ID_LIST"]}" \
-    )"
-
     OUTPUT_DICT["FOUND_HOST_GROUP_ID_LIST"]="$( \
       truncate_index_from_delimited_list \
         -1 \
