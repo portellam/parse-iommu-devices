@@ -416,8 +416,6 @@
       is_unmatch=true
     fi
 
-    echo \$input == $input
-
     case "${input^^}" in
       *"GROUP"* )
         match_iommu_group=true
@@ -637,9 +635,6 @@
 
   function parse_many_inputs
   {
-    echo \$INPUT_DICT == ${INPUT_DICT[@]}
-    echo \$INPUT_LIST == ${INPUT_LIST[@]}
-
     local -r default_value=true
 
     for key in ${IOMMU_GROUP_ID_LIST[@]}; do
@@ -661,8 +656,6 @@
 
       parse_many_unmatched_iommu_groups \
         true
-
-      echo \$match_graphics == $match_graphics
     done
 
     return 0
@@ -693,9 +686,6 @@
       local has_graphics=false
 
       parse_this_unmatched_iommu_group
-
-      echo \$has_match == $has_match
-      echo
 
       set_match_flag_for_graphics_again \
         "${do_exit_on_fail}"
@@ -989,10 +979,6 @@
 
   function set_match_flag_for_iommu_group
   {
-    echo \$match_iommu_group == $match_iommu_group
-    echo \$input_delim == $input_delim
-    echo \$iommu_group_id == $iommu_group_id
-
     if ! "${match_iommu_group}" \
       || ! [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
       return 0
