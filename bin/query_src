@@ -1,0 +1,548 @@
+#!/bin/false
+
+#
+# Filename:       query_src
+# Description:    Populate variables with IOMMU groups' devices information.
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+#
+
+#
+# TODO:
+# - [ ] get driver from XML.
+# - [ ] set (append, delete, insert) to XML:
+#   - [ ] hardware id (optionally delete).
+#   - [ ] driver.
+# - [ ] passthrough XML file name.
+#
+
+#
+# params (1/3)
+#
+  declare -g SOURCE_PATH="${1}"
+
+  #
+  # Flag values:
+  # 1 == Parses commandline most often.
+  # 2 == Parses commandline more often.
+  # 3 == Parses commandline at startup.
+  #
+  declare -gi FLAG_USE_NTH_QUERY_METHOD=3
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src"
+
+#
+# params (2/2)
+#
+  if ! is_string "${2}"; then
+    exit 1
+  fi
+
+  if ! is_positive_integer "${3}"; then
+    exit 1
+  fi
+
+  declare -g LOG_FILE="${2}"
+  declare -g COLUMN_SIZE="${3}"
+  declare -g XML_FILE="${4}"
+
+#
+# sources (2/2)
+#
+  source \
+    "${SOURCE_PATH}print_src" \
+    "${SOURCE_PATH}" \
+    "${LOG_FILE}" \
+    "${COLUMN_SIZE}"
+
+  source \
+    "${SOURCE_PATH}xml_src" \
+    "${SOURCE_PATH}" \
+    "${XML_FILE}"
+
+#
+# logic
+#
+  function query_src_main
+  {
+    declare -ag LSPCI_OUTPUT_WITH_HARDWARE_ID="$( \
+      lspci \
+        -k \
+        -n
+    )"
+
+    declare -ag LSPCI_OUTPUT_WITHOUT_HARDWARE_ID="$( \
+      lspci \
+        -m
+    )"
+
+    declare -ag BUS_ID_LIST=()
+
+    declare -Ag \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_MAKE \
+      IOMMU_GROUP_ID_AND_BUS_ID
+
+    declare -g NULL_VALUE="N/A"
+
+    if ! run_queries; then
+      return 1
+    fi
+
+    declare -r \
+      BUS_ID_LIST \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_MAKE \
+      IOMMU_GROUP_ID_AND_BUS_ID
+
+    return 0
+  }
+
+  function empty_dictionaries_and_lists
+  {
+    declare +r \
+      BUS_ID_LIST \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_MAKE \
+      IOMMU_GROUP_ID_AND_BUS_ID
+
+    declare -ag BUS_ID_LIST=()
+
+    declare -Ag \
+      BUS_ID_AND_HARDWARE_ID \
+      HARDWARE_ID_AND_DRIVER \
+      HARDWARE_ID_AND_NAME \
+      HARDWARE_ID_AND_TYPE \
+      HARDWARE_ID_AND_MAKE \
+      IOMMU_GROUP_ID_AND_BUS_ID
+  }
+
+  #
+  # $1 : the Bus ID as a string.
+  #
+  function get_driver
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local driver="$( \
+      lspci \
+        -k \
+        -n \
+        -s \
+          "${1}" \
+      | grep \
+        driver \
+      | awk \
+        'END {print $5}'
+    )"
+
+    if is_valid_driver "${driver}"; then
+      echo "${driver}"
+      return 0
+    fi
+
+    driver="$( get_first_good_driver "${driver}" )"
+
+    if ! is_valid_driver "${driver}"; then
+      driver="${NULL_VALUE}"
+    fi
+
+    echo "${driver}"
+  }
+
+  #
+  # $1 : the driver as a string.
+  #
+  function is_valid_driver
+  {
+    if ! is_string "${1}" \
+      || [[ "${1}" =~ "stub" ]] \
+      || [[ "${1}" =~ "vfio" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  #
+  # $1 : the start time in seconds as an integer.
+  #
+  function prompt_time_duration
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    local -i total_time_in_seconds="$(( "${SECONDS}" - "${1}" ))"
+    local output="Time elapsed:\t"
+
+    if [[ "${total_time_in_seconds}" -le 0 ]]; then
+      total_time_in_seconds=1
+      output+="<${total_time_in_seconds} second"
+
+    elif [[ "${total_time_in_seconds}" -eq 1 ]]; then
+      output+="${total_time_in_seconds} second"
+
+    else
+      output+="${total_time_in_seconds} seconds"
+    fi
+
+    print_and_log_output \
+      "${output}" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    return 0
+  }
+
+  function run_queries
+  {
+    if ! empty_dictionaries_and_lists \
+      || ! set_many_iommu_group_id_dictionaries \
+      || ! set_many_hardware_id_dictionaries; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function set_many_hardware_id_dictionaries
+  {
+    if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]]; then
+      return 1
+    fi
+
+    local output="Querying hardware devices... "
+
+    if is_readonly_variable "BUS_ID_AND_HARDWARE_ID" \
+      || is_readonly_variable "IOMMU_GROUP_ID_AND_BUS_ID"; then
+      print_and_log_output \
+        "${output}Skipped." \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+      return 1
+    fi
+
+    print_and_log_following_output \
+      "${output}" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    print_and_log_following_output \
+      "\n" \
+      "${INPUT_DICT["VERBOSE_DOUBLE"]}"
+
+    local -i start_time="${SECONDS}"
+
+    for bus_id in "${BUS_ID_LIST[@]}"; do
+      print_and_log_output \
+        "Querying information for device ${bus_id}." \
+        "${INPUT_DICT["VERBOSE_DOUBLE"]}"
+
+      set_this_hardware_id_dictionaries \
+        "${bus_id}"
+    done
+
+    local suffix="Finished."
+
+    if ! is_verbose_doubled; then
+      print_and_log_output \
+        "${suffix}" \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+    else
+      print_and_log_output \
+        "${output}${suffix}" \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+    fi
+
+    print_and_log_output \
+      "Total devices:\t${#BUS_ID_LIST[@]}" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    prompt_time_duration \
+      "${start_time}"
+
+    if [[ "${#BUS_ID_AND_HARDWARE_ID[@]}" -eq 0 ]]; then
+      return 1
+    fi
+
+    print_and_log_output \
+      "" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    return 0
+  }
+
+  function set_many_iommu_group_id_dictionaries
+  {
+    local output="Querying IOMMU groups... "
+
+    if is_readonly_variable "BUS_ID_LIST" \
+      || is_readonly_variable "HARDWARE_ID_AND_DRIVER" \
+      || is_readonly_variable "HARDWARE_ID_AND_NAME" \
+      || is_readonly_variable "HARDWARE_ID_AND_TYPE" \
+      || is_readonly_variable "HARDWARE_ID_AND_MAKE"; then
+      print_and_log_output \
+        "${output}Skipped." \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+      return 1
+    fi
+
+    print_and_log_following_output \
+      "${output}" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    print_and_log_following_output \
+      "\n" \
+      "${INPUT_DICT["VERBOSE_DOUBLE"]}"
+
+    local -ir start_time="${SECONDS}"
+
+    for iommu_group_id in $( \
+      seq \
+        0 \
+        "${MAX_IOMMU_GROUP_ID}" \
+    ); do
+      print_and_log_output \
+        "Querying devices for IOMMU group ${iommu_group_id}." \
+        "${INPUT_DICT["VERBOSE_DOUBLE"]}"
+
+      set_this_iommu_group_id_dictionaries \
+        "${iommu_group_id}"
+    done
+
+    local suffix="Finished."
+
+    if ! is_verbose_doubled; then
+      print_and_log_output \
+        "${suffix}" \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+    else
+      print_and_log_output \
+        "${output}${suffix}" \
+        "${INPUT_DICT["VERBOSE_SINGLE"]}"
+    fi
+
+    print_and_log_output \
+      "Total groups:\t$(( MAX_IOMMU_GROUP_ID + 1 ))" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    prompt_time_duration \
+      "${start_time}"
+
+    if [[ "${#BUS_ID_LIST[@]}" -eq 0 ]] \
+      || [[ "${#IOMMU_GROUP_ID_AND_BUS_ID[@]}" -eq 0 ]]; then
+      return 1
+    fi
+
+    print_and_log_output \
+      "" \
+      "${INPUT_DICT["VERBOSE_SINGLE"]}"
+
+    return 0
+  }
+
+  #
+  # $1 : the Bus ID as a string.
+  #
+  function set_this_hardware_id_dictionaries
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    case "${FLAG_USE_NTH_QUERY_METHOD}" in
+      # NOTE: Parses commandline at startup.
+      3 )
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
+
+        local -r hardware_id="$( \
+          echo \
+            -e \
+            "${LSPCI_OUTPUT_WITH_HARDWARE_ID}" \
+          | \
+            grep \
+              "${1}" \
+          | awk \
+            'END {print $3}'
+        )"
+
+        local -r line="$( \
+          echo \
+            -e \
+            "${LSPCI_OUTPUT_WITHOUT_HARDWARE_ID}" \
+          | \
+            grep \
+              "${1}"
+        )"
+
+        local -r name="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              6 \
+        )"
+
+        local -r type="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              2 \
+        )"
+
+        local -r vendor="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              4 \
+        )"
+        ;;
+
+      # NOTE: Parses commandline more often.
+      2 )
+        local -r hardware_id="$( \
+          lspci \
+            -ns \
+              "${1}" \
+          | awk \
+            'END {print $3}' \
+        )"
+
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
+
+        local -r line="$( \
+          lspci \
+            -ms \
+              "${1}"
+        )"
+
+        local -r name="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              6 \
+        )"
+
+        local -r type="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              2 \
+        )"
+
+        local -r vendor="$( \
+          echo \
+            "${line}" \
+          | cut \
+            --delimiter \
+              '"' \
+            --fields \
+              4 \
+        )"
+        ;;
+
+      # NOTE: Parses commandline most often.
+      1 )
+        local -r hardware_id="$( \
+          lspci \
+            -ns \
+              "${1}" \
+          | awk \
+            'END {print $3}' \
+        )"
+
+        local driver="$( \
+          get_driver \
+            "${1}"
+        )"
+
+        local -r name="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 6 \
+        )"
+
+        local -r type="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 2 \
+        )"
+
+        local -r vendor="$( \
+          lspci -ms "${1}" \
+            | cut --delimiter '"' --fields 4 \
+        )"
+        ;;
+
+    * )
+      print_and_log_output "Error: Query method is not set." true
+      exit 1
+      ;;
+
+    esac
+
+    BUS_ID_AND_HARDWARE_ID["${1}"]="${hardware_id}"
+    HARDWARE_ID_AND_DRIVER["${hardware_id}"]="${driver}"
+    HARDWARE_ID_AND_NAME["${hardware_id}"]="${name}"
+    HARDWARE_ID_AND_TYPE["${hardware_id}"]="${type}"
+    HARDWARE_ID_AND_MAKE["${hardware_id}"]="${vendor}"
+    return 0
+  }
+
+  #
+  # $1 : the IOMMU group ID as an integer.
+  #
+  function set_this_iommu_group_id_dictionaries
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    local temp_list=""
+
+    for bus_id in $( \
+      ls \
+        "/sys/kernel/iommu_groups/${1}/devices/" \
+      | sort \
+        --version-sort \
+    ); do
+      bus_id="${bus_id:5}"
+
+      BUS_ID_LIST+=( "${bus_id}" )
+      temp_list+="${bus_id},"
+    done
+
+    IOMMU_GROUP_ID_AND_BUS_ID["${1}"]="${temp_list::-1}"
+  }

@@ -1,0 +1,311 @@
+#!/bin/false
+
+#
+# Filename:       print_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+#
+
+#
+# params (1/2)
+#
+  if ! is_string "${1}"; then
+    exit 1
+  fi
+
+  declare -g SOURCE_PATH="${1}"
+
+#
+# sources (1/2)
+#
+  source \
+    "${SOURCE_PATH}datatype_src"
+
+#
+# params (2/2)
+#
+  if ! is_string "${2}"; then
+    exit 1
+  fi
+
+  if ! is_positive_integer "${3}"; then
+    exit 1
+  fi
+
+  declare -g LOG_FILE="${2}"
+  declare -g COLUMN_SIZE="${3}"
+  declare -i TABSPACE_WHITESPACE_COUNT=0
+  declare USE_WORD_WRAP=true
+#
+# logic
+#
+  #
+  # $1 : the number of whitespaces as an integer.
+  #
+  function get_repeated_space
+  {
+    if ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    local -i space_count="${1}"
+    local output=""
+
+    for index in $( seq 1 "${space_count}" ); do
+      output+=" "
+    done
+
+    echo -e "${output}"
+  }
+
+  #
+  # $1 : the number of tabspaces as an integer.
+  #
+  function get_space_count_from_tabspace_count
+  {
+    if ! is_string "${1}" \
+      || ! is_positive_integer "${1}"; then
+      return 1
+    fi
+
+    echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
+  }
+
+  #
+  # $1 : the comma delimited list as a string.
+  #
+  function is_comma_delimited_list_of_positive_numbers
+  {
+    if echo "${1}" \
+        | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
+      print_and_log_output "Error: Input is not a comma delimited list of positive"\
+        "numbers."
+
+      return 1
+    fi
+  }
+
+  #
+  # $1 : the log text as a string.
+  #
+  function log
+  {
+    local -ir int_return_code="${?}"
+    local warn_level="SCRIPT"
+
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      warn_level="WARNING"
+    fi
+
+    logger -i --tag "${warn_level}" "${LOG_FILE}" "${1}"
+    return "${int_return_code}"
+  }
+
+  #
+  # $1 : the output text as a string.
+  #
+  function print_and_log_output
+  {
+    local -ir int_return_code="${?}"
+    local is_verbose=true
+
+    if is_boolean "${2}"; then
+      is_verbose="${2}"
+    fi
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      log "${1}"
+    fi
+
+    if "${is_verbose}"; then
+      echo -e "${1}" >&1
+    fi
+
+    return "${int_return_code}"
+  }
+
+  #
+  # $1 : the output text as a string.
+  #
+  function print_and_log_following_output
+  {
+    local -ir int_return_code="${?}"
+    local is_verbose=true
+
+    if is_boolean "${2}"; then
+      is_verbose="${2}"
+    fi
+
+    if [[ "${int_return_code}" -ne 0 ]]; then
+      log "${1}"
+    fi
+
+    if "${is_verbose}"; then
+      echo -en "${1}" >&1
+    fi
+
+    return "${int_return_code}"
+  }
+
+  function set_tabspace_size
+  {
+    if [[ "${COLUMN_SIZE}" -lt 16 ]]; then
+      TABSPACE_WHITESPACE_COUNT=1
+    fi
+
+    if [[ "${COLUMN_SIZE}" -gt 32 ]]; then
+      TABSPACE_WHITESPACE_COUNT=2
+    fi
+
+    if [[ "${COLUMN_SIZE}" -gt 64 ]]; then
+      TABSPACE_WHITESPACE_COUNT=4
+    fi
+
+    if [[ "${COLUMN_SIZE}" -gt 96 ]]; then
+      TABSPACE_WHITESPACE_COUNT=8
+    fi
+
+    tabs "${TABSPACE_WHITESPACE_COUNT}"
+  }
+
+  #
+  # $1 : the comma delimited list as a string.
+  #
+  function sort_comma_delimited_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    echo -e "${1//,/\\n}" \
+      | sort --unique --version-sort \
+      | tr '\n' ',' \
+      | sed 's/,$//'
+  }
+
+  #
+  # $1 : the index as an integer.
+  # $@ : the list as an array.
+  #
+  function truncate_index_from_delimited_list
+  {
+    if ! is_integer "${1}"; then
+      return 1
+    fi
+
+    local -i index="${1}"
+    shift
+
+    if ! is_string "${@}"; then
+      return 1
+    fi
+
+    local truncate_index_from_delimited_list_string="${@}"
+    echo "${truncate_index_from_delimited_list_string::$index}"
+    return 0
+  }
+
+  #
+  # $1 : do use tabspace as a boolean.
+  # $2 : do append newline on first line as a boolean.
+  # $3 : do append newline on all lines as a boolean.
+  # $4 : the prefix width as a string.
+  # $5 : the column width as an integer.
+  # $@ : the output text as an array.
+  #
+  function wrap_text
+  {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    local -r use_tab_space="${1}"
+    shift
+
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    local -r do_append_newline_for_one_line="${1}"
+    shift
+
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    local -r do_append_newline_for_many_lines="${1}"
+    shift
+
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    local prefix_width="${1}"
+    shift
+
+    if ! is_integer "${1}"; then
+      return 1
+    fi
+
+    local -i column_width="${1}"
+    shift
+
+    if ! "${USE_WORD_WRAP}"\
+      || ! is_positive_integer "${column_width}"; then
+      echo -e "$@"
+      return
+    fi
+
+    if ! is_positive_integer "${prefix_width}"; then
+      local prefix_text="${prefix_width}"
+    else
+      if "${use_tab_space}"; then
+        prefix_width="$( get_space_count_from_tabspace_count "${prefix_width}" )"
+      fi
+
+      local prefix_text="$( get_repeated_space "${prefix_width}" )"
+
+      if [[ "${prefix_width}" -gt ${column_width} ]]; then
+        column_width=$(( ${prefix_width} - ${column_width} ))
+      else
+        column_width=$(( ${column_width} - ${prefix_width} ))
+      fi
+    fi
+
+    set -o noglob
+    IFS=$'\n'
+    set +o noglob
+    local -a lines="$( \
+      echo "${@}" \
+        | fold --spaces --width="${column_width}" \
+    )"
+
+    lines=(${lines[@]})
+    echo -e "${lines[0]}"
+    unset 'lines[0]'
+
+    if [[ "${#lines[@]}" -eq 0 ]]; then
+      unset IFS
+
+      if "${do_append_newline_for_one_line}"; then
+        echo
+      fi
+
+      return 0
+    fi
+
+    for line in "${lines[@]}"; do
+      echo -en "${prefix_text}"
+
+      echo -e "${line}" \
+        | sed 's/^[ \t]*//;s/[ \t]*$//'
+    done
+
+    if "${do_append_newline_for_many_lines}"; then
+      echo
+    fi
+
+    unset IFS
+    return 0
+  }

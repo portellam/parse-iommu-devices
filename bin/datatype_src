@@ -1,0 +1,440 @@
+#!/bin/false
+
+#
+# Filename:       datatype_src
+# Author(s):      Alex Portell <github.com/portellam>
+# Maintainer(s):  Alex Portell <github.com/portellam>
+# Version:        1.0.0
+#
+
+#
+# logic
+#
+  function append_value
+  {
+    if ! is_enum "${1}" \
+      || ! is_integer "${2}" \
+      && ( \
+        ! is_positive_integer "${2}" \
+        || [[ "${2}" -eq -1 ]] \
+      ) \
+      || ! is_string "${3}"; then
+      return 2
+    fi
+
+    local -r reference_append_value="${1}"
+
+    if is_array "reference_append_value"; then
+      reference_append_value+=( "${3}" )
+
+      if [[ "${?}" -ne 0 ]]; then
+        return 1
+      fi
+
+      return 0
+    fi
+
+    if is_dict "reference_append_value"; then
+      reference_append_value["${2}"]="${3}"
+
+      if [[ "${?}" -ne 0 ]]; then
+        return 1
+      fi
+
+      return 0
+    fi
+
+    return 2
+  }
+
+  function get_inverse_boolean
+  {
+    if ! is_boolean "${1}"; then
+      return 1
+    fi
+
+    if true; then
+      echo "false"
+    else
+      echo "true"
+    fi
+
+    return 0
+  }
+
+  function has_value
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_has_value_list="${1}"
+
+    if "${is_array}"; then
+      for value in "${reference_has_value_list[@]}"; do
+
+        if [[ "${value}" == "${2}" ]]; then
+          return 0
+        fi
+      done
+
+    else
+      for key in "${!reference_has_value_list[@]}"; do
+        value=${reference_has_value_list["${key}"]}
+
+        if [[ "${value}" == "${2}" ]]; then
+          return 0
+        fi
+      done
+    fi
+
+    return 1
+  }
+
+  function insert_value
+  {
+    if ! is_enum "${1}" \
+      || ! is_integer "${2}" \
+      && ( \
+        ! is_positive_integer "${2}" \
+        || [[ "${2}" -eq -1 ]] \
+      ) \
+      || ! is_string "${3}"; then
+      return 2
+    fi
+
+    local -r reference_insert_value="${1}"
+    reference_insert_value["${2}"]="${3}"
+
+    if [[ "${?}" -ne 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_array
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -a" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_array_empty
+  {
+    if ! is_array "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_dict_empty="${1}"
+
+    if [[ "${#is_array[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for value in "${is_array[@]}"; do
+      if is_string "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function is_boolean
+  {
+    case "${1}" in
+      true | false )
+        return 0
+        ;;
+
+      * )
+        return 1
+        ;;
+    esac
+  }
+
+  function is_dict
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -A" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_empty_string
+  {
+    if [[ ! -z "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_empty_variable
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    local -I is_empty_variable_inherited="${1}"
+
+    if ! is_string "${is_empty_variable_inherited}"; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_enum
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -A" ]] \
+      && ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -a" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_dict_empty
+  {
+    if ! is_dict_empty "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_dict_empty="${1}"
+
+    if [[ "${#reference_is_dict_empty[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for key in "${!reference_is_dict_empty[@]}"; do
+      local value="${reference_is_dict_empty["${key}"]}"
+
+      if ! is_empty_variable "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function is_enum_empty
+  {
+    if ! is_enum "${1}"; then
+      return 2
+    fi
+
+    local -n reference_is_enum_empty="${1}"
+
+    if [[ "${#reference_is_enum_empty[@]}" -eq 0 ]]; then
+      return 0
+    fi
+
+    for value in "${reference_is_enum_empty[@]}"; do
+      if is_string "${value}"; then
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  function is_integer
+  {
+    if ! is_string "${1}" \
+      || ! [[ "${1}" =~ ^[0-9]+$ ]] \
+      && ! [[ "${1}" =~ ^-[0-9]+$ ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_negative_integer
+  {
+    if ! is_integer "${1}" \
+      || [[ "${1}" -ge 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_positive_integer
+  {
+    if ! is_integer "${1}" \
+      || [[ "${1}" -lt 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_reference
+  {
+    if ! is_variable "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p "${1}" 2>/dev/null ) =~ "-n" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_readonly_variable
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    if ! [[ $( declare -p ${1} 2>/dev/null ) =~ "declare -r" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_string
+  {
+    if [[ -z "${1}" ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function is_variable
+  {
+    case "$( declare -p "${1}" 2>/dev/null )" in
+      *"--"* | *"-"* )
+        return 0
+        ;;
+
+      "" )
+        return 2
+        ;;
+
+      *"not found"* )
+        return 1
+        ;;
+    esac
+  }
+
+  function remove_key
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if "${is_array}" \
+      && ! is_integer "${2}" \
+      && [[ "${2}" -lt -1 ]]; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_remove_key_list="${1}"
+    unset reference_remove_key_list["${2}"]
+
+    if [[ "${?}" -ne 0 ]]; then
+      return 1
+    fi
+
+    return 0
+  }
+
+  function remove_value
+  {
+    if ! is_string "${1}"; then
+      return 2
+    fi
+
+    local is_array=false
+    local is_dict=false
+
+    if is_array "${1}"; then
+      is_array=true
+    fi
+
+    if is_dict "${1}"; then
+      is_dict=true
+    fi
+
+    if ! "${is_dict}" \
+      && ! "${is_array}"; then
+      return 2
+    fi
+
+    if ! is_string "${2}"; then
+      return 2
+    fi
+
+    local -n reference_remove_value_list="${1}"
+
+    for key in ${!reference_remove_value_list[@]}; do
+      value=${reference_remove_value_list["${key}"]}
+
+      if [[ "${value}" == "${2}" ]]; then
+        unset "reference_remove_value_list[${key}]"
+      fi
+    done
+
+    return 0
+  }
