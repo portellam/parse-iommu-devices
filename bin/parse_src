@@ -9,17 +9,19 @@
 #
 # TODO:
 #
-# - [ ] vfio scan support.
-# - [ ] import refactored logic.
+# - [ ] parse number ranges in inputs.
+# - [ ] fix
+#   - vendor
+#   - unmatch
+#   - vga
+# - [ ] make options exclusive. This makes project similar to 'grep' command and other
+#   Bash commands, and easier to develop. A user may just run command more than once.
+# - [x] vfio scan support.
+# - [x] import refactored logic.
 #
 #
 
 
-# - [ ] add validation for all inputs.
-# - [x] fix output to show every IOMMU group and it's device info.
-# - [x] fix lists?
-# - [ ] check if all commands used are installed.
-# - [x] ignore groups with vfio.
 # - [ ] xml file
 #   - hardware ID as primary key.
 #   - record one or more driver(s).
@@ -37,25 +39,6 @@
 #  - [ ] append usage
 #  - use this script inside deploy-VFIO.
 # - [ ] create logger.
-#
-# !!! - [ ] save entire lspcie output?
-
-#
-# TESTS:
-# - [ ] all operators
-#   - fix comma delimited lists for each match operator (works for first value).
-#  - [ ] group match
-#  - [ ] group reverse match
-#  - [ ] less output
-#  - [ ] min. output
-#  - [ ] name match
-#  - [x] name reverse match
-#  - [x] type match
-#  - [x] type reverse match
-#  - [x] make match
-#  - [x] make reverse match
-#  - [ ] vga group index match
-# - [ ] test with vfio setup.
 #
 
 #
@@ -155,7 +138,7 @@
       match_all_groups
     fi
 
-    set_video_iommu_group_index_maximum
+    set_graphics_iommu_group_index_maximum
 
     unset matched_iommu_group_id_dict
     local -A matched_iommu_group_id_dict=()
@@ -223,7 +206,7 @@
     local had_host=false
     local had_pcie=false
     local had_vfio=false
-    local had_video=false
+    local had_graphics=false
 
     for bus_id in ${bus_id_list[@]}; do
       local has_host=false
@@ -233,7 +216,7 @@
       local has_type=false
       local has_vendor=false
       local has_vfio=false
-      local has_video=false
+      local has_graphics=false
 
       local match_iommu_group=true
       local match_host=true
@@ -241,7 +224,7 @@
       local match_pcie=true
       local match_type=true
       local match_vendor=true
-      local match_video=true
+      local match_graphics=true
 
       local driver=""
       local hardware_id=""
@@ -253,7 +236,7 @@
       set_match_flag_for_host
       set_match_flag_for_pcie
       set_match_flag_for_vfio
-      set_has_video_flag
+      set_has_graphics_flag
 
       format_this_output \
         "${device_index}"
@@ -282,8 +265,8 @@
           had_vfio=true
           ;;
 
-        "${has_video}" )
-          had_video=true
+        "${has_graphics}" )
+          had_graphics=true
           ;;
 
         "${has_host}" )
@@ -301,7 +284,7 @@
         OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]+="${1},"
         ;;
 
-      "${had_video}" )
+      "${had_graphics}" )
         OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]+="${1},"
         ;;
     esac
@@ -433,6 +416,8 @@
       is_unmatch=true
     fi
 
+    echo \$input == $input
+
     case "${input^^}" in
       *"GROUP"* )
         match_iommu_group=true
@@ -455,7 +440,7 @@
         ;;
 
       *"VIDEO"* )
-        match_video=true
+        match_graphics=true
         ;;
     esac
 
@@ -482,7 +467,7 @@
           input_delim=${INPUT_DICT["UNMATCH_VENDOR_LIST"]}
           ;;
 
-        "${match_video}" )
+        "${match_graphics}" )
           input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
           ;;
       esac
@@ -508,7 +493,7 @@
           input_delim=${INPUT_DICT["MATCH_VENDOR_LIST"]}
           ;;
 
-        "${match_video}" )
+        "${match_graphics}" )
           input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
           ;;
       esac
@@ -521,7 +506,7 @@
   # $1 : the input list as a string.
   # $2 : do exit on fail as a boolean.
   #
-  function is_many_video_indexes_valid
+  function is_many_graphics_indexes_valid
   {
     if ! is_string "${1}" \
       || ! is_boolean "${2}"; then
@@ -537,7 +522,7 @@
     )
 
     for this_input in ${input_list[@]}; do
-      if ! is_this_video_index_valid \
+      if ! is_this_graphics_index_valid \
           "${this_input}"; then
 
         if ! "${2}"; then
@@ -552,7 +537,7 @@
     return 0
   }
 
-  function is_this_video_index_valid
+  function is_this_graphics_index_valid
   {
     if ! is_positive_integer "${1}"; then
       return 0
@@ -652,6 +637,9 @@
 
   function parse_many_inputs
   {
+    echo \$INPUT_DICT == ${INPUT_DICT[@]}
+    echo \$INPUT_LIST == ${INPUT_LIST[@]}
+
     local -r default_value=true
 
     for key in ${IOMMU_GROUP_ID_LIST[@]}; do
@@ -660,12 +648,21 @@
 
     for input in ${INPUT_LIST[@]}; do
       local input_delim=""
-      local match_video=false
+
+      local match_iommu_group=false
+      local match_host=false
+      local match_name=false
+      local match_pcie=false
+      local match_type=false
+      local match_vendor=false
+      local match_graphics=false
 
       initialize_iommu_group_match_flag
 
       parse_many_unmatched_iommu_groups \
         true
+
+      echo \$match_graphics == $match_graphics
     done
 
     return 0
@@ -685,34 +682,30 @@
     for iommu_group_id in ${IOMMU_GROUP_ID_LIST[@]}; do
       local value=${matched_iommu_group_id_dict["${iommu_group_id}"]}
 
-      local has_match=false
-
       local has_host=false
       local has_iommu_group=false
+      local has_match=false
       local has_name=false
       local has_pcie=false
       local has_type=false
       local has_vendor=false
       local has_vfio=false
-      local has_video=false
-
-      local match_iommu_group=false
-      local match_host=false
-      local match_name=false
-      local match_pcie=false
-      local match_type=false
-      local match_vendor=false
+      local has_graphics=false
 
       parse_this_unmatched_iommu_group
 
-      set_match_flag_for_video_again \
+      echo \$has_match == $has_match
+      echo
+
+      set_match_flag_for_graphics_again \
         "${do_exit_on_fail}"
 
       set_unmatch_flag
 
-      if "${has_video}"; then
+      if "${has_graphics}"; then
         (( vga_iommu_group_index++ ))
       fi
+
 
       if is_boolean "${value}" \
         && ! "${value}"; then
@@ -742,7 +735,7 @@
       local vendor=""
 
       set_device_properties
-      set_has_video_flag
+      set_has_graphics_flag
       set_match_flag_for_vfio
 
       if "${has_vfio}"; then
@@ -764,7 +757,7 @@
 
       for this_input in ${input_list[@]}; do
         set_match_flag_for_device
-        set_match_flag_for_video
+        set_match_flag_for_graphics
       done
 
       set_match_flag
@@ -780,32 +773,29 @@
   #
   # $1 : do exit on fail as a boolean.
   #
-  function set_match_flag_for_video_again
+  function set_match_flag_for_graphics_again
   {
-    if ! is_boolean "${1}"; then
+    if ! is_boolean "${1}" \
+      || ! "${match_graphics}"; then
       return 1
     fi
 
-    if ! "${match_video}"; then
-     return 0
-    fi
-
-    local video_input_delim=""
+    local graphics_input_delim=""
     local has_unmatch=false
 
     if [[ "${input}" =~ "UNMATCH" ]]; then
-      video_input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
+      graphics_input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
       has_unmatch=true
 
     else
-      video_input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
+      graphics_input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
     fi
 
-    is_many_video_indexes_valid \
-      "${video_input_delim}" \
+    is_many_graphics_indexes_valid \
+      "${graphics_input_delim}" \
       "${1}"
 
-    if ! [[ ",${video_input_delim}," =~ ",${vga_iommu_group_index}," ]]; then
+    if ! [[ ",${graphics_input_delim}," =~ ",${vga_iommu_group_index}," ]]; then
       if "${has_unmatch}"; then
         has_match=true
 
@@ -857,7 +847,7 @@
       "Found Group(s) with Host/PCIe devices:\n${OUTPUT_DICT["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
-      "Found Group(s) with Video devices:\n${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}\n"
+      "Found Group(s) with Graphics devices:\n${OUTPUT_DICT["FOUND_VIDEO_GROUP_ID_LIST"]}\n"
 
     print_and_log_output \
       "Found Group(s) with VFIO devices:\n${OUTPUT_DICT["FOUND_VFIO_GROUP_ID_LIST"]}\n"
@@ -934,15 +924,19 @@
     return 0
   }
 
-  function set_has_video_flag
+  function set_has_graphics_flag
   {
+    if ! "${match_graphics}"; then
+     return 0
+    fi
+
     if ! [[ "${type,,}" =~ "graphic" ]] \
-      && ! [[ "${type,,}" =~ "video" ]] \
+      && ! [[ "${type,,}" =~ "graphics" ]] \
       && ! [[ "${type,,}" =~ "vga" ]]; then
       return 0
     fi
 
-    has_video=true
+    has_graphics=true
     return 0
   }
 
@@ -954,7 +948,7 @@
       && ! "${has_pcie}" \
       && ! "${has_type}" \
       && ! "${has_vendor}" \
-      && ! "${has_video}"; then
+      && ! "${has_graphics}"; then
       return 0
     fi
 
@@ -995,6 +989,10 @@
 
   function set_match_flag_for_iommu_group
   {
+    echo \$match_iommu_group == $match_iommu_group
+    echo \$input_delim == $input_delim
+    echo \$iommu_group_id == $iommu_group_id
+
     if ! "${match_iommu_group}" \
       || ! [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
       return 0
@@ -1027,10 +1025,10 @@
     return 0
   }
 
-  function set_match_flag_for_video
+  function set_match_flag_for_graphics
   {
-    if ! "${match_video}" \
-      || ! "${has_video}" \
+    if ! "${match_graphics}" \
+      || ! "${has_graphics}" \
       || ! [[ "${vga_iommu_group_index^^}" =~ "${this_input^^}" ]]; then
       return 0
     fi
@@ -1056,13 +1054,15 @@
     return 0
   }
 
-  function set_video_iommu_group_index_maximum
+  function set_graphics_iommu_group_index_maximum
   {
     local match_iommu_group=false
+    local match_host=false
     local match_name=false
+    local match_pcie=false
     local match_type=false
     local match_vendor=false
-    local match_video=true
+    local match_graphics=true
 
     local -i vga_iommu_group_index=1
 
@@ -1079,7 +1079,7 @@
 
     MAX_VIDEO_IOMMU_GROUP_INDEX=$(( ${vga_iommu_group_index} - 1 ))
 
-    is_many_video_indexes_valid \
+    is_many_graphics_indexes_valid \
       "${input_delim}" \
       true
 
