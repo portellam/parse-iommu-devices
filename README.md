@@ -164,13 +164,6 @@ sudo bash installer.sh
   -p, --pci, --pcie         Match IOMMU groups with at least one
                             (1) or more PCI/PCIe bus devices.
 
-  --vga-index=INDEX         Match all IOMMU groups without graphics,
-                            and any with graphics which match the
-                            index value(s) (not an IOMMU group
-                            ID);
-                            INDEX is a comma delimited list of
-                            postive non-zero numbers.
-
   -x, --xml, --xml=FILE     Query an XML file for device drivers
                             should none be found or any devices
                             are binded to VFIO;
@@ -181,7 +174,7 @@ sudo bash installer.sh
                             xml").
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie --vga-index 2
+  parse-iommu-devices --ignore-name ether --pcie --graphics 2
                             Standard output of comma-delimited
                             lists hardware IDs and drivers (of
                             IOMMU groups with PCI/e devices),
