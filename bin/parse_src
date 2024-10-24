@@ -9,15 +9,19 @@
 #
 # TODO:
 # - [ ] parse number ranges in inputs.
-# - [ ] make options exclusive.
+# - [ ] make arguments exclusive.
 #   - This makes project similar to 'grep' command and other Bash commands.
 #   - and easier to develop.
 #   - A user may just run command more than once.
+# - [ ] make options inclusive.
 # - [x] vfio scan support.
 # - [x] import refactored logic.
 # - [ ] use this script inside deploy-VFIO.
 # - [ ] create logger.
 # - [ ] xml file support.
+# - [ ] add comments
+#   - inputs
+#   - dependencies
 #
 
 #
@@ -148,7 +152,6 @@
     local -A matched_iommu_group_id_dict=()
 
     parse_many_inputs
-
     format_many_outputs
     trim_many_output_lists
     sort_many_output_lists
@@ -218,7 +221,7 @@
       local has_name=false
       local has_pcie=false
       local has_type=false
-      local has_vendor=false
+      local has_make=false
       local has_vfio=false
       local has_graphics=false
 
@@ -227,7 +230,7 @@
       local match_name=true
       local match_pcie=true
       local match_type=true
-      local match_vendor=true
+      local match_make=true
       local match_graphics=true
 
       local driver=""
@@ -429,16 +432,16 @@
         match_host=true
         ;;
 
+      *"MAKE"* )
+        match_make=true
+        ;;
+
       *"NAME"* )
         match_name=true
         ;;
 
       *"TYPE"* )
         match_type=true
-        ;;
-
-      *"VENDOR"* )
-        match_vendor=true
         ;;
 
       *"VIDEO"* )
@@ -457,6 +460,10 @@
           input_delim=${INPUT_DICT["UNMATCH_GROUP_LIST"]}
           ;;
 
+        "${match_make}" )
+          input_delim=${INPUT_DICT["UNMATCH_MAKE_LIST"]}
+          ;;
+
         "${match_name}" )
           input_delim=${INPUT_DICT["UNMATCH_NAME_LIST"]}
           ;;
@@ -465,14 +472,11 @@
           input_delim=${INPUT_DICT["UNMATCH_TYPE_LIST"]}
           ;;
 
-        "${match_vendor}" )
-          input_delim=${INPUT_DICT["UNMATCH_VENDOR_LIST"]}
-          ;;
-
         "${match_graphics}" )
           input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
           ;;
       esac
+
     else
       case true in
         "${match_host}" )
@@ -483,16 +487,16 @@
           input_delim=${INPUT_DICT["MATCH_GROUP_LIST"]}
           ;;
 
+        "${match_make}" )
+          input_delim=${INPUT_DICT["MATCH_MAKE_LIST"]}
+          ;;
+
         "${match_name}" )
           input_delim=${INPUT_DICT["MATCH_NAME_LIST"]}
           ;;
 
         "${match_type}" )
           input_delim=${INPUT_DICT["MATCH_TYPE_LIST"]}
-          ;;
-
-        "${match_vendor}" )
-          input_delim=${INPUT_DICT["MATCH_VENDOR_LIST"]}
           ;;
 
         "${match_graphics}" )
@@ -650,10 +654,10 @@
 
       local match_iommu_group=false
       local match_host=false
+      local match_make=false
       local match_name=false
       local match_pcie=false
       local match_type=false
-      local match_vendor=false
       local match_graphics=false
 
       initialize_iommu_group_match_flag
@@ -681,11 +685,11 @@
 
       local has_host=false
       local has_iommu_group=false
+      local has_make=false
       local has_match=false
       local has_name=false
       local has_pcie=false
       local has_type=false
-      local has_vendor=false
       local has_vfio=false
       local has_graphics=false
 
@@ -941,7 +945,7 @@
       && ! "${has_name}" \
       && ! "${has_pcie}" \
       && ! "${has_type}" \
-      && ! "${has_vendor}" \
+      && ! "${has_make}" \
       && ! "${has_graphics}"; then
       return 0
     fi
@@ -962,9 +966,9 @@
       has_type=true
     fi
 
-    if "${match_vendor}" \
+    if "${match_make}" \
       && [[ "${vendor^^}" =~ "${this_input^^}" ]]; then
-      has_vendor=true
+      has_make=true
     fi
 
     return 0
@@ -1051,7 +1055,7 @@
     local match_name=false
     local match_pcie=false
     local match_type=false
-    local match_vendor=false
+    local match_make=false
     local match_graphics=true
 
     local -i vga_iommu_group_index=1
