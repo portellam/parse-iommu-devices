@@ -107,20 +107,6 @@
     return 0
   }
 
-  function print_invalid_argument
-  {
-    print_and_log_output "Error: Invalid argument(s) specified."
-    print_usage
-    exit 1
-  }
-
-  function print_invalid_option
-  {
-    print_and_log_output "Error: Invalid option specified."
-    print_usage
-    exit 1
-  }
-
   function parse_many_arguments
   {
     if [[ "${1}" == "-"* ]] \
@@ -177,6 +163,20 @@
     done
 
     return 0
+  }
+
+  function print_invalid_argument
+  {
+    print_and_log_output "Error: Invalid argument(s) specified."
+    print_usage
+    exit 1
+  }
+
+  function print_invalid_option
+  {
+    print_and_log_output "Error: Invalid option specified."
+    print_usage
+    exit 1
   }
 
   function print_usage
