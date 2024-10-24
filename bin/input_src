@@ -300,7 +300,8 @@
                 [[ "${1: -1}" == "," ]] \
                 && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
               ); then
-              print_invalid_option "${1}"
+              print_invalid_option_and_exit \
+              "${1}"
             fi
 
             INPUT_DICT["MATCH_GROUP_LIST"]+="$( \
@@ -326,7 +327,8 @@
                 [[ "${1: -1}" == "," ]] \
                 && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
               ); then
-              print_invalid_option "${1}"
+              print_invalid_option_and_exit \
+              "${1}"
             fi
 
             INPUT_DICT["UNMATCH_GROUP_LIST"]+="$( \
@@ -341,7 +343,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["UNMATCH_NAME_LIST"]+="$( \
@@ -355,7 +358,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["UNMATCH_TYPE_LIST"]+="$( \
@@ -369,7 +373,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["UNMATCH_MAKE_LIST"]+="$( \
@@ -383,7 +388,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["MATCH_NAME_LIST"]+="$( \
@@ -401,7 +407,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["MATCH_TYPE_LIST"]+="$( \
@@ -415,7 +422,8 @@
           shift
 
           if ! is_string "${1}"; then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["MATCH_MAKE_LIST"]+="$( \
@@ -443,7 +451,8 @@
                 [[ "${1: -1}" == "," ]] \
                 && [[ "${1::-1}" -lt "${MIN_VIDEO_INDEX_VALUE}" ]] \
               ); then
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
           fi
 
           INPUT_DICT["MATCH_VIDEO_LIST"]+="$( \
@@ -465,7 +474,8 @@
             ;;
 
             * )
-            print_invalid_option "${1}"
+            print_invalid_option_and_exit \
+              "${1}"
             ;;
           esac
 
@@ -520,7 +530,7 @@
       message="${message::-1}: '${@}'"
     fi
 
-    print_and_log_output "${message}\n"
+    print_and_log_output "${message}"
     print_usage
     return 0
   }
@@ -529,6 +539,25 @@
   # $1 : the option as a string.
   #
   function print_invalid_option
+  {
+    if ! is_verbose; then
+      return 1
+    fi
+
+    local message="Error: Invalid option specified."
+
+    if is_string "${1}"; then
+      message="${message::-1}: '${1}'"
+    fi
+
+    print_and_log_output "${message}"
+    return 1
+  }
+
+  #
+  # $1 : the option as a string.
+  #
+  function print_invalid_option_and_exit
   {
     if ! is_verbose; then
       exit 1
@@ -540,7 +569,7 @@
       message="${message::-1}: '${1}'"
     fi
 
-    print_and_log_output "${message}\n"
+    print_and_log_output "${message}"
     print_usage
     exit 1
   }
