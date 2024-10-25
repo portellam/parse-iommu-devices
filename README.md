@@ -114,7 +114,7 @@ sudo bash installer.sh
 #### 6.2. Executable
 - From anywhere, execute: `parse-iommu-devices`
 
-```bash
+```
   -h, --help                Print this help and exit.
   -v, --verbose             Show more output including query
                             output and IOMMU groups.
