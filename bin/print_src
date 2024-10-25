@@ -39,6 +39,67 @@
 #
 # logic
 #
+  function get_ranges_from_comma_delimited_list
+  {
+    if ! is_string "${1}" \
+      || ! is_comma_delimited_list_of_positive_numbers "${1}"; then
+      return 1
+    fi
+
+    local -a input_list=()
+
+    for input in $( \
+      echo \
+        -e \
+          "${1//,/\\n}" \
+      | sort \
+        --numeric-sort \
+    ); do
+      input_list+=( "${input}" )
+    done
+
+    local -a output_list=()
+    local first_value="${input_list[0]}"
+    local last_value="${first_value}"
+    local -i index=1
+
+    while [[ "${index}" -lt "${#input_list[@]}" ]]; do
+      (( last_value++ ))
+
+      if (( input_list["${index}"] == "${last_value}" )); then
+        last_value=${input_list["${index}"]}
+        (( index++ ))
+        continue
+      fi
+
+      (( last_value-- ))
+
+      if [[ "${first_value}" == "${last_value}" ]]; then
+        output_list+=( "${first_value}" )
+      else
+        output_list+=("${first_value}-${last_value}")
+      fi
+
+      first_value=${input_list["${index}"]}
+      last_value=$first_value
+      (( index++ ))
+    done
+
+    if [[ "${first_value}" == "${last_value}" ]]; then
+      output_list+=( "${first_value}" )
+    else
+      output_list+=("${first_value}-${last_value}")
+    fi
+
+    echo \
+      "${output_list[*]}" \
+    | tr \
+      ' ' \
+      ','
+
+    return 0
+  }
+
   #
   # $1 : the number of whitespaces as an integer.
   #
@@ -55,7 +116,11 @@
       output+=" "
     done
 
-    echo -e "${output}"
+    echo \
+      -e \
+        "${output}"
+
+    return 0
   }
 
   #
@@ -68,7 +133,11 @@
       return 1
     fi
 
-    echo -e $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
+    echo \
+      -e \
+        $(( "${1}" * "${TABSPACE_WHITESPACE_COUNT}" ))
+
+    return 0
   }
 
   #
@@ -76,13 +145,19 @@
   #
   function is_comma_delimited_list_of_positive_numbers
   {
-    if echo "${1}" \
-        | grep --extended-regexp --quiet '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
+    if echo \
+        "${1}" \
+      | grep \
+        --extended-regexp \
+        --quiet \
+          '^(!\d+(,\d+)*$)([^,]+(,[^,]+)*)?$'; then
       print_and_log_output "Error: Input is not a comma delimited list of positive"\
         "numbers."
 
       return 1
     fi
+
+    return 0
   }
 
   #
@@ -98,7 +173,13 @@
       warn_level="WARNING"
     fi
 
-    logger -i --tag "${warn_level}" "${LOG_FILE}" "${1}"
+    logger \
+      -i \
+      --tag \
+        "${warn_level}" \
+        "${LOG_FILE}" \
+        "${1}"
+
     return "${int_return_code}"
   }
 
@@ -119,7 +200,10 @@
     fi
 
     if "${is_verbose}"; then
-      echo -e "${1}" >&1
+      echo \
+        -e \
+          "${1}" \
+        >&1
     fi
 
     return "${int_return_code}"
@@ -142,7 +226,10 @@
     fi
 
     if "${is_verbose}"; then
-      echo -en "${1}" >&1
+      echo \
+        -en \
+          "${1}" \
+        >&1
     fi
 
     return "${int_return_code}"
@@ -167,6 +254,7 @@
     fi
 
     tabs "${TABSPACE_WHITESPACE_COUNT}"
+    return 0
   }
 
   #
@@ -178,10 +266,19 @@
       return 1
     fi
 
-    echo -e "${1//,/\\n}" \
-      | sort --unique --version-sort \
-      | tr '\n' ',' \
-      | sed 's/,$//'
+    echo \
+      -e \
+        "${1//,/\\n}" \
+    | sort \
+      --unique \
+      --version-sort \
+    | tr \
+      '\n' \
+      ',' \
+    | sed \
+      's/,$//'
+
+    return 0
   }
 
   #
@@ -202,7 +299,10 @@
     fi
 
     local truncate_index_from_delimited_list_string="${@}"
-    echo "${truncate_index_from_delimited_list_string::$index}"
+
+    echo \
+      "${truncate_index_from_delimited_list_string::$index}"
+
     return 0
   }
 
@@ -276,13 +376,21 @@
     set -o noglob
     IFS=$'\n'
     set +o noglob
+
     local -a lines="$( \
-      echo "${@}" \
-        | fold --spaces --width="${column_width}" \
+      echo \
+        "${@}" \
+      | fold \
+        --spaces \
+        --width="${column_width}" \
     )"
 
     lines=(${lines[@]})
-    echo -e "${lines[0]}"
+
+    echo \
+      -e \
+        "${lines[0]}"
+
     unset 'lines[0]'
 
     if [[ "${#lines[@]}" -eq 0 ]]; then
@@ -296,10 +404,15 @@
     fi
 
     for line in "${lines[@]}"; do
-      echo -en "${prefix_text}"
+      echo \
+        -en \
+          "${prefix_text}"
 
-      echo -e "${line}" \
-        | sed 's/^[ \t]*//;s/[ \t]*$//'
+      echo \
+        -e \
+          "${line}" \
+      | sed \
+        's/^[ \t]*//;s/[ \t]*$//'
     done
 
     if "${do_append_newline_for_many_lines}"; then
