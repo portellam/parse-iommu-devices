@@ -173,6 +173,25 @@ Examples:
                             all IOMMU groups; and telemetry.
 ```
 
+### 6.3 Parse standard output for automation or other scripts
+To retrieve the standard output of your choice, execute the following with the
+options of your choice, but **without** the verbose flag.
+
+1. **Hardware ID** list:
+```bash
+  parse-iommu-devices | sed --quiet 1p
+```
+
+2. **Driver** list:
+```bash
+  parse-iommu-devices | sed --quiet 2p
+```
+
+3. **IOMMU group ID** list:
+```bash
+  parse-iommu-devices | sed --quiet 3p
+```
+
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
 **Issues page** ([Codeberg][codeberg-issues], [GitHub][github-issues]).
