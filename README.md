@@ -174,8 +174,8 @@ Examples:
 ```
 
 ### 6.3 Parse standard output for automation or other scripts
-To retrieve the standard output of your choice, execute the following with the
-options of your choice, but **without** the verbose flag.
+To retrieve standard output, execute the following with the options of your choice,
+but **without** a verbose flag.
 
 1. **Hardware ID** list:
 ```bash
