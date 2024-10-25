@@ -17,7 +17,7 @@ and return the device drivers and hardware IDs as output.
     - [6.3. XML file](#63-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
-- [9. Special Thanks](#9-special-thanks)
+- [9. Planned Features](#9-planned-features)
 
 ## Contents
 ### 1. Why?
@@ -104,7 +104,6 @@ Linux.
 Installer will copy the script file to `/usr/local/bin/`, and source files to
 `/usr/local/bin/parse-iommu-devices.d/`.
 
-Log and XML files will be generated in `/usr/local/etc/`, w
 
 ```bash
 sudo bash installer.sh
@@ -164,15 +163,6 @@ sudo bash installer.sh
   -p, --pci, --pcie         Match IOMMU groups with at least one
                             (1) or more PCI/PCIe bus devices.
 
-  -x, --xml, --xml=FILE     Query an XML file for device drivers
-                            should none be found or any devices
-                            are binded to VFIO;
-                            FILE is the XML file name as text.
-                            Leave FILE empty to use default file
-                            name
-                            ("/usr/local/etc/parse-iommu-devices.
-                            xml").
-
 Examples:
   parse-iommu-devices --ignore-name ether --pcie --graphics 2
                             Standard output of comma-delimited
@@ -222,6 +212,12 @@ The linux kernel. Accessed June 14, 2024.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
-### 9. Special Thanks
-- Peer Reviewers:
-  - `u/psyblade42`
+### 9. Planned Features
+See [#TODO.md]
+
+1. XML file support.
+  - useful for systems which have VFIO setups, but do not necessarily change
+  hardware often.
+
+2. Log file
+  - nice to have, but may not be implemented.
