@@ -110,10 +110,7 @@
   #
   function append_input_dict_list
   {
-    if ! is_string "${1}" \
-      || ! has_value \
-        "INPUT_DICT" \
-        "${1}"; then
+    if ! is_string "${1}"; then
       return 1
     fi
 
@@ -121,7 +118,7 @@
       return 0
     fi
 
-    local append_input_dict_list_key=${INPUT_DICT_LIST["${1}"]}
+    local append_input_dict_list_key=${INPUT_LIST_DICT["${1}"]}
 
     if ! is_string "${append_input_dict_list_key}"; then
       return 1
@@ -129,7 +126,7 @@
 
     INPUT_DICT["${append_input_dict_list_key}"]+="$( \
       get_ranges_from_comma_delimited_list \
-        "${1}"
+        "${2}"
     ),"
 
     return 0
@@ -149,17 +146,19 @@
       return 0
     fi
 
+    local -i minimum_value=0
+
     if ! is_comma_delimited_list_of_positive_numbers "${2}" \
       || (
         [[ "${2: -2}" == "," ]] \
-        && [[ "${2::-2}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
+        && [[ "${2::-2}" -lt "${minimum_value}" ]] \
       ); then
       print_invalid_option_and_exit \
       "${2}"
     fi
 
     append_input_dict_list \
-      "${key}" \
+      "${1}" \
       "${2}"
 
     return 0
