@@ -33,8 +33,6 @@ VFIO setup will cause selected devices to use the VFIO driver
 (`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with
 at least one device binded to VFIO.
 
-For a solution to this issue, please see below for [XML file](#63-xml-file)
-usage.
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -217,7 +215,7 @@ The linux kernel. Accessed June 14, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### 9. Planned Features
-See [TO DO](./TODO.md)
+See [TO DO](./TODO.md).
 
 - XML file support.
   - useful for systems which have VFIO setups, but do not necessarily change

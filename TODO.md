@@ -6,7 +6,12 @@ Go to [README](./README.md)
   - add the following to README.
 
 ```
+## Table of Contents
     - [6.3. XML file](#63-xml-file)
+
+#### Disclaimer
+For a solution to this issue, please see below for [XML file](#63-xml-file)
+usage.
 
 #### 6.1. Install
 Log and XML files will be generated in `/usr/local/etc/`.
