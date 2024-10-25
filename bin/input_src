@@ -454,23 +454,24 @@
         # TODO: fix XML support before enabling this.
         #
 
-        # "--x" | "--xml" )
-        #   shift
+        "--x" | "--xml" )
+          shift
+          continue  # TODO: remove this line when XML is fixed
 
-        #   case "${1,,}" in
-        #     "import" )
-        #     this_input_list=( "XML_READ" )
-        #     ;;
+          case "${1,,}" in
+            "import" )
+            this_input_list=( "XML_READ" )
+            ;;
 
-        #     "export" )
-        #     this_input_list=( "XML_WRITE" )
-        #     ;;
+            "export" )
+            this_input_list=( "XML_WRITE" )
+            ;;
 
-        #     * )
-        #     print_invalid_option_and_exit \
-        #       "${1}"
-        #     ;;
-        #   esac
+            * )
+            print_invalid_option_and_exit \
+              "${1}"
+            ;;
+          esac
 
           shift
 
@@ -501,7 +502,6 @@
         INPUT_DICT["${this_input}"]=true
         INPUT_LIST+=( "${this_input}" )
 
-        echo $this_input
       done
 
       shift
@@ -738,28 +738,6 @@
       "${COLUMN_SIZE}" \
       "NAME is a comma delimited list of text."
 
-    echo -en "  -x, --xml, --xml=FILE     "
-
-    wrap_text \
-      false \
-      false \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Query an XML file for device drivers should none be found or any devices" \
-      "are binded to VFIO;"
-
-    echo -en "$( get_repeated_space 28 )"
-
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "FILE is the XML file name as text. Leave FILE empty to use default file"\
-      "name (\"${INPUT_DICT["XML_FILE"]}\")."
-
     echo -en "  -t, --type=TYPE           "
 
     wrap_text \
@@ -858,6 +836,8 @@
     #   "FILE is the XML file name as text. Leave FILE empty to use default file"\
     #   "name (\"${INPUT_DICT["XML_FILE"]}\")."
 
+    echo  # TODO: remove this line when XML support is complete.
+
     echo -e "Examples:"
 
     echo -en "  ${SCRIPT_NAME} " # do wrap_text for args here.
@@ -870,15 +850,41 @@
       true \
       "${column_prefix_count}" \
       "${COLUMN_SIZE}" \
-      "--ignore-name ether --pcie --graphics 2"
+      "--graphics 2,3"
 
     echo -en "$( get_repeated_space 28 )"
 
     column_prefix_count=28
-    text="Standard output of comma-delimited lists hardware IDs and drivers "
-    text+="(of IOMMU groups with PCI/e devices), exclude IOMMU groups with graphics "
-    text+="device(s) before and after the second matched group, and exclude any "
-    text+="wired ethernet devices (Host and PCI/e)."
+    text="Exclude the second and third matched IOMMU groups with graphics device(s). "
+    text+="Standard output includes: comma-delimited lists of selected hardware IDs, "
+    text+="drivers, and IOMMU group IDs."
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "${text}"
+
+    echo
+    echo -en "  ${SCRIPT_NAME} " # do wrap_text for args here.
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "-vv --ignore-name ether --pcie"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    column_prefix_count=28
+    text="Match output of IOMMU groups with PCI/e devices, "
+    text+="and exclude any wired ethernet devices. "
+    text+="Verbose output includes: comma-delimited lists of selected hardware IDs, "
+    text+="drivers, and IOMMU group IDs; details of all IOMMU groups; and telemetry."
 
     wrap_text \
       false \
