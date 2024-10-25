@@ -39,6 +39,20 @@
 #
 # logic
 #
+  function get_formatted_comma_delimited_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    echo \
+      "${1}" \
+    | sed \
+      's/,*$//'
+
+    return 0
+  }
+
   function get_ranges_from_comma_delimited_list
   {
     if ! is_string "${1}" \
@@ -46,12 +60,16 @@
       return 1
     fi
 
+    local input_delim="$( \
+      get_formatted_comma_delimited_list "${1}"
+    )"
+
     local -a input_list=()
 
     for input in $( \
       echo \
         -e \
-          "${1//,/\\n}" \
+          "${input_delim//,/\\n}" \
       | sort \
         --numeric-sort \
     ); do
