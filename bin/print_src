@@ -53,6 +53,10 @@
     return 0
   }
 
+  #
+  # FIXME:  I'm a fucking retard. I needed RANGES converted to a LIST,
+  #         not the other way around.
+  #
   function get_ranges_from_comma_delimited_list
   {
     if ! is_string "${1}"; then
