@@ -110,19 +110,18 @@
   #
   function append_input_dict_list
   {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    if ! is_string "${2}"; then
-      return 0
+    if ! is_string "${1}" \
+      || ! is_string "${2}"; then
+      print_invalid_option_and_exit \
+       "${2}"
     fi
 
     local append_input_dict_list_key=${INPUT_LIST_DICT["${1}"]}
 
     if ! is_string "${append_input_dict_list_key}" \
       || ! is_string "${2}"; then
-      return 1
+      print_invalid_option_and_exit \
+       "${2}"
     fi
 
     INPUT_DICT["${append_input_dict_list_key}"]+="${2},"
@@ -135,12 +134,10 @@
   #
   function append_numbered_input_list
   {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    if ! is_string "${2}"; then
-      return 0
+    if ! is_string "${1}" \
+      || ! is_string "${2}"; then
+      print_invalid_option_and_exit \
+       "${2}"
     fi
 
     local -i minimum_value=0
@@ -149,14 +146,12 @@
       || (
         [[ "${2: -2}" == "," ]] \
         && [[ "${2::-2}" -lt "${minimum_value}" ]] \
-      ); then
+      ) || ! append_input_dict_list \
+          "${1}" \
+          "${2}"; then
       print_invalid_option_and_exit \
-      "${2}"
+       "${2}"
     fi
-
-    append_input_dict_list \
-      "${1}" \
-      "${2}"
 
     return 0
   }
@@ -334,14 +329,18 @@
           shift
 
           if [[ "${1}" == "${OPTION_ALL}" ]]; then
-            append_input_dict_list \
-              "${key}" \
-              "$( get_comma_list_of_iommu_group_ids ${1} )"
+            if ! append_input_dict_list \
+                "${key}" \
+                "$( get_comma_list_of_iommu_group_ids ${1} )"; then
+              return 1
+            fi
 
           else
-            append_numbered_input_list \
-              "${key}" \
-              "${1}"
+            if ! append_numbered_input_list \
+                "${key}" \
+                "${1}"; then
+              return 1
+            fi
           fi
           ;;
 
@@ -350,9 +349,11 @@
           this_input_list=( "${key}" )
           shift
 
-          append_numbered_input_list \
-            "MATCH_GROUP" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "-H" | "--host" | "--hosts" )
@@ -365,14 +366,18 @@
           shift
 
           if [[ "${1}" == "${OPTION_ALL}" ]]; then
-            append_input_dict_list \
-              "${key}" \
-              "$( get_comma_list_of_iommu_group_ids ${1} )"
+            if ! append_input_dict_list \
+                "${key}" \
+                "$( get_comma_list_of_iommu_group_ids ${1} )"; then
+              return 1
+            fi
 
           else
-            append_numbered_input_list \
-              "${key}" \
-              "${1}"
+            if ! append_numbered_input_list \
+                "${key}" \
+                "${1}"; then
+              return 1
+            fi
           fi
           ;;
 
@@ -381,9 +386,11 @@
           this_input_list=( "${key}" )
           shift
 
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "--ignore-type" | "--ignore-types" )
@@ -391,19 +398,22 @@
           this_input_list=( "${key}" )
           shift
 
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "--ignore-vendor" | "--ignore-vendors" )
           local key="UNMATCH_MAKE"
           this_input_list=( "${key}" )
           shift
-
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "-n" | "--name" | "--names" )
@@ -411,9 +421,11 @@
           this_input_list=( "${key}" )
           shift
 
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "-p" | "--pci" | "--pcie" )
@@ -425,9 +437,11 @@
           this_input_list=( "${key}" )
           shift
 
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "-V" | "--vendor" | "--vendors" )
@@ -435,9 +449,11 @@
           this_input_list=( "${key}" )
           shift
 
-          append_input_dict_list \
-            "${key}" \
-            "${1}"
+          if ! append_numbered_input_list \
+              "${key}" \
+              "${1}"; then
+            return 1
+          fi
           ;;
 
         "-v" | "--verbose" )
