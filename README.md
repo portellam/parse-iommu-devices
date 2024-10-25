@@ -158,6 +158,7 @@ XML files will be generated in `/usr/local/etc/`.
                             VENDOR is a comma delimited list of text.
 
   --ignore-vendor=VENDOR    Reverse match IOMMU group(s) with device vendor;
+                            VENDOR is a comma delimited list of text.
 
   -x, --xml, --xml=FILE     Query an XML file for device drivers
                             should none be found or any devices

@@ -836,6 +836,14 @@
 
     echo -en "$( get_repeated_space 28 )"
 
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "VENDOR is a comma delimited list of text."
+
     #
     # TODO: fix XML support before enabling this.
     #
