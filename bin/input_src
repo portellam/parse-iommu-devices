@@ -70,12 +70,26 @@
     ["UNMATCH_NAME_LIST"]=""
     ["UNMATCH_TYPE"]=false
     ["UNMATCH_TYPE_LIST"]=""
+    ["UNMATCH_VIDEO"]=""
     ["UNMATCH_VIDEO_LIST"]=""
     ["VERBOSE_DOUBLE"]=false
     ["VERBOSE_SINGLE"]=false
     ["XML_FILE"]="${ETC_PATH}${SCRIPT_NAME}${XML_EXTENSION}"
     ["XML_READ"]=false
     ["XML_WRITE"]=false
+  )
+
+  declare -gA INPUT_LIST_DICT=(
+    ["MATCH_GROUP"]="MATCH_GROUP_LIST"
+    ["MATCH_MAKE"]="MATCH_MAKE_LIST"
+    ["MATCH_NAME"]="MATCH_NAME_LIST"
+    ["MATCH_TYPE"]="MATCH_TYPE_LIST"
+    ["MATCH_VIDEO"]="MATCH_VIDEO_LIST"
+    ["UNMATCH_GROUP"]="UNMATCH_GROUP_LIST"
+    ["UNMATCH_MAKE"]="UNMATCH_MAKE_LIST"
+    ["UNMATCH_NAME"]="UNMATCH_MAKE_LIST"
+    ["UNMATCH_TYPE"]="UNMATCH_TYPE_LIST"
+    ["UNMATCH_VIDEO"]="UNMATCH_VIDEO_LIST"
   )
 
 #
@@ -239,37 +253,6 @@
   #
   function parse_many_arguments
   {
-    # echo "'${@}'"
-
-    # use a list here
-
-    # while true; do
-    #   if ! parse_this_argument "${@}"; then
-    #     return 1
-    #   fi
-
-    #   shift
-
-    #   # for char in $( \
-    #   #   echo "${1:1}" \
-    #   #     | sed -e 's/\(.\)/\1\n/g'
-    #   # ); do
-    #   #   argument="-${char}"
-
-    #   #   if ! is_string "${argument}"; then
-    #   #     break
-    #   #   fi
-
-    #   #   echo "'${argument}' '${@}'"
-
-    #   #   if ! parse_this_argument "${argument}" "${@}"; then
-    #   #     return 1
-    #   #   fi
-
-    #   #   shift
-    #   # done
-    # done
-
     if ! parse_this_argument "${@}"; then
       return 1
     fi
