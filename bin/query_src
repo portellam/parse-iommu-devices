@@ -8,15 +8,6 @@
 #
 
 #
-# TODO:
-# - [ ] get driver from XML.
-# - [ ] set (append, delete, insert) to XML:
-#   - [ ] hardware id (optionally delete).
-#   - [ ] driver.
-# - [ ] passthrough XML file name.
-#
-
-#
 # params (1/3)
 #
   declare -g SOURCE_PATH="${1}"
@@ -37,17 +28,12 @@
 #
 # params (2/2)
 #
-  if ! is_string "${2}"; then
+  if ! is_positive_integer "${2}"; then
     exit 1
   fi
 
-  if ! is_positive_integer "${3}"; then
-    exit 1
-  fi
-
-  declare -g LOG_FILE="${2}"
-  declare -g COLUMN_SIZE="${3}"
-  declare -g XML_FILE="${4}"
+  declare -g COLUMN_SIZE="${2}"
+  declare -g XML_FILE="${3}"
 
 #
 # sources (2/2)
@@ -55,13 +41,7 @@
   source \
     "${SOURCE_PATH}print_src" \
     "${SOURCE_PATH}" \
-    "${LOG_FILE}" \
     "${COLUMN_SIZE}"
-
-  source \
-    "${SOURCE_PATH}xml_src" \
-    "${SOURCE_PATH}" \
-    "${XML_FILE}"
 
 #
 # logic
@@ -155,13 +135,9 @@
       return 0
     fi
 
-    driver="$( get_first_good_driver "${driver}" )"
+    # TODO: add XML support here.
 
-    if ! is_valid_driver "${driver}"; then
-      driver="${NULL_VALUE}"
-    fi
-
-    echo "${driver}"
+    return 1
   }
 
   #

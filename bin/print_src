@@ -24,16 +24,11 @@
 #
 # params (2/2)
 #
-  if ! is_string "${2}"; then
+  if ! is_positive_integer "${2}"; then
     exit 1
   fi
 
-  if ! is_positive_integer "${3}"; then
-    exit 1
-  fi
-
-  declare -g LOG_FILE="${2}"
-  declare -g COLUMN_SIZE="${3}"
+  declare -g COLUMN_SIZE="${2}"
   declare -i TABSPACE_WHITESPACE_COUNT=0
   declare USE_WORD_WRAP=true
 #
