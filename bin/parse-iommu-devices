@@ -11,22 +11,6 @@
 #
 
 #
-# NOTES:
-# - what is not working in this build:
-#   - arguments
-#     - by vendor
-#     - by video
-#     - unmatches?
-#   - logger
-#   - xml file support
-#
-# - what is working in this build:
-#   - all else.
-#   - you may be able to get a full list drivers and hardware IDs.
-#   - if you know what groups to select for, use the "--groups" command.
-#
-
-#
 # params
 #
   declare -g SCRIPT_FILE="$( basename "${0}" )"
@@ -63,8 +47,8 @@
   function main
   {
     set_tabspace_size
-    # create_logfile
-    # log "${0} ${@}"
+    # create_logfile    # TODO: enable when fixed.
+    # log "${0} ${@}"   # TODO: enable when fixed.
 
     if ! parse_many_arguments "${@}" \
       || ! query_src_main \

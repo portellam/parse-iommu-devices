@@ -13,12 +13,10 @@
 #   - This makes project similar to 'grep' command and other Bash commands.
 #   - and easier to develop.
 #   - A user may just run command more than once.
-# - [ ] make options inclusive.
+# - [x] make options inclusive.
 # - [x] vfio scan support.
 # - [x] import refactored logic.
 # - [ ] use this script inside deploy-VFIO.
-# - [ ] create logger.
-# - [ ] xml file support.
 # - [ ] add comments
 #   - inputs
 #   - dependencies
@@ -29,24 +27,6 @@
 # - [x] all unmatches.
 # - [x] vendor
 # - [ ] video
-#
-
-#
-# NOTES:
-#   - hardware ID as primary key.
-#   - record one or more driver(s).
-#   - if `lspci` differs and is not binded to vfio, update or append.
-#   - append new info.
-#   - add functionality to sort by driver name?
-#  - [ ] populate hardware_id and driver dictionary with xml output.
-#  - [ ] replace args and output dict with standalone params.
-#  - [ ] add to xml
-#  - [ ] delete from xml
-#  - [ ] update xml
-#  - [ ] create xml
-#  - [ ] get next valid value if current is not available (driver is not installed).
-#  - [ ] make a command line operator.
-#  - [ ] append usage
 #
 
 #
