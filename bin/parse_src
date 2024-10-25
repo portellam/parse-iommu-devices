@@ -136,8 +136,6 @@
     unset matched_iommu_group_id_dict
     local -A matched_iommu_group_id_dict=()
 
-    echo \$MAX_VIDEO_IOMMU_GROUP_INDEX == $MAX_VIDEO_IOMMU_GROUP_INDEX
-
     parse_many_inputs
     format_many_outputs
     trim_many_output_lists
@@ -625,6 +623,8 @@
       local match_pcie=false
       local match_type=false
 
+      local -i vga_iommu_group_index=1
+
       initialize_iommu_group_match_flag
 
       if ! parse_many_unmatched_iommu_groups; then
@@ -732,7 +732,8 @@
   #
   function set_match_flag_given_graphics_match
   {
-    if ! "${match_graphics}"; then
+    if ! "${match_graphics}" \
+      || ! "${has_graphics}"; then
       return 1
     fi
 
@@ -903,7 +904,6 @@
     fi
 
     if ! [[ ",${vga_iommu_group_index^^}," =~ ",${this_input^^}," ]]; then
-      has_graphics=false
       return 1
     fi
 
@@ -1022,18 +1022,17 @@
     local match_pcie=false
     local match_type=false
 
-    local -i vga_iommu_group_index=1
-
     for key in ${IOMMU_GROUP_ID_LIST[@]}; do
       matched_iommu_group_id_dict["${key}"]=true
     done
 
+    local -i vga_iommu_group_index=1
     local input="MATCH_VIDEO_LIST"
     local input_delim="${vga_iommu_group_index}"
 
     parse_many_unmatched_iommu_groups &> /dev/null
 
-    MAX_VIDEO_IOMMU_GROUP_INDEX="${vga_iommu_group_index}"
+    MAX_VIDEO_IOMMU_GROUP_INDEX=$(( ${vga_iommu_group_index} - 1 ))
 
     if ! is_many_graphics_indexes_valid \
         ${INPUT_DICT["${input}"]} \
