@@ -465,66 +465,20 @@
         ;;
     esac
 
-    if "${is_unmatch}"; then
-      case true in
-        "${match_graphics}" )
-          input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
-          ;;
+    if "${match_host}"; then
+      if "${is_unmatch}"; then
+        match_host=false
+        match_pcie=true
 
-        "${match_host}" )
-          match_host=false
-          match_pcie=true
-          ;;
+      else
+        match_pcie=false
+      fi
 
-        "${match_iommu_group}" )
-          input_delim=${INPUT_DICT["UNMATCH_GROUP_LIST"]}
-          ;;
-
-        "${match_make}" )
-          input_delim=${INPUT_DICT["UNMATCH_MAKE_LIST"]}
-          ;;
-
-        "${match_name}" )
-          input_delim=${INPUT_DICT["UNMATCH_NAME_LIST"]}
-          ;;
-
-        "${match_type}" )
-          input_delim=${INPUT_DICT["UNMATCH_TYPE_LIST"]}
-          ;;
-
-
-      esac
-
-    else
-      case true in
-        "${match_graphics}" )
-          input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
-          ;;
-
-        "${match_host}" )
-          match_pcie=false
-          ;;
-
-        "${match_iommu_group}" )
-          input_delim=${INPUT_DICT["MATCH_GROUP_LIST"]}
-          ;;
-
-        "${match_make}" )
-          input_delim=${INPUT_DICT["MATCH_MAKE_LIST"]}
-          ;;
-
-        "${match_name}" )
-          input_delim=${INPUT_DICT["MATCH_NAME_LIST"]}
-          ;;
-
-        "${match_type}" )
-          input_delim=${INPUT_DICT["MATCH_TYPE_LIST"]}
-          ;;
-
-
-      esac
+      input_delim=""
+      return 0
     fi
 
+    input_delim=${INPUT_DICT[${INPUT_LIST_DICT["${input}"]}]}
     return 0
   }
 
@@ -803,12 +757,10 @@
     local graphics_input_delim=""
     local has_unmatch=false
 
-    if [[ "${input}" =~ "UNMATCH" ]]; then
-      graphics_input_delim=${INPUT_DICT["UNMATCH_VIDEO_LIST"]}
-      has_unmatch=true
+    graphics_input_delim=${INPUT_LIST_DICT["MATCH_VIDEO"]}
 
-    else
-      graphics_input_delim=${INPUT_DICT["MATCH_VIDEO_LIST"]}
+    if [[ "${input}" =~ "UNMATCH" ]]; then
+      has_unmatch=true
     fi
 
     if ! is_many_graphics_indexes_valid \
