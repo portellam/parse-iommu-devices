@@ -145,6 +145,7 @@ sudo bash installer.sh
   --ignore-name=NAME        Match IOMMU group(s) without device name,
                             overrides "--name";
                             NAME is a comma delimited list of text.
+
   -t, --type=TYPE           Match IOMMU group(s) with device type;
                             TYPE is a comma delimited list of text.
   --ignore-type=TYPE        Match IOMMU group(s) without device type,
@@ -154,18 +155,22 @@ sudo bash installer.sh
                             VENDOR is a comma delimited list of text.
   --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor,
                             overrides "--vendor";
-                            VENDOR is a comma delimited list of text.
-  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or
-                            more PCI/PCIe bus devices.
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie --graphics 2
-                            Standard output of comma-delimited lists
-                            hardware IDs and drivers (of IOMMU groups
-                            with PCI/e devices), exclude IOMMU groups
-                            with graphics device(s) before and after the
-                            second matched group, and exclude any wired
-                            ethernet devices (Host and PCI/e).
+  parse-iommu-devices --graphics 2,3
+                            Exclude the second and third matched IOMMU
+                            groups with graphics device(s). Standard
+                            output includes: comma-delimited lists of
+                            selected hardware IDs, drivers, and IOMMU
+                            group IDs.
+
+  parse-iommu-devices -vv --ignore-name ether --pcie
+                            Match output of IOMMU groups with PCI/e
+                            devices, and exclude any wired ethernet
+                            devices. Verbose output includes:
+                            comma-delimited lists of selected hardware
+                            IDs, drivers, and IOMMU group IDs; details of
+                            all IOMMU groups; and telemetry.
 ```
 
 ### 7. Contact
