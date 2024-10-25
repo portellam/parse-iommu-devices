@@ -1,19 +1,7 @@
 # Parse IOMMU Devices
-### v1.0.2-dev
+### v1.0.2
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
-
-### What does NOT work:
-- all unmatches.
-- match by vendor.
-- match by video.
-- logger.
-- xml file support.
-
-### What DOES works:
-- everything else!
-  - you may be able to get a full list drivers and hardware IDs.
-  - if you know what groups to select for, use the `--groups` command.
 
 ### [Download](#5-download)
 
@@ -26,24 +14,25 @@ and return the device drivers and hardware IDs as output.
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
     - [6.2. Executable](#62-executable)
-    - [6.3. XML file](#63-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
+- [9. Planned Features](#9-planned-features)
 
 ## Contents
 ### 1. Why?
 If you wish to determine if your current machine's hardware specifications are
 able to support VFIO, then this script is for you. The script allows one to
 query exactly what hardware you wish to allocate for a VFIO setup, and returns
-the relevant output. The output may then be used for kernel command line arguments, for example.
+the relevant output. The output may then be used for kernel command line
+arguments, for example.
 
 #### Disclaimer
 For first-time use, the script must be run **without** a VFIO setup present.
 
 VFIO setup will cause selected devices to use the VFIO driver
-(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with at least one device binded to VFIO.
+(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with
+at least one device binded to VFIO.
 
-For a solution to this issue, please see below for [XML file](#63-xml-file) usage.
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -115,8 +104,6 @@ Linux.
 Installer will copy the script file to `/usr/local/bin/`, and source files to
 `/usr/local/bin/parse-iommu-devices.d/`.
 
-Log and XML files will be generated in `/usr/local/etc/`, w
-
 ```bash
 sudo bash installer.sh
 ```
@@ -126,96 +113,81 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -v, --verbose             Show more output including queries
-                            and IOMMU groups.
+  -v, --verbose             Show more output including queries and IOMMU
+                            groups.
 
   -vv                       Show all output.
   -g, --group=GROUPS        Match IOMMU group ID(s);
-                            GROUPS is a comma delimited list of
-                            positive numbers.
+                            GROUPS is a comma delimited list of positive
+                            numbers.
 
-  -G, --graphics=INDEX      Match all IOMMU groups without a
-                            graphics device, and any IOMMU group
-                            (with a graphics device) whose INDEX
-                            matches the expected INDEX value(s).
-                            INDEX is not an IOMMU group ID;
-                            INDEX is a comma delimited list of
-                            postive non-zero numbers.
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);
+                            GROUPS is a comma delimited list of positive
+                            numbers.
 
+  -G, --graphics=INDEX      Match all IOMMU groups without a graphics
+                            device, and any IOMMU group (with a graphics
+                            device) whose INDEX matches the expected
+                            INDEX value(s). INDEX is not an IOMMU group
+                            ID;
+                            INDEX is a comma delimited list of postive
+                            non-zero numbers.
 
-  --ignore-group=GROUPS     Reverse match IOMMU group ID(s),
-                            overrides "--group";
-                            GROUPS is a comma delimited list of
-                            positive numbers.
+  -H, --host                Match IOMMU groups with at least one (1) or
+                            more Host devices.
 
-  -H, --host                Match IOMMU groups with at least one
-                            (1) or more Host devices.
+  -n, --name=NAME           Match IOMMU group(s) with device name;
+                            NAME is a comma delimited list of text.
 
-  -n, --name=NAME           Match IOMMU group(s) with device
-                            name;
-                            NAME is a comma delimited list of
-                            text.
+  --ignore-name=NAME        Reverse match IOMMU group(s) with device name;
+                            NAME is a comma delimited list of text.
 
-  --ignore-name=NAME        Match IOMMU group(s) without device
-                            name, overrides "--name";
-                            NAME is a comma delimited list of
-                            text.
+  -t, --type=TYPE           Match IOMMU group(s) with device type;
+                            TYPE is a comma delimited list of text.
 
-  -t, --type=TYPE           Match IOMMU group(s) with device
-                            type;
-                            TYPE is a comma delimited list of
-                            text.
+  --ignore-type=TYPE        Reverse match IOMMU group(s) with device type;
+                            TYPE is a comma delimited list of text.
 
-  --ignore-type=TYPE        Match IOMMU group(s) without device
-                            type, overrides "--type";
-                            TYPE is a comma delimited list of
-                            text.
+  -V, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
+                            VENDOR is a comma delimited list of text.
 
-  -V, --vendor=VENDOR       Match IOMMU group(s) with device
-                            vendor;
-                            VENDOR is a comma delimited list of
-                            text.
-
-  --ignore-vendor=VENDOR    Match IOMMU group(s) without device
-                            vendor, overrides "--vendor";
-                            VENDOR is a comma delimited list of
-                            text.
-
-  -p, --pci, --pcie         Match IOMMU groups with at least one
-                            (1) or more PCI/PCIe bus devices.
-
-  -x, --xml, --xml=FILE     Query an XML file for device drivers
-                            should none be found or any devices
-                            are binded to VFIO;
-                            FILE is the XML file name as text.
-                            Leave FILE empty to use default file
-                            name
-                            ("/usr/local/etc/parse-iommu-devices.
-                            xml").
+  --ignore-vendor=VENDOR    Reverse match IOMMU group(s) with device vendor;
 
 Examples:
-  parse-iommu-devices --ignore-name ether --pcie --graphics 2
-                            Standard output of comma-delimited
-                            lists hardware IDs and drivers (of
-                            IOMMU groups with PCI/e devices),
-                            exclude IOMMU groups with graphics
-                            device(s) before and after the
-                            second matched group, and exclude
-                            any wired ethernet devices (Host and
-                            PCI/e).
+  parse-iommu-devices --graphics 2,3
+                            Exclude the second and third matched IOMMU
+                            groups with graphics device(s). Standard
+                            output includes: comma-delimited lists of
+                            selected hardware IDs, drivers, and IOMMU
+                            group IDs.
+
+  parse-iommu-devices -vv --ignore-name ether --pcie
+                            Match output of IOMMU groups with PCI/e
+                            devices, and exclude any wired ethernet
+                            devices. Verbose output includes:
+                            comma-delimited lists of selected hardware
+                            IDs, drivers, and IOMMU group IDs; details of
+                            all IOMMU groups; and telemetry.
 ```
 
-#### 6.3. XML file
-Regardless of an existing VFIO setup, the script will output lists of hardware
-IDs and **valid** drivers, *if* a known good XML file is present.
+### 6.3 Parse standard output for automation or other scripts
+To retrieve standard output, execute the following with the options of your choice,
+but **without** a verbose flag.
 
-##### An XML file may be generated on a known good system:
-1. No VFIO drivers present
-2. Drivers are installed for all relevant devices.
+1. **Hardware ID** list:
+```bash
+  parse-iommu-devices | sed --quiet 1p
+```
 
-You may backup the default XML file (`/usr/local/etc/parse-iommu-devices.xml`).
+2. **Driver** list:
+```bash
+  parse-iommu-devices | sed --quiet 2p
+```
 
-Please feel free to share your XML file with other VFIO users and enthusiasts.
+3. **IOMMU group ID** list:
+```bash
+  parse-iommu-devices | sed --quiet 3p
+```
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
@@ -241,3 +213,13 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
+
+### 9. Planned Features
+See [TO DO](./TODO.md).
+
+- XML file support.
+  - useful for systems which have VFIO setups, but do not necessarily change
+  hardware often.
+
+- Log file
+  - nice to have, but may not be implemented.
