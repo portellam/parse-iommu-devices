@@ -79,12 +79,12 @@
     ["FOUND_HOST_GROUP_ID_LIST"]=""
     ["FOUND_HOST_AND_PCIE_GROUP_ID_LIST"]=""
     ["FOUND_PCIE_GROUP_ID_LIST"]=""
+    ["FOUND_VFIO_GROUP_ID_LIST"]=""
     ["FOUND_VIDEO_GROUP_ID_LIST"]=""
     ["SELECTED_DRIVER_LIST"]=""
     ["SELECTED_GROUP_ID_LIST"]=""
     ["SELECTED_HARDWARE_ID_LIST"]=""
     ["UNSELECTED_GROUP_ID_LIST"]=""
-    ["FOUND_VFIO_GROUP_ID_LIST"]=""
   )
 
   declare -a IOMMU_GROUP_ID_LIST="$( \
@@ -135,6 +135,8 @@
 
     unset matched_iommu_group_id_dict
     local -A matched_iommu_group_id_dict=()
+
+    echo \$MAX_VIDEO_IOMMU_GROUP_INDEX == $MAX_VIDEO_IOMMU_GROUP_INDEX
 
     parse_many_inputs
     format_many_outputs
@@ -1029,7 +1031,7 @@
     local input="MATCH_VIDEO_LIST"
     local input_delim="${vga_iommu_group_index}"
 
-    parse_many_unmatched_iommu_groups
+    parse_many_unmatched_iommu_groups &> /dev/null
 
     MAX_VIDEO_IOMMU_GROUP_INDEX="${vga_iommu_group_index}"
 
