@@ -24,15 +24,18 @@ and return the device drivers and hardware IDs as output.
 If you wish to determine if your current machine's hardware specifications are
 able to support VFIO, then this script is for you. The script allows one to
 query exactly what hardware you wish to allocate for a VFIO setup, and returns
-the relevant output. The output may then be used for kernel command line arguments, for example.
+the relevant output. The output may then be used for kernel command line
+arguments, for example.
 
 #### Disclaimer
 For first-time use, the script must be run **without** a VFIO setup present.
 
 VFIO setup will cause selected devices to use the VFIO driver
-(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with at least one device binded to VFIO.
+(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with
+at least one device binded to VFIO.
 
-For a solution to this issue, please see below for [XML file](#63-xml-file) usage.
+For a solution to this issue, please see below for [XML file](#63-xml-file)
+usage.
 
 ### 2. Related Projects
 | Project                             | Codeberg          | GitHub          |
@@ -104,7 +107,6 @@ Linux.
 Installer will copy the script file to `/usr/local/bin/`, and source files to
 `/usr/local/bin/parse-iommu-devices.d/`.
 
-
 ```bash
 sudo bash installer.sh
 ```
@@ -112,7 +114,7 @@ sudo bash installer.sh
 #### 6.2. Executable
 - From anywhere, execute: `parse-iommu-devices`
 
-```
+```bash
   -h, --help                Print this help and exit.
   -v, --verbose             Show more output including query
                             output and IOMMU groups.
@@ -175,18 +177,6 @@ Examples:
                             PCI/e).
 ```
 
-#### 6.3. XML file
-Regardless of an existing VFIO setup, the script will output lists of hardware
-IDs and **valid** drivers, *if* a known good XML file is present.
-
-##### An XML file may be generated on a known good system:
-1. No VFIO drivers present
-2. Drivers are installed for all relevant devices.
-
-You may backup the default XML file (`/usr/local/etc/parse-iommu-devices.xml`).
-
-Please feel free to share your XML file with other VFIO users and enthusiasts.
-
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
 **Issues page** ([Codeberg][codeberg-issues], [GitHub][github-issues]).
@@ -213,11 +203,11 @@ The linux kernel. Accessed June 14, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### 9. Planned Features
-See [#TODO.md]
+See [TODO.md]
 
-1. XML file support.
+- XML file support.
   - useful for systems which have VFIO setups, but do not necessarily change
   hardware often.
 
-2. Log file
+- Log file
   - nice to have, but may not be implemented.
