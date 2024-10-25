@@ -1,5 +1,5 @@
 # Parse IOMMU Devices
-### v1.0.2
+### v1.0.3
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
@@ -14,6 +14,8 @@ and return the device drivers and hardware IDs as output.
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
     - [6.2. Executable](#62-executable)
+    - [6.3. Parse standard output for automation or other scripts](#63-parse-standard-output-for-automation-or-other-scripts)
+    - [6.4. XML file](#64-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
 - [9. Planned Features](#9-planned-features)
@@ -32,6 +34,9 @@ For first-time use, the script must be run **without** a VFIO setup present.
 VFIO setup will cause selected devices to use the VFIO driver
 (`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with
 at least one device binded to VFIO.
+
+For a solution to this issue, please see below for [XML file](#64-xml-file)
+usage.
 
 
 ### 2. Related Projects
@@ -107,6 +112,7 @@ Installer will copy the script file to `/usr/local/bin/`, and source files to
 ```bash
 sudo bash installer.sh
 ```
+XML files will be generated in `/usr/local/etc/`.
 
 #### 6.2. Executable
 - From anywhere, execute: `parse-iommu-devices`
@@ -153,6 +159,15 @@ sudo bash installer.sh
 
   --ignore-vendor=VENDOR    Reverse match IOMMU group(s) with device vendor;
 
+  -x, --xml, --xml=FILE     Query an XML file for device drivers
+                            should none be found or any devices
+                            are binded to VFIO;
+                            FILE is the XML file name as text.
+                            Leave FILE empty to use default file
+                            name
+                            ("/usr/local/etc/parse-iommu-devices.
+                            xml").
+
 Examples:
   parse-iommu-devices --graphics 2,3
                             Exclude the second and third matched IOMMU
@@ -188,6 +203,18 @@ but **without** a verbose flag.
 ```bash
   parse-iommu-devices | sed --quiet 3p
 ```
+
+#### 6.4. XML file
+Regardless of an existing VFIO setup, the script will output lists of hardware
+IDs and **valid** drivers, *if* a known good XML file is present.
+
+##### An XML file may be generated on a known good system:
+1. No VFIO drivers present
+2. Drivers are installed for all relevant devices.
+
+You may backup the default XML file (`/usr/local/etc/parse-iommu-devices.xml`).
+
+Please feel free to share your XML file with other VFIO users and enthusiasts.
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
