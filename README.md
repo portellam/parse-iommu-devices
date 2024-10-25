@@ -240,13 +240,3 @@ The linux kernel. Accessed June 14, 2024.
 #### 4.
 **XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
-
-### 9. Planned Features
-See [TO DO](./TODO.md).
-
-- XML file support.
-  - useful for systems which have VFIO setups, but do not necessarily change
-  hardware often.
-
-- Log file
-  - nice to have, but may not be implemented.

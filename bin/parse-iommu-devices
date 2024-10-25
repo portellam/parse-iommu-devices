@@ -14,8 +14,8 @@
 # TODO:
 # - [ ] remove redundant code and declarations.
 # - [ ] remove unused code.
+# - [ ] remove log file code.
 # - [ ] add XML file support.
-# - [ ] add log file support.
 # - [ ] use this script inside deploy-VFIO.
 # - [ ] add comments
 #   - inputs
@@ -59,8 +59,6 @@
   function main
   {
     set_tabspace_size
-    # create_logfile    # TODO: enable when fixed.
-    # log "${0} ${@}"   # TODO: enable when fixed.
 
     if ! parse_many_arguments "${@}" \
       || ! query_src_main \
