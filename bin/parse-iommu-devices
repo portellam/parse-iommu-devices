@@ -11,24 +11,11 @@
 #
 
 #
-# TODO:
-# - [ ] remove redundant code and declarations.
-# - [ ] remove unused code.
-# - [ ] add XML file support.
-# - [ ] add log file support.
-# - [ ] use this script inside deploy-VFIO.
-# - [ ] add comments
-#   - inputs
-#   - dependencies
-#
-
-#
 # params
 #
   declare -g SCRIPT_FILE="$( basename "${0}" )"
   declare -g SCRIPT_VERSION="1.0.2"
   declare -g SOURCE_PATH="/usr/local/bin/${SCRIPT_FILE}.d/"
-  declare -g LOG_EXTENSION=".log"
   declare -gi COLUMN_SIZE="$( tput cols )"
 
 #
@@ -49,7 +36,6 @@
   source \
     "${SOURCE_PATH}query_src" \
     "${SOURCE_PATH}" \
-    "${SCRIPT_FILE}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}" \
     "${INPUT_DICT["XML_FILE"]}"
 
@@ -59,8 +45,6 @@
   function main
   {
     set_tabspace_size
-    # create_logfile    # TODO: enable when fixed.
-    # log "${0} ${@}"   # TODO: enable when fixed.
 
     if ! parse_many_arguments "${@}" \
       || ! query_src_main \

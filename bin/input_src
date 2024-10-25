@@ -47,11 +47,8 @@
   declare -g SCRIPT_VERSION="${3}"
 
   declare -gi COLUMN_SIZE="$( tput cols )"
-  declare -gi MIN_VIDEO_INDEX_VALUE=1
   declare -gi MIN_IOMMU_GROUP_ID=0
 
-  declare -g LOG_EXTENSION=".log"
-  declare -g XML_EXTENSION=".xml"
   declare -g ETC_PATH="/usr/local/etc/"
 
   declare -g ARGUMENT_MATCH_GROUP="-g"
@@ -108,7 +105,6 @@
   source \
     "${SOURCE_PATH}print_src" \
     "${SOURCE_PATH}" \
-    "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
 
 #
@@ -476,38 +472,6 @@
           INPUT_DICT["VERBOSE_DOUBLE"]=true
           ;;
 
-        #
-        # TODO: fix XML support before enabling this.
-        #
-
-        "--x" | "--xml" )
-          shift
-          continue  # TODO: remove this line when XML is fixed
-
-          case "${1,,}" in
-            "import" )
-            this_input_list=( "XML_READ" )
-            ;;
-
-            "export" )
-            this_input_list=( "XML_WRITE" )
-            ;;
-
-            * )
-            print_invalid_option_and_exit \
-              "${1}"
-            ;;
-          esac
-
-          shift
-
-          if is_string "${1}"; then
-            INPUT_DICT["XML_FILE"]="${1}"
-          fi
-
-          set_sources
-          ;;
-
         "" )
           return 0
           ;;
@@ -835,37 +799,8 @@
       "Reverse match IOMMU group(s) with device vendor;"
 
     echo -en "$( get_repeated_space 28 )"
-
-    #
-    # TODO: fix XML support before enabling this.
-    #
-
-    # echo -en "  -x, --xml, --xml=FILE     "
-
-    # wrap_text \
-    #   false \
-    #   false \
-    #   false \
-    #   "${column_prefix_count}" \
-    #   "${COLUMN_SIZE}" \
-    #   "Query an XML file for device drivers should none be found or any devices" \
-    #   "are binded to VFIO;"
-
-    # echo -en "$( get_repeated_space 28 )"
-
-    # wrap_text \
-    #   false \
-    #   false \
-    #   true \
-    #   "${column_prefix_count}" \
-    #   "${COLUMN_SIZE}" \
-    #   "FILE is the XML file name as text. Leave FILE empty to use default file"\
-    #   "name (\"${INPUT_DICT["XML_FILE"]}\")."
-
     echo  # TODO: remove this line when XML support is complete.
-
     echo -e "Examples:"
-
     echo -en "  ${SCRIPT_NAME} " # do wrap_text for args here.
 
     column_prefix_count=$(( "${#SCRIPT_NAME}" + 3 ))
