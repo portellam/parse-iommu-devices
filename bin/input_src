@@ -450,23 +450,27 @@
           INPUT_DICT["VERBOSE_DOUBLE"]=true
           ;;
 
-        "--x" | "--xml" )
-          shift
+        #
+        # TODO: fix XML support before enabling this.
+        #
 
-          case "${1,,}" in
-            "import" )
-            this_input_list=( "XML_READ" )
-            ;;
+        # "--x" | "--xml" )
+        #   shift
 
-            "export" )
-            this_input_list=( "XML_WRITE" )
-            ;;
+        #   case "${1,,}" in
+        #     "import" )
+        #     this_input_list=( "XML_READ" )
+        #     ;;
 
-            * )
-            print_invalid_option_and_exit \
-              "${1}"
-            ;;
-          esac
+        #     "export" )
+        #     this_input_list=( "XML_WRITE" )
+        #     ;;
+
+        #     * )
+        #     print_invalid_option_and_exit \
+        #       "${1}"
+        #     ;;
+        #   esac
 
           shift
 
@@ -734,6 +738,28 @@
       "${COLUMN_SIZE}" \
       "NAME is a comma delimited list of text."
 
+    echo -en "  -x, --xml, --xml=FILE     "
+
+    wrap_text \
+      false \
+      false \
+      false \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "Query an XML file for device drivers should none be found or any devices" \
+      "are binded to VFIO;"
+
+    echo -en "$( get_repeated_space 28 )"
+
+    wrap_text \
+      false \
+      false \
+      true \
+      "${column_prefix_count}" \
+      "${COLUMN_SIZE}" \
+      "FILE is the XML file name as text. Leave FILE empty to use default file"\
+      "name (\"${INPUT_DICT["XML_FILE"]}\")."
+
     echo -en "  -t, --type=TYPE           "
 
     wrap_text \
@@ -806,45 +832,31 @@
 
     echo -en "$( get_repeated_space 28 )"
 
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "VENDOR is a comma delimited list of text."
+    #
+    # TODO: fix XML support before enabling this.
+    #
 
-    echo -en "  -p, --pci, --pcie         "
+    # echo -en "  -x, --xml, --xml=FILE     "
 
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Match IOMMU groups with at least one (1) or more PCI/PCIe bus devices."
+    # wrap_text \
+    #   false \
+    #   false \
+    #   false \
+    #   "${column_prefix_count}" \
+    #   "${COLUMN_SIZE}" \
+    #   "Query an XML file for device drivers should none be found or any devices" \
+    #   "are binded to VFIO;"
 
-    echo -en "  -x, --xml, --xml=FILE     "
+    # echo -en "$( get_repeated_space 28 )"
 
-    wrap_text \
-      false \
-      false \
-      false \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "Query an XML file for device drivers should none be found or any devices" \
-      "are binded to VFIO;"
-
-    echo -en "$( get_repeated_space 28 )"
-
-    wrap_text \
-      false \
-      false \
-      true \
-      "${column_prefix_count}" \
-      "${COLUMN_SIZE}" \
-      "FILE is the XML file name as text. Leave FILE empty to use default file"\
-      "name (\"${INPUT_DICT["XML_FILE"]}\")."
+    # wrap_text \
+    #   false \
+    #   false \
+    #   true \
+    #   "${column_prefix_count}" \
+    #   "${COLUMN_SIZE}" \
+    #   "FILE is the XML file name as text. Leave FILE empty to use default file"\
+    #   "name (\"${INPUT_DICT["XML_FILE"]}\")."
 
     echo -e "Examples:"
 
