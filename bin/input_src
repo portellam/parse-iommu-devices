@@ -104,6 +104,67 @@
 #
 # logic
 #
+  #
+  # $1 : the input dictionary key as a string.
+  # $2 : the value to append as a string.
+  #
+  function append_input_dict_list
+  {
+    if ! is_string "${1}" \
+      || ! has_value \
+        "INPUT_DICT" \
+        "${1}"; then
+      return 1
+    fi
+
+    if ! is_string "${2}"; then
+      return 0
+    fi
+
+    local append_input_dict_list_key=${INPUT_DICT_LIST["${1}"]}
+
+    if ! is_string "${append_input_dict_list_key}"; then
+      return 1
+    fi
+
+    INPUT_DICT["${append_input_dict_list_key}"]+="$( \
+      get_ranges_from_comma_delimited_list \
+        "${1}"
+    ),"
+
+    return 0
+  }
+
+  #
+  # $1 : the input dictionary key as a string.
+  # $2 : the value to append as a string.
+  #
+  function append_numbered_input_list
+  {
+    if ! is_string "${1}"; then
+      return 1
+    fi
+
+    if ! is_string "${2}"; then
+      return 0
+    fi
+
+    if ! is_comma_delimited_list_of_positive_numbers "${2}" \
+      || (
+        [[ "${2: -2}" == "," ]] \
+        && [[ "${2::-2}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
+      ); then
+      print_invalid_option_and_exit \
+      "${2}"
+    fi
+
+    append_input_dict_list \
+      "${key}" \
+      "${2}"
+
+    return 0
+  }
+
   function get_comma_list_of_iommu_group_ids
   {
     seq \
@@ -272,26 +333,30 @@
 
       case "${1}" in
         "-g" | "--group" | "--groups" | "${ARGUMENT_MATCH_GROUP}" )
-          this_input_list=( "MATCH_GROUP" )
+          local key="MATCH_GROUP"
+          this_input_list=( "${key}" )
           shift
 
           if [[ "${1}" == "${OPTION_ALL}" ]]; then
-            INPUT_DICT["MATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
-          else
-            if ! is_comma_delimited_list_of_positive_numbers "${1}" \
-              || (
-                [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
-              ); then
-              print_invalid_option_and_exit \
-              "${1}"
-            fi
+            append_input_dict_list \
+              "${key}" \
+              "$( get_comma_list_of_iommu_group_ids ${1} )"
 
-            INPUT_DICT["MATCH_GROUP_LIST"]+="$( \
-              echo "${1}" \
-                | sed 's/,*$//' \
-            ),"
+          else
+            append_numbered_input_list \
+              "${key}" \
+              "${1}"
           fi
+          ;;
+
+        "-G" | "--graphics" )
+          local key="MATCH_VIDEO"
+          this_input_list=( "${key}" )
+          shift
+
+          append_numbered_input_list \
+            "MATCH_GROUP" \
+            "${1}"
           ;;
 
         "-H" | "--host" | "--hosts" )
@@ -299,86 +364,60 @@
           ;;
 
         "--ignore-group" | "--ignore-groups" )
-          this_input_list=( "UNMATCH_GROUP" )
+          local key="UNMATCH_GROUP"
+          this_input_list=( "${key}" )
           shift
 
           if [[ "${1}" == "${OPTION_ALL}" ]]; then
-            INPUT_DICT["UNMATCH_GROUP_LIST"]="$( get_comma_list_of_iommu_group_ids )"
-          else
-            if ! is_comma_delimited_list_of_positive_numbers "${1}" \
-              || (
-                [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_IOMMU_GROUP_ID}" ]] \
-              ); then
-              print_invalid_option_and_exit \
-              "${1}"
-            fi
+            append_input_dict_list \
+              "${key}" \
+              "$( get_comma_list_of_iommu_group_ids ${1} )"
 
-            INPUT_DICT["UNMATCH_GROUP_LIST"]+="$( \
-              echo "${1}" \
-                | sed 's/,*$//' \
-            ),"
+          else
+            append_numbered_input_list \
+              "${key}" \
+              "${1}"
           fi
           ;;
 
         "--ignore-name" | "--ignore-names" )
-          this_input_list=( "UNMATCH_NAME" )
+          local key="UNMATCH_NAME"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["UNMATCH_NAME_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "--ignore-type" | "--ignore-types" )
-          this_input_list=( "UNMATCH_TYPE" )
+          local key="UNMATCH_TYPE"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["UNMATCH_TYPE_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "--ignore-vendor" | "--ignore-vendors" )
-          this_input_list=( "UNMATCH_MAKE" )
+          local key="UNMATCH_MAKE"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["UNMATCH_MAKE_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "-n" | "--name" | "--names" )
-          this_input_list=( "MATCH_NAME" )
+          local key="MATCH_NAME"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["MATCH_NAME_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "-p" | "--pci" | "--pcie" )
@@ -386,33 +425,23 @@
           ;;
 
         "-t" | "--type" | "--types" )
-          this_input_list=( "MATCH_TYPE" )
+          local key="MATCH_TYPE"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["MATCH_TYPE_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "-V" | "--vendor" | "--vendors" )
-          this_input_list=( "MATCH_MAKE" )
+          local key="MATCH_MAKE"
+          this_input_list=( "${key}" )
           shift
 
-          if ! is_string "${1}"; then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["MATCH_MAKE_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
+          append_input_dict_list \
+            "${key}" \
+            "${1}"
           ;;
 
         "-v" | "--verbose" )
@@ -423,25 +452,6 @@
         "-vv" )
           INPUT_DICT["VERBOSE_SINGLE"]=true
           INPUT_DICT["VERBOSE_DOUBLE"]=true
-          ;;
-
-        "-G" | "--graphics" )
-          this_input_list=( "MATCH_VIDEO" )
-          shift
-
-          if ! is_comma_delimited_list_of_positive_numbers "${1}" \
-              || (
-                [[ "${1: -1}" == "," ]] \
-                && [[ "${1::-1}" -lt "${MIN_VIDEO_INDEX_VALUE}" ]] \
-              ); then
-            print_invalid_option_and_exit \
-              "${1}"
-          fi
-
-          INPUT_DICT["MATCH_VIDEO_LIST"]+="$( \
-            echo "${1}" \
-              | sed 's/,*$//' \
-          ),"
           ;;
 
         "--x" | "--xml" )
