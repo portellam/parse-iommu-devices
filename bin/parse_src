@@ -32,14 +32,10 @@
     exit 1
   fi
 
-  declare -g SCRIPT_NAME="${2}"
-
   declare -gi COLUMN_SIZE="$( \
     tput \
       cols \
   )"
-
-  declare -g LOG_EXTENSION=".log"
 
   declare -gi MAX_IOMMU_GROUP_ID="$( \
     ls \
@@ -82,7 +78,6 @@
   source \
     "${SOURCE_PATH}print_src" \
     "${SOURCE_PATH}" \
-    "${SCRIPT_NAME}${LOG_EXTENSION}" \
     "${COLUMN_SIZE}"
 
 #
@@ -123,24 +118,6 @@
       "${INPUT_DICT["VERBOSE_SINGLE"]}"
 
     print_many_output_lists
-    return 0
-  }
-
-  function create_logfile
-  {
-    if [[ -e "${LOG_FILE}" ]] \
-      && ! rm --force "${LOG_FILE}" &> /dev/null; then
-      echo \
-        -e \
-          "Failed to delete logfile."
-    fi
-
-    if ! touch "${LOG_FILE}" &> /dev/null; then
-      echo \
-        -e \
-          "Failed to create logfile."
-    fi
-
     return 0
   }
 
@@ -503,82 +480,6 @@
     fi
 
     return 1
-  }
-
-  #
-  # $1 : the Hardware ID as a string.
-  #
-  function modify_xml_drivers
-  {
-    if ! is_string "${1}"; then
-      return 1
-    fi
-
-    local -r hardware_id="${1}"
-
-    local -ar modify_xml_drivers_list="$( \
-      get_driver_list \
-        "${hardware_id}" \
-    )"
-
-    if "${INPUT_DICT["XML_WRITE"]}" \
-      && ! "${INPUT_DICT["XML_READ"]}" \
-      && ! set_xml_driver_list "${hardware_id}" "${modify_xml_drivers_list}"; then
-      return 1
-    fi
-
-    return 0
-  }
-
-  function modify_xml_hardware_ids
-  {
-    if ( \
-        ! is_empty_file "${XML_FILE}" \
-        || ! validate_xml \
-      ) \
-      && ! write_xml_template_to_file; then
-      return 1
-    fi
-
-    if ! write_hardware_ids_to_xml; then
-      return 1
-    fi
-
-    local -a hardware_id_list=()
-
-    local -ir total_devices="$( \
-      lspci \
-        -n \
-      | wc \
-        --lines \
-    )"
-
-    local -i index=1
-
-    while [[ "${index}" -le "${total_devices}" ]]; do
-      hardware_id="$( \
-        lspci \
-          -n \
-        | sed \
-          -n \
-            "${index} p" \
-        | cut \
-          --delimiter \
-            ' ' \
-          --fields \
-            3
-      )"
-
-      hardware_id_list+=( "${hardware_id}" )
-      (( index++ ))
-    done
-
-
-    if ! write_hardware_ids_to_xml; then
-      return 1
-    fi
-
-    return 0
   }
 
   function parse_many_inputs
@@ -1125,20 +1026,6 @@
         -1 \
         "${OUTPUT_DICT["UNSELECTED_GROUP_ID_LIST"]}" \
     )"
-
-    return 0
-  }
-
-  # FIXME
-  function write_hardware_ids_to_xml
-  {
-    if "${INPUT_DICT["XML_WRITE"]}" \
-      && ! "${INPUT_DICT["XML_READ"]}" \
-      && ! set_xml_hardware_id_list \
-        true \
-        ${hardware_id_list[@]}; then
-      return 1
-    fi
 
     return 0
   }
