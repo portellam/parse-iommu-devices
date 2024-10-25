@@ -124,8 +124,7 @@ sudo bash installer.sh
                             GROUPS is a comma delimited list of positive
                             numbers.
 
-  --ignore-group=GROUPS     Reverse match IOMMU group ID(s), overrides
-                            "--group";
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s);
                             GROUPS is a comma delimited list of positive
                             numbers.
 
@@ -142,19 +141,20 @@ sudo bash installer.sh
 
   -n, --name=NAME           Match IOMMU group(s) with device name;
                             NAME is a comma delimited list of text.
-  --ignore-name=NAME        Match IOMMU group(s) without device name,
-                            overrides "--name";
+
+  --ignore-name=NAME        Reverse match IOMMU group(s) with device name;
                             NAME is a comma delimited list of text.
 
   -t, --type=TYPE           Match IOMMU group(s) with device type;
                             TYPE is a comma delimited list of text.
-  --ignore-type=TYPE        Match IOMMU group(s) without device type,
-                            overrides "--type";
+
+  --ignore-type=TYPE        Reverse match IOMMU group(s) with device type;
                             TYPE is a comma delimited list of text.
+
   -V, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
                             VENDOR is a comma delimited list of text.
-  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor,
-                            overrides "--vendor";
+
+  --ignore-vendor=VENDOR    Reverse match IOMMU group(s) with device vendor;
 
 Examples:
   parse-iommu-devices --graphics 2,3
