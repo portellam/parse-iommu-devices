@@ -14,7 +14,6 @@ and return the device drivers and hardware IDs as output.
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
     - [6.2. Executable](#62-executable)
-    - [6.3. XML file](#63-xml-file)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
 - [9. Planned Features](#9-planned-features)
@@ -218,7 +217,7 @@ The linux kernel. Accessed June 14, 2024.
 <sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### 9. Planned Features
-See [TODO.md](./TODO.md)
+See [TO DO](./TODO.md)
 
 - XML file support.
   - useful for systems which have VFIO setups, but do not necessarily change
