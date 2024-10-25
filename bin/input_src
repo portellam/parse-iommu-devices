@@ -7,6 +7,16 @@
 #
 
 #
+# TODO:
+# - [ ] parse number ranges in inputs.
+# - [ ] make arguments exclusive.
+#   - This makes project similar to 'grep' command and other Bash commands.
+#   - and easier to develop.
+#   - A user may just run command more than once.
+# - [x] make options inclusive.
+#
+
+#
 # params (1/2)
 #
   declare -g SOURCE_PATH="${1}"

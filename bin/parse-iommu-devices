@@ -11,6 +11,18 @@
 #
 
 #
+# TODO:
+# - [ ] remove redundant code and declarations.
+# - [ ] remove unused code.
+# - [ ] add XML file support.
+# - [ ] add log file support.
+# - [ ] use this script inside deploy-VFIO.
+# - [ ] add comments
+#   - inputs
+#   - dependencies
+#
+
+#
 # params
 #
   declare -g SCRIPT_FILE="$( basename "${0}" )"

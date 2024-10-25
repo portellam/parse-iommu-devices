@@ -7,29 +7,6 @@
 #
 
 #
-# TODO:
-# - [ ] parse number ranges in inputs.
-# - [ ] make arguments exclusive.
-#   - This makes project similar to 'grep' command and other Bash commands.
-#   - and easier to develop.
-#   - A user may just run command more than once.
-# - [x] make options inclusive.
-# - [x] vfio scan support.
-# - [x] import refactored logic.
-# - [ ] use this script inside deploy-VFIO.
-# - [ ] add comments
-#   - inputs
-#   - dependencies
-#
-
-#
-# FIXME:
-# - [x] all unmatches.
-# - [x] vendor
-# - [x] video
-#
-
-#
 # params (1/2)
 #
   if [[ -z "${1}" ]]; then
