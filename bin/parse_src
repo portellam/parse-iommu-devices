@@ -26,9 +26,9 @@
 
 #
 # FIXME:
-# - [ ] all unmatches.
+# - [x] all unmatches.
 # - [x] vendor
-# - [ ] video
+# - [x] video
 #
 
 #
@@ -750,14 +750,14 @@
   #
   function set_match_flag_given_graphics_match
   {
-    if "${match_graphics}"; then
+    if ! "${match_graphics}"; then
       return 1
     fi
 
     local graphics_input_delim=""
     local has_unmatch=false
 
-    graphics_input_delim=${INPUT_LIST_DICT["MATCH_VIDEO"]}
+    graphics_input_delim=${INPUT_DICT[${INPUT_LIST_DICT["MATCH_VIDEO"]}]}
 
     if [[ "${input}" =~ "UNMATCH" ]]; then
       has_unmatch=true
@@ -931,13 +931,14 @@
 
   function set_match_flag
   {
-    if ! "${has_host}" \
+    if ! "${has_graphics}" \
+      && ! "${has_host}" \
       && ! "${has_iommu_group}" \
+      && ! "${has_make}" \
       && ! "${has_name}" \
       && ! "${has_pcie}" \
-      && ! "${has_type}" \
-      && ! "${has_make}" \
-      && ! "${has_graphics}"; then
+      && ! "${has_type}"; then
+      has_match=false
       return 0
     fi
 
@@ -981,6 +982,7 @@
   {
     if ! "${match_iommu_group}" \
       || ! [[ ",${input_delim}," =~ ",${iommu_group_id}," ]]; then
+      has_iommu_group=false
       return 0
     fi
 

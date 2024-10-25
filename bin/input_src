@@ -120,15 +120,12 @@
 
     local append_input_dict_list_key=${INPUT_LIST_DICT["${1}"]}
 
-    if ! is_string "${append_input_dict_list_key}"; then
+    if ! is_string "${append_input_dict_list_key}" \
+      || ! is_string "${2}"; then
       return 1
     fi
 
-    INPUT_DICT["${append_input_dict_list_key}"]+="$( \
-      get_ranges_from_comma_delimited_list \
-        "${2}"
-    ),"
-
+    INPUT_DICT["${append_input_dict_list_key}"]+="${2},"
     return 0
   }
 
@@ -499,6 +496,8 @@
       for this_input in "${this_input_list[@]}"; do
         INPUT_DICT["${this_input}"]=true
         INPUT_LIST+=( "${this_input}" )
+
+        echo $this_input
       done
 
       shift
