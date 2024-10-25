@@ -116,65 +116,56 @@ sudo bash installer.sh
 
 ```
   -h, --help                Print this help and exit.
-  -v, --verbose             Show more output including query
-                            output and IOMMU groups.
+  -v, --verbose             Show more output including queries and IOMMU
+                            groups.
 
   -vv                       Show all output.
   -g, --group=GROUPS        Match IOMMU group ID(s);
-                            GROUPS is a comma delimited list of
-                            positive numbers.
+                            GROUPS is a comma delimited list of positive
+                            numbers.
 
-  --ignore-group=GROUPS     Reverse match IOMMU group ID(s),
-                            overrides "--group";
-                            GROUPS is a comma delimited list of
-                            positive numbers.
+  --ignore-group=GROUPS     Reverse match IOMMU group ID(s), overrides
+                            "--group";
+                            GROUPS is a comma delimited list of positive
+                            numbers.
 
-  -H, --host                Match IOMMU groups with at least one
-                            (1) or more Host devices.
+  -G, --graphics=INDEX      Match all IOMMU groups without a graphics
+                            device, and any IOMMU group (with a graphics
+                            device) whose INDEX matches the expected
+                            INDEX value(s). INDEX is not an IOMMU group
+                            ID;
+                            INDEX is a comma delimited list of postive
+                            non-zero numbers.
 
-  -n, --name=NAME           Match IOMMU group(s) with device
-                            name;
-                            NAME is a comma delimited list of
-                            text.
+  -H, --host                Match IOMMU groups with at least one (1) or
+                            more Host devices.
 
-  --ignore-name=NAME        Match IOMMU group(s) without device
-                            name, overrides "--name";
-                            NAME is a comma delimited list of
-                            text.
-
-  -t, --type=TYPE           Match IOMMU group(s) with device
-                            type;
-                            TYPE is a comma delimited list of
-                            text.
-
-  --ignore-type=TYPE        Match IOMMU group(s) without device
-                            type, overrides "--type";
-                            TYPE is a comma delimited list of
-                            text.
-
-  -V, --vendor=VENDOR       Match IOMMU group(s) with device
-                            vendor;
-                            VENDOR is a comma delimited list of
-                            text.
-
-  --ignore-vendor=VENDOR    Match IOMMU group(s) without device
-                            vendor, overrides "--vendor";
-                            VENDOR is a comma delimited list of
-                            text.
-
-  -p, --pci, --pcie         Match IOMMU groups with at least one
-                            (1) or more PCI/PCIe bus devices.
+  -n, --name=NAME           Match IOMMU group(s) with device name;
+                            NAME is a comma delimited list of text.
+  --ignore-name=NAME        Match IOMMU group(s) without device name,
+                            overrides "--name";
+                            NAME is a comma delimited list of text.
+  -t, --type=TYPE           Match IOMMU group(s) with device type;
+                            TYPE is a comma delimited list of text.
+  --ignore-type=TYPE        Match IOMMU group(s) without device type,
+                            overrides "--type";
+                            TYPE is a comma delimited list of text.
+  -V, --vendor=VENDOR       Match IOMMU group(s) with device vendor;
+                            VENDOR is a comma delimited list of text.
+  --ignore-vendor=VENDOR    Match IOMMU group(s) without device vendor,
+                            overrides "--vendor";
+                            VENDOR is a comma delimited list of text.
+  -p, --pci, --pcie         Match IOMMU groups with at least one (1) or
+                            more PCI/PCIe bus devices.
 
 Examples:
   parse-iommu-devices --ignore-name ether --pcie --graphics 2
-                            Standard output of comma-delimited
-                            lists hardware IDs and drivers (of
-                            IOMMU groups with PCI/e devices),
-                            exclude IOMMU groups with graphics
-                            device(s) before and after the
-                            second matched group, and exclude
-                            any wired ethernet devices (Host and
-                            PCI/e).
+                            Standard output of comma-delimited lists
+                            hardware IDs and drivers (of IOMMU groups
+                            with PCI/e devices), exclude IOMMU groups
+                            with graphics device(s) before and after the
+                            second matched group, and exclude any wired
+                            ethernet devices (Host and PCI/e).
 ```
 
 ### 7. Contact
