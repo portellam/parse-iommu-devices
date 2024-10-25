@@ -12,7 +12,7 @@ Log and XML files will be generated in `/usr/local/etc/`.
 ```
 #### 6.2. Executable
 ```
-```bash
+```
     -x, --xml, --xml=FILE     Query an XML file for device drivers
                             should none be found or any devices
                             are binded to VFIO;
