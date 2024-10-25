@@ -14,6 +14,7 @@ and return the device drivers and hardware IDs as output.
 - [6. Usage](#6-usage)
     - [6.1. Install](#61-install)
     - [6.2. Executable](#62-executable)
+    - [6.3 Parse standard output for automation or other scripts](#63-parse-standard-output-for-automation-or-other-scripts)
 - [7. Contact](#7-contact)
 - [8. References](#8-references)
 - [9. Planned Features](#9-planned-features)
