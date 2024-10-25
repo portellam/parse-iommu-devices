@@ -135,13 +135,9 @@
       return 0
     fi
 
-    driver="$( get_first_good_driver "${driver}" )"
+    # TODO: add XML support here.
 
-    if ! is_valid_driver "${driver}"; then
-      driver="${NULL_VALUE}"
-    fi
-
-    echo "${driver}"
+    return 1
   }
 
   #
