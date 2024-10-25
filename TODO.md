@@ -1,9 +1,13 @@
 # Parse IOMMU Devices
-## TODO
+Go to [README](./README.md)
+
+## To Do:
 - [ ] XML file support
-  - add the following to README
+  - add the following to README.
 
 ```
+    - [6.3. XML file](#63-xml-file)
+
 #### 6.1. Install
 Log and XML files will be generated in `/usr/local/etc/`.
 
