@@ -178,24 +178,28 @@ Did you encounter a bug? Do you need help? Please visit the
 **Issues page** ([Codeberg][71], [GitHub][72]).
 
 [71]: https://codeberg.org/portellam/parse-iommu-devices/issues
-[72]:   https://github.com/portellam/parse-iommu-devices/issues
+[72]: https://github.com/portellam/parse-iommu-devices/issues
 
 ### 8. References
 #### 1.
 &nbsp;&nbsp;**PCI passthrough via OVMF**. ArchWiki. Accessed June 14, 2024.
+
 &nbsp;&nbsp;&nbsp;&nbsp;<sup>https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF.</sup>
 
 #### 2.
 &nbsp;&nbsp;**VFIO - ‘Virtual Function I/O’ - The Linux Kernel Documentation**.
 The linux kernel. Accessed June 14, 2024.
+
 &nbsp;&nbsp;&nbsp;&nbsp;<sup>https://www.kernel.org/doc/html/latest/driver-api/vfio.html.</sup>
 
 #### 3.
 &nbsp;&nbsp;**VFIO Discussion and Support**. Reddit. Accessed June 14, 2024.
+
 &nbsp;&nbsp;&nbsp;&nbsp;<sup>https://www.reddit.com/r/VFIO/.</sup>
 
 #### 4.
 &nbsp;&nbsp;**XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
+
 &nbsp;&nbsp;&nbsp;&nbsp;<sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### 9. Planned Features
