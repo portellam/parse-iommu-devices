@@ -1,5 +1,5 @@
 # Parse IOMMU Devices
-### v1.0.2
+### v1.0.3
 Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
@@ -21,58 +21,41 @@ and return the device drivers and hardware IDs as output.
 
 ## Contents
 ### 1. Why?
-If you wish to determine if your current machine's hardware specifications are
-able to support VFIO, then this script is for you. The script allows one to
-query exactly what hardware you wish to allocate for a VFIO setup, and returns
-the relevant output. The output may then be used for kernel command line
-arguments, for example.
+**Do you want to know if your current machine is able to support VFIO?** then you
+need *Parse IOMMU Devices*.
+
+The script allows the user to query the exact hardware the user wishes to allocate
+for a VFIO setup. After which, the script returns the relevant standard output.
+
+The standard output may be used for kernel command line arguments, for example.
+See [6. Usage](#6-usage) for details on how to best use standard output.
 
 #### Disclaimer
 For first-time use, the script must be run **without** a VFIO setup present.
 
-VFIO setup will cause selected devices to use the VFIO driver
-(`vfio-pci` or sometimes `pci-stub`). The script will skip any IOMMU groups with
-at least one device binded to VFIO.
-
+An existing VFIO setup will cause selected devices to use the VFIO driver
+(`vfio-pci` or sometimes `pci-stub`). **The script will skip any IOMMU groups**
+**with at least one (1) device binded to VFIO.**
 
 ### 2. Related Projects
-| Project                             | Codeberg          | GitHub          |
-| :---                                | :---:             | :---:           |
-| Deploy VFIO                         | [link][codeberg1] | [link][github1] |
-| Auto X.Org                          | [link][codeberg2] | [link][github2] |
-| Generate Evdev                      | [link][codeberg3] | [link][github3] |
-| Guest Machine Guide                 | [link][codeberg4] | [link][github4] |
-| Libvirt Hooks                       | [link][codeberg5] | [link][github5] |
-| **Parse IOMMU Devices**             | [link][codeberg6] | [link][github6] |
-| Power State Virtual Machine Manager | [link][codeberg7] | [link][github7] |
+To view other relevant projects, visit [Codeberg][21]
+or [GitHub][22].
 
-[codeberg1]: https://codeberg.org/portellam/deploy-VFIO
-[github1]:   https://github.com/portellam/deploy-VFIO
-[codeberg2]: https://codeberg.org/portellam/auto-xorg
-[github2]:   https://github.com/portellam/auto-xorg
-[codeberg3]: https://codeberg.org/portellam/generate-evdev
-[github3]:   https://github.com/portellam/generate-evdev
-[codeberg4]: https://codeberg.org/portellam/guest-machine-guide
-[github4]:   https://github.com/portellam/guest-machine-guide
-[codeberg5]: https://codeberg.org/portellam/libvirt-hooks
-[github5]:   https://github.com/portellam/libvirt-hooks
-[codeberg6]: https://codeberg.org/portellam/parse-iommu-devices
-[github6]:   https://github.com/portellam/parse-iommu-devices
-[codeberg7]: https://codeberg.org/portellam/powerstate-virtmanager
-[github7]:   https://github.com/portellam/powerstate-virtmanager
+[21]: https://codeberg.org/portellam/vfio-collection
+[22]: https://github.com/portellam/vfio-collection
 
 ### 3. Documentation
-- [What is VFIO?](#2)
-- [VFIO Discussion and Support](#3)
-- [Hardware-Passthrough Guide](#1)
-- [Virtual Machine XML Format Guide](#4)
+- What is VFIO?[<sup>[2]</sup>](#2)
+- VFIO Discussion and Support[<sup>[3]</sup>](#3)
+- Hardware-Passthrough Guide[<sup>[1]</sup>](#1)
+- Virtual Machine XML Format Guide[<sup>[4]</sup>](#4)
 
 ### 4. Host Requirements
 Linux.
 
-### 5. Download
-- Download the Latest Release:&ensp;[Codeberg][codeberg-releases],
-[GitHub][github-releases]
+## 5. Download
+- Download the Latest Release:&ensp;[Codeberg][51],
+[GitHub][52]
 
 - Download the `.zip` file:
     1. Viewing from the top of the repository's (current) webpage, click the
@@ -85,11 +68,11 @@ Linux.
 - Clone the repository:
     1. Open a Command Line Interface (CLI).
         - Open a console emulator (for Debian systems: Konsole).
-        - Open a existing console: press `CTRL` + `ALT` + `F2`, `F3`, `F4`, `F5`,  or
+        - Open an existing console: press `CTRL` + `ALT` + `F2`, `F3`, `F4`, `F5`,  or
         `F6`.
             - **To return to the desktop,** press `CTRL` + `ALT` + `F7`.
             - `F1` is reserved for debug output of the Linux kernel.
-            - `F7` is reserved for graphics output of the desktop environment.
+            - `F7` is reserved for video output of the desktop environment.
             - `F8` and above are unused.
     2. Change your directory to your home folder or anywhere safe:
         - `cd ~`
@@ -97,8 +80,8 @@ Linux.
         - `git clone https://www.codeberg.org/portellam/parse-iommu-devices`
         - `git clone https://www.github.com/portellam/parse-iommu-devices`
 
-[codeberg-releases]: https://codeberg.org/portellam/parse-iommu-devices/releases/latest
-[github-releases]:   https://github.com/portellam/parse-iommu-devices/releases/latest
+[51]: https://codeberg.org/portellam/parse-iommu-devices/releases/latest
+[52]: https://github.com/portellam/parse-iommu-devices/releases/latest
 
 ### 6. Usage
 #### 6.1. Install
@@ -192,28 +175,28 @@ but **without** a verbose flag.
 
 ### 7. Contact
 Did you encounter a bug? Do you need help? Please visit the
-**Issues page** ([Codeberg][codeberg-issues], [GitHub][github-issues]).
+**Issues page** ([Codeberg][71], [GitHub][72]).
 
-[codeberg-issues]: https://codeberg.org/portellam/parse-iommu-devices/issues
-[github-issues]:   https://github.com/portellam/parse-iommu-devices/issues
+[71]: https://codeberg.org/portellam/parse-iommu-devices/issues
+[72]:   https://github.com/portellam/parse-iommu-devices/issues
 
 ### 8. References
 #### 1.
-**PCI passthrough via OVMF**. ArchWiki. Accessed June 14, 2024.
-<sup>https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF.</sup>
+&nbsp;&nbsp;**PCI passthrough via OVMF**. ArchWiki. Accessed June 14, 2024.
+&nbsp;&nbsp;&nbsp;&nbsp;<sup>https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF.</sup>
 
 #### 2.
-**VFIO - ‘Virtual Function I/O’ - The Linux Kernel Documentation**.
+&nbsp;&nbsp;**VFIO - ‘Virtual Function I/O’ - The Linux Kernel Documentation**.
 The linux kernel. Accessed June 14, 2024.
-<sup>https://www.kernel.org/doc/html/latest/driver-api/vfio.html.</sup>
+&nbsp;&nbsp;&nbsp;&nbsp;<sup>https://www.kernel.org/doc/html/latest/driver-api/vfio.html.</sup>
 
 #### 3.
-**VFIO Discussion and Support**. Reddit. Accessed June 14, 2024.
-<sup>https://www.reddit.com/r/VFIO/.</sup>
+&nbsp;&nbsp;**VFIO Discussion and Support**. Reddit. Accessed June 14, 2024.
+&nbsp;&nbsp;&nbsp;&nbsp;<sup>https://www.reddit.com/r/VFIO/.</sup>
 
 #### 4.
-**XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
-<sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
+&nbsp;&nbsp;**XML Design Format** GitHub - libvirt/libvirt. Accessed June 18, 2024.
+&nbsp;&nbsp;&nbsp;&nbsp;<sup>https://github.com/libvirt/libvirt/blob/master/docs/formatdomain.rst.</sup>
 
 ### 9. Planned Features
 - XML file support.
