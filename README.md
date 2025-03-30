@@ -4,6 +4,10 @@ Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
 ### [Download](#5-download)
+#### View this repository on [Codeberg][01], [GitHub][02].
+[01]: https://codeberg.org/portellam/parse-iommu-devices
+[02]: https://github.com/portellam/parse-iommu-devices
+##
 
 ## Table of Contents
 - [1. Why?](#1-why)
@@ -54,8 +58,7 @@ or [GitHub][22].
 Linux.
 
 ## 5. Download
-- Download the Latest Release:&ensp;[Codeberg][51],
-[GitHub][52]
+- Download the Latest Release:&ensp;[Codeberg][51], [GitHub][52]
 
 - Download the `.zip` file:
     1. Viewing from the top of the repository's (current) webpage, click the
@@ -66,10 +69,10 @@ Linux.
     3. Open the `.zip` file, then extract its contents.
 
 - Clone the repository:
-    1. Open a Command Line Interface (CLI).
+    1. Open a Command Line Interface (CLI) or Terminal.
         - Open a console emulator (for Debian systems: Konsole).
-        - Open an existing console: press `CTRL` + `ALT` + `F2`, `F3`, `F4`, `F5`,  or
-        `F6`.
+        - **Linux only:** Open an existing console: press `CTRL` + `ALT` + `F2`,
+        `F3`, `F4`, `F5`, or `F6`.
             - **To return to the desktop,** press `CTRL` + `ALT` + `F7`.
             - `F1` is reserved for debug output of the Linux kernel.
             - `F7` is reserved for video output of the desktop environment.
@@ -174,11 +177,9 @@ but **without** a verbose flag.
 ```
 
 ### 7. Contact
-Did you encounter a bug? Do you need help? Please visit the
-**Issues page** ([Codeberg][71], [GitHub][72]).
+Wish to recommend a project? Do you need help? Please visit the [Issues][71] page.
 
-[71]: https://codeberg.org/portellam/parse-iommu-devices/issues
-[72]: https://github.com/portellam/parse-iommu-devices/issues
+[91]: https://github.com/portellam/parse-iommu-devices/issues
 
 ### 8. References
 #### 1.
@@ -206,3 +207,6 @@ The linux kernel. Accessed June 14, 2024.
 - XML file support.
   - useful for systems which have VFIO setups, but do not necessarily change
   hardware often.
+##
+
+#### Click [here](#parse-iommu-devices) to return to the top of this document.
