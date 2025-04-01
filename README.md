@@ -179,7 +179,7 @@ but **without** a verbose flag.
 ### 7. Contact
 Do you need help? Please visit the [Issues][71] page.
 
-[91]: https://github.com/portellam/parse-iommu-devices/issues
+[71]: https://github.com/portellam/parse-iommu-devices/issues
 
 ### 8. References
 #### 1.
