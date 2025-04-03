@@ -4,7 +4,7 @@ Bash script to parse, sort, and display hardware devices by IOMMU group,
 and return the device drivers and hardware IDs as output.
 
 ### [Download](#5-download)
-#### View this repository on [Codeberg][01], [GitHub][02].
+#### View this repository on [Codeberg][01] or [GitHub][02].
 [01]: https://codeberg.org/portellam/parse-iommu-devices
 [02]: https://github.com/portellam/parse-iommu-devices
 ##
@@ -58,7 +58,7 @@ or [GitHub][22].
 Linux.
 
 ## 5. Download
-- Download the Latest Release:&ensp;[Codeberg][51], [GitHub][52]
+- Download the Latest Release:&ensp;[Codeberg][51] or [GitHub][52].
 
 - Download the `.zip` file:
     1. Viewing from the top of the repository's (current) webpage, click the
