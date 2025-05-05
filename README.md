@@ -142,7 +142,7 @@ sudo bash installer.sh
 
 Examples:
   parse-iommu-devices --graphics 2,3
-                            Exclude the second and third matched IOMMU
+                            Include the second and third matched IOMMU
                             groups with graphics device(s). Standard
                             output includes: comma-delimited lists of
                             selected hardware IDs, drivers, and IOMMU
@@ -179,7 +179,7 @@ but **without** a verbose flag.
 ### 7. Contact
 Wish to recommend a project? Do you need help? Please visit the [Issues][71] page.
 
-[91]: https://github.com/portellam/parse-iommu-devices/issues
+[71]: https://github.com/portellam/parse-iommu-devices/issues
 
 ### 8. References
 #### 1.
