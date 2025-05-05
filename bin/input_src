@@ -816,7 +816,7 @@
     echo -en "$( get_repeated_space 28 )"
 
     column_prefix_count=28
-    text="Exclude the second and third matched IOMMU groups with graphics device(s). "
+    text="Include the second and third matched IOMMU groups with graphics device(s). "
     text+="Standard output includes: comma-delimited lists of selected hardware IDs, "
     text+="drivers, and IOMMU group IDs."
 
